@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#3f51b5">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#333">
+  <title>Розклад занять ІВ-12</title>
+  <!-- Favicon з емодзі 📅 -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📅</text></svg>">
+  <!-- PWA Manifest вбудований як data URI -->
+  <link rel="manifest" href="data:application/json;base64,CnsKICAibmFtZSI6ICLQoNC+0LfQutC70LDQtCDQt9Cw0L3Rj9GC0Ywg0IbQki0xMiIsCiAgInNob3J0X25hbWUiOiAi0KDQvtC30LrQu9Cw0LQg0IbQki0xMiIsCiAgImljb25zIjogWwogICAgewogICAgICAic3JjIjogImRhdGE6aW1hZ2Uvc3ZnK3htbCw8c3ZnIHhtbG5zPVwiaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmdcIiB2aWV3Qm94PVwiMCAwIDEwMCAxMDBcIj48dGV4dCB5PVwiLjllbVwiIGZvbnQtc2l6ZT1cIjkwXCI+8J+ThTwvdGV4dD48L3N2Zz4iLAogICAgICAic2l6ZXMiOiAiMTkyeDE5MiIsCiAgICAgICJ0eXBlIjogImltYWdlL3N2Zyt4bWwiCiAgICB9CiAgXSwKICAic3RhcnRfdXJsIjogIi4vIiwKICAiZGlzcGxheSI6ICJmdWxsc2NyZWVuIiwKICAidGhlbWVfY29sb3IiOiAiIzNmNTFiNSIsCiAgImJhY2tncm91bmRfY29sb3IiOiAiI2Y0ZjZmYSIKfQo=">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f4f6fa;
+      color: #222;
+      transition: background 0.3s, color 0.3s;
+    }
+    body.dark-mode {
+      background: #222;
+      color: #fff;
+    }
+    nav {
+      position: sticky;
+      top: 0;
+      background: #f4f6fa;
+      padding: 10px;
+      text-align: center;
+      z-index: 100;
+      border-bottom: 1px solid #ddd;
+      transition: background 0.3s;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px; /* Для роздільників на десктопі */
+    }
+    body.dark-mode nav {
+      background: #333;
+      border-bottom: 1px solid #555;
+    }
+    nav a {
+      text-decoration: none;
+      color: #3f51b5;
+      font-weight: bold;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    nav a:hover {
+      text-decoration: underline;
+    }
+    /* Десктоп: додати | після кожного a, крім останнього */
+    @media (min-width: 601px) {
+      nav a:not(:last-child)::after {
+        content: ' | ';
+        color: #3f51b5;
+      }
+    }
+    /* Мобільна версія: рівномірний розподіл, скорочені назви */
+    @media (max-width: 600px) {
+ subtropical: nav {
+        padding: 5px;
+        gap: 0; /* Без gap для space-evenly */
+        justify-content: space-evenly; /* Рівномірний розподіл: По ліворуч, В між По і С, С центр, Ч між С і Пя, Пя праворуч */
+      }
+      nav a {
+        font-size: 14px; /* Трохи менший шрифт */
+        flex-shrink: 0; /* Не стискати */
+      }
+    }
+    .filters {
+      margin-bottom: 20px;
+      text-align: center;
+      background: white;
+      padding: 15px;
+      border-radius: 12px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    body.dark-mode .filters {
+      background: #333;
+    }
+    .filters select, .filters input[type="checkbox"] {
+      margin: 0 10px;
+      padding: 5px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    body.dark-mode .filters select, body.dark-mode .filters input[type="checkbox"] {
+      background: #444;
+      color: #fff;
+      border: 1px solid #555;
+    }
+    .filters label {
+      margin-right: 5px;
+    }
+    #currentWeekInfo {
+      color: #3f51b5;
+      font-weight: bold;
+    }
+    body.dark-mode #currentWeekInfo {
+      color: #bbdefb;
+    }
+    .theme-toggle {
+      position: fixed;
+      top: 60px; /* Moved lower to avoid overlap with nav */
+      right: 20px;
+      background: #3f51b5;
+      color: white;
+      border: none;
+      padding: 10px;
+      border-radius: 50%;
+      cursor: pointer;
+      z-index: 100;
+      transition: background 0.3s;
+    }
+    body.dark-mode .theme-toggle {
+      background: #ff9800;
+    }
+    .day {
+      margin-bottom: 40px;
+    }
+    .day section {
+      scroll-margin-top: 60px; /* Для якірних посилань */
+    }
+    .day h2 {
+      background: #3f51b5;
+      color: white;
+      padding: 10px;
+      border-radius: 12px;
+      margin-bottom: 15px;
+      transition: background 0.3s;
+    }
+    .day.today h2 {
+      background: #d81b60;
+    }
+    body.dark-mode .day h2 {
+      background: #1e88e5;
+    }
+    body.dark-mode .day.today h2 {
+      background: #f06292;
+    }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 15px;
+      margin-top: 15px;
+      animation: fadeIn 0.5s ease-in;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: transform 0.2s, box-shadow 0.2s, background 0.3s;
+    }
+    body.dark-mode .card {
+      background: #333;
+      box-shadow: 0 4px 8px rgba(255,255,255,0.1);
+    }
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    }
+    body.dark-mode .card:hover {
+      box-shadow: 0 6px 12px rgba(255,255,255,0.15);
+    }
+    .card.current {
+      background: #d4edda !important;
+      border-left: 5px solid #28a745;
+    }
+    body.dark-mode .card.current {
+      background: #2d5a3a !important;
+    }
+    .card.upcoming {
+      background: #fff3cd !important;
+      border-left: 5px solid #ffc107;
+    }
+    body.dark-mode .card.upcoming {
+      background: #4a4a2d !important;
+    }
+    .card h3 {
+      margin: 0 0 10px;
+      font-size: 18px;
+      color: #3f51b5;
+      display: flex;
+      align-items: center;
+    }
+    body.dark-mode .card h3 {
+      color: #bbdefb;
+    }
+    .card.lecture h3::before { content: '📚 '; }
+    .card.practical h3::before { content: '✍️ '; }
+    .card.lab h3::before { content: '🧪 '; }
+    .card b {
+      font-size: 18px;
+      font-weight: 600;
+      color: #333;
+    }
+    body.dark-mode .card b {
+      color: #fff;
+    }
+    .card p {
+      margin: 5px 0;
+      font-size: 14px;
+    }
+    .card .time {
+      color: #5c6bc0;
+      font-size: 16px;
+      font-weight: bold;
+    }
+    body.dark-mode .card .time {
+      color: #bbdefb;
+    }
+    .card .teacher-room {
+      color: #d4a017;
+      font-size: 13px;
+    }
+    body.dark-mode .card .teacher-room {
+      color: #ffc107;
+    }
+    .empty {
+      background: #e0e0e0;
+      color: #666;
+      text-align: center;
+      font-style: italic;
+    }
+    body.dark-mode .empty {
+      background: #444;
+      color: #aaa;
+    }
+    .empty-message {
+      text-align: center;
+      font-style: italic;
+      color: #666;
+      margin: 0;
+    }
+    body.dark-mode .empty-message {
+      color: #aaa;
+    }
+    .subgroup {
+      border-top: 1px dashed #ccc;
+      margin-top: 8px;
+      padding-top: 5px;
+      padding: 10px;
+      border-radius: 8px;
+      margin: 5px 0;
+      font-size: 0.9em;
+    }
+    body.dark-mode .subgroup {
+      border-top: 1px dashed #555;
+    }
+    .subgroup.numden {
+      background: #e8ecef;
+    }
+    body.dark-mode .subgroup.numden {
+      background: #444;
+    }
+    .subgroup .subgroup-label {
+      color: #28a745;
+      font-weight: bold;
+    }
+    body.dark-mode .subgroup .subgroup-label {
+      color: #4caf50;
+    }
+    .subgroup .subgroup-label.sub2 {
+      color: #9c27b0;
+    }
+    body.dark-mode .subgroup .subgroup-label.sub2 {
+      color: #ce93d8;
+    }
+    .subgroup .num-label {
+      color: #28a745;
+    }
+    body.dark-mode .subgroup .num-label {
+      color: #4caf50;
+    }
+    .subgroup .den-label {
+      color: #9c27b0;
+    }
+    body.dark-mode .subgroup .den-label {
+      color: #ce93d8;
+    }
+    /* Мобільна адаптивність */
+    @media (max-width: 600px) {
+      body {
+        padding: 10px;
+      }
+      .cards {
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+      .card {
+        padding: 10px;
+      }
+      .card p {
+        font-size: 16px;
+      }
+      .filters select, .filters input[type="checkbox"] {
+        display: block;
+        margin: 10px auto;
+      }
+      .theme-toggle {
+        top: 50px; /* Adjusted for mobile */
+      }
+    }
+    /* Друк */
+    @media print {
+      body {
+        background: white;
+        color: black;
+      }
+      nav, .filters, .theme-toggle, footer {
+        display: none;
+      }
+      .card {
+        box-shadow: none;
+        border: 1px solid #ccc;
+        break-inside: avoid;
+      }
+      .day {
+        break-before: page;
+      }
+    }
+    /* Стилі для футера */
+    footer {
+      margin-top: 60px;
+      padding: 30px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    body.dark-mode footer {
+      background: #333;
+    }
+    footer h1 {
+      margin-bottom: 20px;
+      color: #3f51b5;
+    }
+    body.dark-mode footer h1 {
+      color: #bbdefb;
+    }
+  </style>
+</head>
+<body>
+  <button class="theme-toggle" onclick="toggleDarkMode()">🌙</button>
+
+  <nav>
+    <a onclick="scrollToDay('monday')" data-full="Понеділок" data-short="По">Понеділок</a>
+    <a onclick="scrollToDay('tuesday')" data-full="Вівторок" data-short="В">Вівторок</a>
+    <a onclick="scrollToDay('wednesday')" data-full="Середа" data-short="С">Середа</a>
+    <a onclick="scrollToDay('thursday')" data-full="Четвер" data-short="Ч">Четвер</a>
+    <a onclick="scrollToDay('friday')" data-full="П’ятниця" data-short="Пя">П’ятниця</a>
+  </nav>
+
+  <!-- Понеділок -->
+  <section class="day" id="monday">
+    <h2>Понеділок</h2>
+    <div class="cards">
+      <article class="card practical">
+        <h3>1 пара</h3>
+        <p><b>Фізичне виховання</b> (Практична)</p>
+        <p class="teacher-room">ХХІІ н.к.</p>
+        <p class="time">08:00 – 09:20</p>
+        <p class="empty-message" style="display:none">Немає</p>
+      </article>
+      <article class="card empty">
+        <h3>2 пара</h3>
+        <p>Немає</p>
+      </article>
+      <article class="card lecture">
+        <h3>3 пара</h3>
+        <p><b>Фізика</b> (Лекція)</p>
+        <p class="teacher-room">Товстюк Н.К., 139 Гол. н.к.</p>
+        <p class="time">11:40 – 13:00</p>
+        <p class="empty-message" style="display:none">Немає</p>
+      </article>
+      <article class="card practical">
+        <h3>4 пара</h3>
+        <p><b>Українська мова</b> (Практична)</p>
+        <p class="teacher-room">Ковалів С.В., 713 V н.к.</p>
+        <p class="time">13:15 – 14:35</p>
+        <p class="empty-message" style="display:none">Немає</p>
+      </article>
+      <article class="card empty">
+        <h3>5 пара</h3>
+        <p>Немає</p>
+      </article>
+    </div>
+  </section>
+
+  <!-- Вівторок -->
+  <section class="day" id="tuesday">
+    <h2>Вівторок</h2>
+    <div class="cards">
+      <article class="card empty">
+        <h3>1 пара</h3>
+        <p>Немає</p>
+      </article>
+      <article class="card lab">
+        <h3>2 пара</h3>
+        <div class="subgroup numden sub1 num">
+          <p class="subgroup-label sub1">Підгрупа 1 <span class="num-label">(Чисельник)</span></p>
+          <p><b>Програмування</b> (Лабораторна)</p>
+          <p class="teacher-room">Сегеда О.В., 702 V н.к.</p>
+        </div>
+        <div class="subgroup numden sub2 den">
+          <p class="subgroup-label sub2">Підгрупа 2 <span class="den-label">(Знаменник)</span></p>
+          <p><b>Програмування</b> (Лабораторна)</p>
+          <p class="teacher-room">Сегеда О.В., 702 V н.к.</p>
+        </div>
+        <p class="time">10:05 – 11:25</p>
+        <p class="empty-message" style="display:none">Немає</p>
+      </article>
+      <article class="card lecture">
+        <h3>3 пара</h3>
+        <p><b>Програмування</b> (Лекція)</p>
+        <p class="teacher-room">Озгович А.І., 711 V н.к.</p>
+        <p class="time">11:40 – 13:00</p>
+        <p class="empty-message" style="display:none">Немає</p>
+      </article>
+      <article class="card practical">
+        <h3>4 пара</h3>
+        <p><b>Програмування</b> (Практична)</p>
+        <p class="teacher-room">Озгович А.І., 711 V н.к.</p>
+        <p class="time">13:15 – 14:35</p>
+        <p class="empty-message" style="display:none">Немає</p>
+      </article>
+      <article class="card practical">
+        <h3>5 пара</h3>
+        <div class="subgroup sub1">
+          <p class="subgroup-label sub1">Підгрупа 1</p>
+          <p><b>Іноземна мова</b> (Практична)</p>
+          <p class="teacher-room">Колесник Г.О., 027 VII н.к.</p>
+        </div>
+        <div class="subgroup sub2">
+          <p class="subgroup-label sub2">Підгрупа 2</p>
+          <p><b>Іноземна мова</b> (Практична)</p>
+          <p class="teacher-room">Колесник Г.О., 015 VII н.к.</p>
+        </div>
+        <p class="time">14:50 – 16:10</p>
+        <p class="empty-message" style="display:none">Немає</p>
+      </article>
+    </div>
+  </section>
+
+  <!-- Середа -->
+  <section class="day" id="wednesday">
+    <h2>Середа</h2>
+    <div class="cards">
+      <article class="card lab">
+        <h3>1 пара</h3>
+        <div class="subgroup sub2">
+          <p class="subgroup-label sub2">Підгрупа 2</p>
+          <p><b>Програмування</b> (Лабораторна)</p>
+          <p class="teacher-room">Сегеда О.В., 702 V н.к.</p>
+        </div>
+        <p class="time">08:30 – 09:50</p>
+        <p class="empty-message" style="display:none">Немає</p>
+      </article>
+      <article class="card lecture">
+        <h3>2 пара</h3>
+        <p><b>Вища математика</b> (Лекція)</p>
+        <p class="teacher-room">Кунинець А.В., 713 V н.к.</p>
+        <p class="time">10:05 – 11:25</p>
+        <p class="empty-message" style="display:none">Немає</p>
+      </article>
+      <article class="card practical">
+        <h3>3 пара</h3>
+        <div class="subgroup numden num">
+          <p class="num-label">Чисельник</p>
+          <p><b>Фізика</b> (Практична)</p>
+        </div>
+        <div class="subgroup numden den">
+          <p class="den-label">Знаменник</p>
+          <p><b>Вища математика</b> (Практична)</p>
+          <p class="teacher-room">Кунинець А.В., 713 V н.к.</p>
+        </div>
+        <p class="time">11:40 – 13:00</p>
+        <p class="empty-message" style="display:none">Немає</p>
+      </article>
+      <article class="card empty">
+        <h3>4 пара</h3>
+        <p>Немає</p>
+      </article>
+      <article class="card empty">
+        <h3>5 пара</h3>
+        <p>Немає</p>
+      </article>
+    </div>
+  </section>
+
+  <!-- Четвер -->
+  <section class="day" id="thursday">
+    <h2>Четвер</h2>
+    <div class="cards">
+      <article class="card empty">
+        <h3>1 пара</h3>
+        <p>Немає</p>
+      </article>
+      <article class="card lab">
+        <h3>2 пара</h3>
+        <div class="subgroup sub1">
+          <p class="subgroup-label sub1">Підгрупа 1</p>
+          <p><b>Програмування</b> (Лабораторна)</p>
+          <p class="teacher-room">Сегеда О.В., 702 V н.к.</p>
+        </div>
+        <div class="subgroup numden sub2 num">
+          <p class="subgroup-label sub2">Підгрупа 2 <span class="num-label">(Чисельник)</span></p>
+          <p><b>Інженерна та комп`ютерна графіка </b> (Лабораторна)</p>
+          <p class="teacher-room">Строган О.І., 108 IV н.к.</p>
+        </div>
+        <p class="time">10:05 – 11:25</p>
+        <p class="empty-message" style="display:none">Немає</p>
+      </article>
+      <article class="card lecture">
+        <h3>3 пара</h3>
+        <div class="subgroup numden num">
+          <p class="num-label">Чисельник</p>
+          <p><b>Інженерна та комп`ютерна графіка</b> (Лекція)</p>
+          <p class="teacher-room">Шевчук А.О., 111 IV н.к.</p>
+        </div>
+        <div class="subgroup numden den">
+          <p class="den-label">Знаменник</p>
+          <p><b>Вища математика</b> (Лекція)</p>
+          <p class="teacher-room">Кунинець А.В.,  713 V н.к.</p>
+        </div>
+        <p class="time">11:40 – 13:00</p>
+        <p class="empty-message" style="display:none">Немає</p>
+      </article>
+      <article class="card lab">
+        <h3>4 пара</h3>
+        <div class="subgroup numden sub1 num">
+          <p class="subgroup-label sub1">Підгрупа 1 <span class="num-label">(Чисельник)</span></p>
+          <p><b>Інженерна та комп`ютерна графіка</b> (Лабораторна)</p>
+          <p class="teacher-room">Комаров С.М., 109 IV н.к.</p>
+        </div>
+        <p class="time">13:15 – 14:35</p>
+        <p class="empty-message" style="display:none">Немає</p>
+      </article>
+      <article class="card empty">
+        <h3>5 пара</h3>
+        <p>Немає</p>
+      </article>
+    </div>
+  </section>
+
+  <!-- П’ятниця -->
+  <section class="day" id="friday">
+    <h2>П’ятниця</h2>
+    <div class="cards">
+      <article class="card lab">
+        <h3>1 пара</h3>
+        <div class="subgroup sub1">
+          <p class="subgroup-label sub1">Підгрупа 1</p>
+          <p><b>Фізика</b> (Лабораторна)</p>
+          <p class="teacher-room">Товстюк Н.К., ел.2лаб Гол. н.к., мол.2лаб Гол. н.к.</p>
+        </div>
+        <div class="subgroup sub2">
+          <p class="subgroup-label sub2">Підгрупа 2</p>
+          <p><b>Фізика</b> (Лабораторна)</p>
+          <p class="teacher-room">Мороз І.Є., ел.2лаб Гол. н.к., мол.2лаб Гол. н.к.</p>
+        </div>
+        <p class="time">08:30 – 09:50</p>
+        <p class="empty-message" style="display:none">Немає</p>
+      </article>
+      <article class="card practical">
+        <h3>2 пара</h3>
+        <p><b>Вища математика</b> (Практична)</p>
+        <p class="teacher-room">Кунинець А.В., 713 V н.к.</p>
+        <p class="time">10:05 – 11:25</p>
+        <p class="empty-message" style="display:none">Немає</p>
+      </article>
+      <article class="card empty">
+        <h3>3 пара</h3>
+        <p>Немає</p>
+      </article>
+      <article class="card empty">
+        <h3>4 пара</h3>
+        <p>Немає</p>
+      </article>
+      <article class="card empty">
+        <h3>5 пара</h3>
+        <p>Немає</p>
+      </article>
+    </div>
+  </section>
+
+  <!-- Футер з заголовком і фільтрами -->
+  <footer>
+    <h1>Розклад занять (ІВ-12, 1 семестр)</h1>
+    <div class="filters">
+      <label>Підгрупа: </label>
+      <select id="subgroupFilter" onchange="filterSchedule()">
+        <option value="all">Усі</option>
+        <option value="sub1">Підгрупа 1</option>
+        <option value="sub2">Підгрупа 2</option>
+      </select>
+      <label style="margin-left: 20px;">
+        <input type="checkbox" id="showAllWeeks" onchange="filterSchedule()"> Показати всі тижні
+      </label>
+      <label style="margin-left: 20px;">
+        <input type="checkbox" id="hideEmptyLessons" onchange="filterSchedule()"> Приховати порожні пари
+      </label>
+      <span id="currentWeekInfo"></span>
+    </div>
+  </footer>
+
+  <script>
+    // Функції для cookies
+    function setCookie(name, value, days = 30) {
+      const expires = new Date();
+      expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
+      document.cookie = `${name}=${encodeURIComponent(value)};expires=${expires.toUTCString()};path=/`;
+    }
+
+    function getCookie(name) {
+      const nameEQ = `${name}=`;
+      const ca = document.cookie.split(';');
+      for (let i = 0; i < ca.length; i++) {
+        let c = ca[i];
+        while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+        if (c.indexOf(nameEQ) === 0) return decodeURIComponent(c.substring(nameEQ.length, c.length));
+      }
+      return null;
+    }
+
+    // Функції для тижнів
+    function getISOWeek(date) {
+      const d = new Date(date.getTime());
+      d.setHours(0, 0, 0, 0);
+      d.setDate(d.getDate() + 3 - (d.getDay() + 6) % 7);
+      const week1 = new Date(d.getFullYear(), 0, 4);
+      return 1 + Math.round(((d.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
+    }
+
+    function getCurrentType() {
+      const now = new Date();
+      const week = getISOWeek(now);
+      const isOddWeek = week % 2 === 1;
+      return isOddWeek ? 'den' : 'num'; // 37 odd -> den
+    }
+
+    function getWeekDates(date) {
+      const d = new Date(date);
+      const day = d.getDay();
+      const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Monday
+      const monday = new Date(d.setDate(diff));
+      monday.setFullYear(monday.getFullYear(), monday.getMonth(), monday.getDate());
+      const friday = new Date(monday);
+      friday.setDate(friday.getDate() + 4);
+      return { start: monday, end: friday };
+    }
+
+    function updateWeekInfo() {
+      const showAll = document.getElementById('showAllWeeks').checked;
+      const infoSpan = document.getElementById('currentWeekInfo');
+      if (showAll) {
+        infoSpan.innerHTML = '';
+      } else {
+        const type = getCurrentType();
+        const dates = getWeekDates(new Date());
+        const typeName = type === 'num' ? 'Чисельник' : 'Знаменник';
+        infoSpan.innerHTML = `${typeName} (${dates.start.toLocaleDateString('uk-UA')} – ${dates.end.toLocaleDateString('uk-UA')})`;
+      }
+    }
+
+    // Навігація
+    function scrollToDay(dayId) {
+      const element = document.getElementById(dayId);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+
+    // Оновлення тексту навігації для мобільного
+    function updateNavText() {
+      const isMobile = window.innerWidth <= 600;
+      const links = document.querySelectorAll('nav a');
+      links.forEach(link => {
+        if (isMobile) {
+          link.textContent = link.dataset.short;
+        } else {
+          link.textContent = link.dataset.full;
+        }
+      });
+    }
+
+    // Темна тема
+    function toggleDarkMode() {
+      const isDark = document.body.classList.toggle('dark-mode');
+      const button = document.querySelector('.theme-toggle');
+      button.textContent = isDark ? '☀️' : '🌙';
+      setCookie('darkMode', isDark ? 'true' : 'false');
+    }
+
+    // Завантажити налаштування з cookies
+    function loadSettings() {
+      // Темна тема
+      const darkMode = getCookie('darkMode');
+      if (darkMode === 'true') {
+        document.body.classList.add('dark-mode');
+        document.querySelector('.theme-toggle').textContent = '☀️';
+      }
+
+      // Підгрупа
+      const subgroup = getCookie('subgroupFilter');
+      if (subgroup) {
+        document.getElementById('subgroupFilter').value = subgroup;
+      }
+
+      // Показати всі тижні
+      const showAll = getCookie('showAllWeeks');
+      if (showAll === 'true') {
+        document.getElementById('showAllWeeks').checked = true;
+      }
+
+      // Приховати порожні пари
+      const hideEmpty = getCookie('hideEmptyLessons');
+      if (hideEmpty === 'true') {
+        document.getElementById('hideEmptyLessons').checked = true;
+      }
+    }
+
+    // Зберегти налаштування
+    function saveSettings() {
+      const subgroup = document.getElementById('subgroupFilter').value;
+      const showAll = document.getElementById('showAllWeeks').checked;
+      const hideEmpty = document.getElementById('hideEmptyLessons').checked;
+      setCookie('subgroupFilter', subgroup);
+      setCookie('showAllWeeks', showAll ? 'true' : 'false');
+      setCookie('hideEmptyLessons', hideEmpty ? 'true' : 'false');
+    }
+
+    // Поточний день
+    function highlightToday() {
+      const days = ['Неділя', 'Понеділок', 'Вівторок', 'Середа', 'Четвер', 'П’ятниця', 'Субота'];
+      const today = new Date().getDay();
+      const todayName = days[today];
+      const daySections = document.querySelectorAll('.day');
+      daySections.forEach(section => {
+        const h2 = section.querySelector('h2');
+        if (h2 && h2.textContent === todayName) {
+          section.classList.add('today');
+          section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    }
+    highlightToday();
+
+    // Фільтрація
+    function filterSchedule() {
+      const subgroup = document.getElementById('subgroupFilter').value;
+      const showAll = document.getElementById('showAllWeeks').checked;
+      const hideEmpty = document.getElementById('hideEmptyLessons').checked;
+      const currentType = getCurrentType();
+      const cards = document.querySelectorAll('.card');
+
+      cards.forEach(card => {
+        const subgroups = card.querySelectorAll('.subgroup');
+        let hasVisibleContent = false;
+
+        if (subgroups.length === 0) {
+          // Картки без підгруп
+          const isEmpty = card.classList.contains('empty');
+          if (hideEmpty && isEmpty) {
+            card.style.display = 'none';
+          } else {
+            card.style.display = 'block';
+            const emptyMsg = card.querySelector('.empty-message');
+            if (emptyMsg) emptyMsg.style.display = isEmpty ? 'block' : 'none';
+            const timeEl = card.querySelector('.time');
+            if (timeEl) timeEl.style.display = isEmpty ? 'none' : 'block';
+          }
+        } else {
+          // Сховати всі subgroups спочатку
+          subgroups.forEach(sub => sub.style.display = 'none');
+
+          subgroups.forEach(sub => {
+            let visible = true;
+
+            // Фільтр підгрупи
+            if (subgroup !== 'all') {
+              const subType = sub.classList.contains('sub1') ? 'sub1' : (sub.classList.contains('sub2') ? 'sub2' : null);
+              if (subType !== subgroup) visible = false;
+            }
+
+            // Фільтр тижня
+            if (!showAll) {
+              const weekType = sub.classList.contains('num') ? 'num' : (sub.classList.contains('den') ? 'den' : null);
+              if (weekType && weekType !== currentType) visible = false;
+            }
+
+            sub.style.display = visible ? 'block' : 'none';
+            if (visible) hasVisibleContent = true;
+          });
+
+          const emptyMsg = card.querySelector('.empty-message');
+          const timeEl = card.querySelector('.time');
+
+          if (hasVisibleContent) {
+            if (emptyMsg) emptyMsg.style.display = 'none';
+            if (timeEl) timeEl.style.display = 'block';
+            card.classList.remove('empty');
+            card.style.display = 'block';
+          } else {
+            subgroups.forEach(sub => sub.style.display = 'none');
+            if (timeEl) timeEl.style.display = 'none';
+            if (emptyMsg) emptyMsg.style.display = 'block';
+            else {
+              const newEmpty = document.createElement('p');
+              newEmpty.className = 'empty-message';
+              newEmpty.textContent = 'Немає';
+              newEmpty.style.display = 'block';
+              card.appendChild(newEmpty);
+            }
+            card.classList.add('empty');
+            card.style.display = hideEmpty ? 'none' : 'block';
+          }
+        }
+      });
+
+      // Приховувати лейбли чисельник/знаменник при автоматичному режимі
+      const labels = document.querySelectorAll('.num-label, .den-label');
+      labels.forEach(label => {
+        label.style.display = showAll ? '' : 'none';
+      });
+
+      updateWeekInfo();
+      highlightCurrentPair(); // Оновити виділення після фільтрації
+      saveSettings(); // Зберегти налаштування
+    }
+
+    // Виділення поточної/наступної пари
+    function highlightCurrentPair() {
+      const now = new Date();
+      const currentHour = now.getHours();
+      const currentMinute = now.getMinutes();
+      const currentMinutes = currentHour * 60 + currentMinute;
+
+      // Знайти сьогоднішній день
+      const todaySection = document.querySelector('.day.today');
+      if (!todaySection) return;
+
+      const cards = todaySection.querySelectorAll('.card:not(.empty)');
+      let currentCard = null;
+      let upcomingCard = null;
+      let minDiffToStart = Infinity;
+
+      cards.forEach(card => {
+        // Перевіряємо, чи картка видима
+        if (card.style.display === 'none') return;
+
+        const timeP = card.querySelector('.time');
+        if (!timeP || !timeP.textContent) return;
+
+        const timeText = timeP.textContent;
+        const [startTime, endTime] = timeText.split(' – ');
+        if (!startTime || !endTime) return;
+
+        const [startHour, startMin] = startTime.split(':').map(Number);
+        const [endHour, endMin] = endTime.split(':').map(Number);
+        if (isNaN(startHour) || isNaN(startMin) || isNaN(endHour) || isNaN(endMin)) return;
+
+        const startMinutes = startHour * 60 + startMin;
+        const endMinutes = endHour * 60 + endMin;
+
+        // Якщо зараз в проміжку пари
+        if (currentMinutes >= startMinutes && currentMinutes < endMinutes) {
+          card.classList.add('current');
+          card.classList.remove('upcoming');
+          currentCard = card;
+          return; // Тільки одна поточна
+        }
+
+        // Перевірити на наступну пару (якщо після цієї пари)
+        if (startMinutes > currentMinutes) {
+          const diff = startMinutes - currentMinutes;
+          if (diff < minDiffToStart) {
+            minDiffToStart = diff;
+            upcomingCard = card;
+          }
+        }
+      });
+
+      // Очистити попередні класи
+      cards.forEach(c => {
+        c.classList.remove('current', 'upcoming');
+      });
+
+      // Встановити поточну
+      if (currentCard) {
+        currentCard.classList.add('current');
+      }
+
+      // Встановити наступну, якщо < 15 хв
+      if (upcomingCard && minDiffToStart <= 15) {
+ක: upcomingCard.classList.add('upcoming');
+      }
+    }
+
+    // Ініціалізація
+    loadSettings(); // Завантажити налаштування
+    filterSchedule();
+    updateWeekInfo();
+    highlightCurrentPair(); // Початкове виділення
+    updateNavText(); // Оновити текст навігації
+
+    // Оновлювати кожну хвилину
+    setInterval(highlightCurrentPair, 60000); // Кожну хвилину
+
+    // Обробка зміни розміру екрану для навігації
+    window.addEventListener('resize', updateNavText);
+  </script>
+  	<footer style="text-align: center; padding: 10px; background: #f1f1f1; margin-top: 20px;">
+ 	 <p>Сайт створив Halitflyn © 2025</p>
+	</footer>
+</body>
+</html>
