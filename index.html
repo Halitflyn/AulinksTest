@@ -35,7 +35,7 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      gap: 10px; /* Для роздільників на десктопі */
+      gap: 10px;
     }
     body.dark-mode nav {
       background: #333;
@@ -51,23 +51,21 @@
     nav a:hover {
       text-decoration: underline;
     }
-    /* Десктоп: додати | після кожного a, крім останнього */
     @media (min-width: 601px) {
       nav a:not(:last-child)::after {
         content: ' | ';
         color: #3f51b5;
       }
     }
-    /* Мобільна версія: рівномірний розподіл, скорочені назви */
     @media (max-width: 600px) {
       nav {
         padding: 5px;
-        gap: 0; /* Без gap для space-evenly */
-        justify-content: space-evenly; /* Рівномірний розподіл: По ліворуч, В між По і С, С центр, Ч між С і Пя, Пя праворуч */
+        gap: 0;
+        justify-content: space-evenly;
       }
       nav a {
-        font-size: 14px; /* Трохи менший шрифт */
-        flex-shrink: 0; /* Не стискати */
+        font-size: 14px;
+        flex-shrink: 0;
       }
     }
     .filters {
@@ -104,7 +102,7 @@
     }
     .theme-toggle {
       position: fixed;
-      top: 60px; /* Moved lower to avoid overlap with nav */
+      top: 60px;
       right: 20px;
       background: #3f51b5;
       color: white;
@@ -118,11 +116,31 @@
     body.dark-mode .theme-toggle {
       background: #ff9800;
     }
+    .timer {
+      position: fixed;
+      top: 100px;
+      right: 20px;
+      background: #3f51b5;
+      color: white;
+      padding: 10px 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      font-weight: bold;
+      font-size: 14px;
+      z-index: 100;
+      transition: background 0.3s;
+    }
+    body.dark-mode .timer {
+      background: #1e88e5;
+    }
+    .timer.hidden {
+      display: none;
+    }
     .day {
       margin-bottom: 40px;
     }
     .day section {
-      scroll-margin-top: 60px; /* Для якірних посилань */
+      scroll-margin-top: 60px;
     }
     .day h2 {
       background: #3f51b5;
@@ -289,7 +307,6 @@
     body.dark-mode .subgroup .den-label {
       color: #ce93d8;
     }
-    /* Мобільна адаптивність */
     @media (max-width: 600px) {
       body {
         padding: 10px;
@@ -309,16 +326,18 @@
         margin: 10px auto;
       }
       .theme-toggle {
-        top: 50px; /* Adjusted for mobile */
+        top: 50px;
+      }
+      .timer {
+        top: 90px;
       }
     }
-    /* Друк */
     @media print {
       body {
         background: white;
         color: black;
       }
-      nav, .filters, .theme-toggle, footer {
+      nav, .filters, .theme-toggle, .timer, footer {
         display: none;
       }
       .card {
@@ -330,7 +349,6 @@
         break-before: page;
       }
     }
-    /* Стилі для футера */
     footer {
       margin-top: 60px;
       padding: 30px;
@@ -353,7 +371,7 @@
 </head>
 <body>
   <button class="theme-toggle" onclick="toggleDarkMode()">🌙</button>
-
+  <div id="timer" class="timer hidden"></div>
   <nav>
     <a onclick="scrollToDay('monday')" data-full="Понеділок" data-short="По">Понеділок</a>
     <a onclick="scrollToDay('tuesday')" data-full="Вівторок" data-short="В">Вівторок</a>
@@ -361,7 +379,6 @@
     <a onclick="scrollToDay('thursday')" data-full="Четвер" data-short="Ч">Четвер</a>
     <a onclick="scrollToDay('friday')" data-full="П’ятниця" data-short="Пя">П’ятниця</a>
   </nav>
-
   <!-- Понеділок -->
   <section class="day" id="monday">
     <h2>Понеділок</h2>
@@ -397,7 +414,6 @@
       </article>
     </div>
   </section>
-
   <!-- Вівторок -->
   <section class="day" id="tuesday">
     <h2>Вівторок</h2>
@@ -452,7 +468,6 @@
       </article>
     </div>
   </section>
-
   <!-- Середа -->
   <section class="day" id="wednesday">
     <h2>Середа</h2>
@@ -499,7 +514,6 @@
       </article>
     </div>
   </section>
-
   <!-- Четвер -->
   <section class="day" id="thursday">
     <h2>Четвер</h2>
@@ -554,7 +568,6 @@
       </article>
     </div>
   </section>
-
   <!-- П’ятниця -->
   <section class="day" id="friday">
     <h2>П’ятниця</h2>
@@ -595,7 +608,6 @@
       </article>
     </div>
   </section>
-
   <!-- Футер з заголовком і фільтрами -->
   <footer>
     <h1>Розклад занять (ІВ-12, 1 семестр)</h1>
@@ -615,7 +627,9 @@
       <span id="currentWeekInfo"></span>
     </div>
   </footer>
-
+  <footer style="text-align: center; padding: 10px; background: #f1f1f1; margin-top: 20px;">
+    <p>Сайт створив Halitflyn © 2025</p>
+  </footer>
   <script>
     // Функції для cookies
     function setCookie(name, value, days = 30) {
@@ -649,8 +663,6 @@
       const startSemester = new Date('2025-09-08');
       const weekStart = getISOWeek(startSemester); // 37-й тиждень
       const currentWeek = getISOWeek(now);
-      
-      // Логіка: непарні тижні (починаючи з 37) - Чисельник, парні - Знаменник
       const isNumerator = (currentWeek % 2) !== 0;
       return isNumerator ? 'num' : 'den';
     }
@@ -710,26 +722,19 @@
 
     // Завантажити налаштування з cookies
     function loadSettings() {
-      // Темна тема
       const darkMode = getCookie('darkMode');
       if (darkMode === 'true') {
         document.body.classList.add('dark-mode');
         document.querySelector('.theme-toggle').textContent = '☀️';
       }
-
-      // Підгрупа
       const subgroup = getCookie('subgroupFilter');
       if (subgroup) {
         document.getElementById('subgroupFilter').value = subgroup;
       }
-
-      // Показати всі тижні
       const showAll = getCookie('showAllWeeks');
       if (showAll === 'true') {
         document.getElementById('showAllWeeks').checked = true;
       }
-
-      // Приховати порожні пари
       const hideEmpty = getCookie('hideEmptyLessons');
       if (hideEmpty === 'true') {
         document.getElementById('hideEmptyLessons').checked = true;
@@ -775,7 +780,6 @@
         let hasVisibleContent = false;
 
         if (subgroups.length === 0) {
-          // Картки без підгруп
           const isEmpty = card.classList.contains('empty');
           if (hideEmpty && isEmpty) {
             card.style.display = 'none';
@@ -787,24 +791,17 @@
             if (timeEl) timeEl.style.display = isEmpty ? 'none' : 'block';
           }
         } else {
-          // Сховати всі subgroups спочатку
           subgroups.forEach(sub => sub.style.display = 'none');
-
           subgroups.forEach(sub => {
             let visible = true;
-
-            // Фільтр підгрупи
             if (subgroup !== 'all') {
               const subType = sub.classList.contains('sub1') ? 'sub1' : (sub.classList.contains('sub2') ? 'sub2' : null);
               if (subType !== null && subType !== subgroup) visible = false;
             }
-
-            // Фільтр тижня
             if (!showAll) {
               const weekType = sub.classList.contains('num') ? 'num' : (sub.classList.contains('den') ? 'den' : null);
               if (weekType && weekType !== currentType) visible = false;
             }
-
             sub.style.display = visible ? 'block' : 'none';
             if (visible) hasVisibleContent = true;
           });
@@ -834,35 +831,35 @@
         }
       });
 
-      // Приховувати лейбли чисельник/знаменник при автоматичному режимі
       const labels = document.querySelectorAll('.num-label, .den-label');
       labels.forEach(label => {
         label.style.display = showAll ? '' : 'none';
       });
 
       updateWeekInfo();
-      highlightCurrentPair(); // Оновити виділення після фільтрації
-      saveSettings(); // Зберегти налаштування
+      highlightCurrentPair();
+      saveSettings();
     }
 
-    // Виділення поточної/наступної пари
+    // Виділення поточної/наступної пари та оновлення таймера
     function highlightCurrentPair() {
       const now = new Date();
       const currentHour = now.getHours();
       const currentMinute = now.getMinutes();
       const currentMinutes = currentHour * 60 + currentMinute;
 
-      // Знайти сьогоднішній день
       const todaySection = document.querySelector('.day.today');
-      if (!todaySection) return;
+      const timerEl = document.getElementById('timer');
+      if (!todaySection || !timerEl) return;
 
       const cards = todaySection.querySelectorAll('.card:not(.empty)');
       let currentCard = null;
       let upcomingCard = null;
       let minDiffToStart = Infinity;
+      let timerText = '';
+      let minutesLeft = 0;
 
       cards.forEach(card => {
-        // Перевіряємо, чи картка видима
         if (card.style.display === 'none') return;
 
         const timeP = card.querySelector('.time');
@@ -879,15 +876,15 @@
         const startMinutes = startHour * 60 + startMin;
         const endMinutes = endHour * 60 + endMin;
 
-        // Якщо зараз в проміжку пари
         if (currentMinutes >= startMinutes && currentMinutes < endMinutes) {
           card.classList.add('current');
           card.classList.remove('upcoming');
           currentCard = card;
-          return; // Тільки одна поточна
+          minutesLeft = endMinutes - currentMinutes;
+          timerText = `До кінця пари: ${minutesLeft} хв`;
+          return;
         }
 
-        // Перевірити на наступну пару (якщо після цієї пари)
         if (startMinutes > currentMinutes) {
           const diff = startMinutes - currentMinutes;
           if (diff < minDiffToStart) {
@@ -897,37 +894,39 @@
         }
       });
 
-      // Очистити попередні класи
       cards.forEach(c => {
         c.classList.remove('current', 'upcoming');
       });
 
-      // Встановити поточну
       if (currentCard) {
         currentCard.classList.add('current');
       }
 
-      // Встановити наступну, якщо < 15 хв
       if (upcomingCard && minDiffToStart <= 15) {
         upcomingCard.classList.add('upcoming');
+        timerText = `До початку пари: ${minDiffToStart} хв`;
+      }
+
+      if (timerText) {
+        timerEl.textContent = timerText;
+        timerEl.classList.remove('hidden');
+      } else {
+        timerEl.classList.add('hidden');
       }
     }
 
     // Ініціалізація
-    loadSettings(); // Завантажити налаштування
+    loadSettings();
     filterSchedule();
     updateWeekInfo();
-    highlightCurrentPair(); // Початкове виділення
-    updateNavText(); // Оновити текст навігації
+    highlightCurrentPair();
+    updateNavText();
 
-    // Оновлювати кожну хвилину
-    setInterval(highlightCurrentPair, 60000); // Кожну хвилину
+    // Оновлювати таймер кожну секунду
+    setInterval(highlightCurrentPair, 1000);
 
     // Обробка зміни розміру екрану для навігації
     window.addEventListener('resize', updateNavText);
   </script>
-  <footer style="text-align: center; padding: 10px; background: #f1f1f1; margin-top: 20px;">
-    <p>Сайт створив Halitflyn © 2025</p>
-  </footer>
 </body>
 </html>
