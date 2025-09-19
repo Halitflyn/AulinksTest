@@ -60,11 +60,15 @@
       font-weight: bold;
       cursor: pointer;
       white-space: nowrap;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
     }
     nav a:hover {
       text-decoration: underline;
     }
-    /* Десктоп: додати | після кожного a, крім останнього */
+    /* Десктоп: додати | після кофжного a, крім останнього */
     @media (min-width: 601px) {
       nav a:not(:last-child)::after {
         content: ' | ';
