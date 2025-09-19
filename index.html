@@ -64,6 +64,9 @@
       -moz-user-select: none;
       -ms-user-select: none;
       user-select: none;
+      -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
     }
     nav a:hover {
       text-decoration: underline;
@@ -388,11 +391,11 @@
   <button class="theme-toggle purple" id="themeBtn"></button>
 
   <nav>
-    <a onclick="scrollToDay('monday')" data-full="Понеділок" data-short="ПН">Понеділок</a>
-    <a onclick="scrollToDay('tuesday')" data-full="Вівторок" data-short="ВТ">Вівторок</a>
-    <a onclick="scrollToDay('wednesday')" data-full="Середа" data-short="СР">Середа</a>
-    <a onclick="scrollToDay('thursday')" data-full="Четвер" data-short="ЧТ">Четвер</a>
-    <a onclick="scrollToDay('friday')" data-full="П’ятниця" data-short="ПТ">П’ятниця</a>
+    <a href="#" onclick="scrollToDay('monday'); return false;" data-full="Понеділок" data-short="ПН">Понеділок</a>
+    <a href="#" onclick="scrollToDay('tuesday'); return false;" data-full="Вівторок" data-short="ВТ">Вівторок</a>
+    <a href="#" onclick="scrollToDay('wednesday'); return false;" data-full="Середа" data-short="СР">Середа</a>
+    <a href="#" onclick="scrollToDay('thursday'); return false;" data-full="Четвер" data-short="ЧТ">Четвер</a>
+    <a href="#" onclick="scrollToDay('friday'); return false;" data-full="П’ятниця" data-short="ПТ">П’ятниця</a>
   </nav>
 
   <!-- Понеділок -->
