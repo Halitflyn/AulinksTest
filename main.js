@@ -70,6 +70,7 @@ function scrollToDay(dayId) {
   if (element) {
     element.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
+  return false;
 }
 
 // Оновлення тексту навігації для мобільного
