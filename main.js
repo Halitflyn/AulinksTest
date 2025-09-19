@@ -164,18 +164,18 @@ if (themeBtn) {
         themeBtn.classList.remove('expanded', 'green', 'yellow', 'purple');
         themeBtn.textContent = '';
         vibrate();
-      }, 7000);
+      }, 3000);
     } else {
       toggleDarkMode();
       updateThemeButtonTime();
       vibrate();
-      // Після зміни освітлення тримати кнопку ще 4 секунди
+      // Після зміни освітлення тримати кнопку ще 2 секунди
       clearTimeout(themeAutoHideTimer);
       themeAutoHideTimer = setTimeout(() => {
         themeBtn.classList.remove('expanded', 'green', 'yellow', 'purple');
         themeBtn.textContent = '';
         vibrate();
-      }, 4000);
+      }, 2000);
     }
   });
 }
