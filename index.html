@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html> 
 <html lang="uk">
 <head>
   <meta charset="UTF-8">
@@ -473,13 +473,13 @@
       </article>
       <article class="card practical">
         <h3>5 пара</h3>
-        <div class="subgroup sub1">
-          <p class="subgroup-label sub1">Підгрупа 1</p>
+        <div class="subgroup numden eng1 num">
+          <p class="subgroup-label">Англійська 1 <span class="num-label">(Чисельник)</span></p>
           <p><b>Іноземна мова</b> (Практична)</p>
           <p class="teacher-room">Колесник Г.О., 027 VII н.к.</p>
         </div>
-        <div class="subgroup sub2">
-          <p class="subgroup-label sub2">Підгрупа 2</p>
+        <div class="subgroup numden eng2 den">
+          <p class="subgroup-label">Англійська 2 <span class="den-label">(Знаменник)</span></p>
           <p><b>Іноземна мова</b> (Практична)</p>
           <p class="teacher-room">Колесник Г.О., 015 VII н.к.</p>
         </div>
@@ -641,6 +641,12 @@
         <option value="all">Усі</option>
         <option value="sub1">Підгрупа 1</option>
         <option value="sub2">Підгрупа 2</option>
+      </select>
+      <label for="englishFilter">Англійська:</label>
+      <select id="englishFilter" onchange="filterSchedule()">
+        <option value="all">Всі</option>
+        <option value="eng1">Англійська 1</option>
+        <option value="eng2">Англійська 2</option>
       </select>
       <label style="margin-left: 20px;">
         <input type="checkbox" id="showAllWeeks" onchange="filterSchedule()"> Показати всі тижні
