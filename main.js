@@ -410,4 +410,3 @@ setInterval(() => {
 
 // Обробка зміни розміру екрану для навігації
 window.addEventListener('resize', updateNavText);
-
