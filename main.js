@@ -66,12 +66,15 @@ function updateWeekInfo() {
 
 // Навігація
 function scrollToDay(dayId) {
-  const element = document.getElementById(dayId);
-  if (element) {
-    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const el = document.getElementById(dayId);
+  if (el) {
+    el.scrollIntoView({
+      behavior: "smooth",
+      block: "start" // завжди вирівнювати по верху
+    });
   }
-  return false;
 }
+
 
 // Оновлення тексту навігації для мобільного
 function updateNavText() {
@@ -410,3 +413,4 @@ setInterval(() => {
 
 // Обробка зміни розміру екрану для навігації
 window.addEventListener('resize', updateNavText);
+
