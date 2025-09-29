@@ -158,26 +158,16 @@
     .day {
       margin-bottom: 40px;
     }
-    .day section {
-      scroll-margin-top: 60px; /* Для якірних посилань */
-    }
-    .day h2 {
-      background: #3f51b5;
-      color: white;
-      padding: 10px;
-      border-radius: 12px;
-      margin-bottom: 15px;
-      transition: background 0.3s;
-    }
-    .day.today h2 {
-      background: #d81b60;
-    }
-    body.dark-mode .day h2 {
-      background: #1e88e5;
-    }
-    body.dark-mode .day.today h2 {
-      background: #f06292;
-    }
+    .day section, .day {
+  scroll-margin-top: 80px; /* відступ під висоту меню */
+}
+
+.day.today h2 {
+  background: #28a745; /* зелений */
+}
+body.dark-mode .day.today h2 {
+  background: #2e7d32; /* темно-зелений у темній темі */
+}
     .cards {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
