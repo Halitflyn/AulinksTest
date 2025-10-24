@@ -1,0 +1,19 @@
+{
+  "name": "html-template",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite --mode dev",
+    "build": "vite build",
+    "lint": "echo 'linted'"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.10.0",
+  "devDependencies": {
+    "vite": "^6.3.5"
+  }
+}
+
