@@ -1,0 +1,739 @@
+/* Підключаємо шрифти з Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+
+/* === CSS Змінні === */
+:root {
+    --bg-primary: #f4f6fa;
+    --text-primary: #222;
+    --text-secondary: #555;
+    --accent-primary: #3f51b5;
+    --accent-secondary: #bbdefb;
+    --card-bg: #ffffff;
+    --card-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    --border-color: #eee;
+    --border-color-darker: #ccc;
+    --input-bg: #ffffff;
+    --success-bg: #d4edda;
+    --success-text: #155724;
+    --error-bg: #f8d7da;
+    --error-text: #721c24;
+    --info-bg: #e2e3e5;
+    --info-text: #383d41;
+
+    /* Змінні, яких не вистачало (для світлої теми) */
+    --muted: #6c757d; 
+    --accent-light: #eef2f9; /* Світлий фон для hover */
+    --accent-dark: #303f9f; /* Темний текст для hover */
+}
+
+body.dark-mode {
+    --bg-primary: #101014; /* Твій вугільний фон */
+    --text-primary: #fff;
+    --text-secondary: #828282; /* М'який сірий */
+    --accent-primary: #fff176; /* Жовтий акцент */
+    --accent-secondary: #282A30; /* Темний фон для заголовків */
+    --card-bg: #1e2023; /* Твій фон для карток/кнопок */
+    --card-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    --border-color: #282A30; 
+    --border-color-darker: #282A30;
+    --input-bg: #1e2023;
+    --success-bg: #2d5a3a;
+    --success-text: #c3e6cb;
+    --error-bg: #5a2d2d;
+    --error-text: #f5c6cb;
+    --info-bg: #1e2023;
+    --info-text: #828282;
+
+    /* Змінні, яких не вистачало (для темної теми) */
+    --muted: #828282; /* Вторинний текст */
+    --accent-light: #282A30; /* Фон для hover (з модалки) */
+    --accent-dark: #fff176; /* Акцентний текст для hover (жовтий) */
+}
+
+/* === Загальні стилі === */
+body {
+    font-family: 'Inter', Arial, sans-serif; /* Новий шрифт */
+    margin: 0;
+    padding: 0 10px 20px 10px; /* Забрав верхній падінг */
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    transition: background 0.3s, color 0.3s;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+nav {
+    position: sticky;
+    top: 0;
+    background: var(--bg-primary); /* Використовуємо змінні */
+    padding: 10px;
+    text-align: center;
+    z-index: 100;
+    border-bottom: 1px solid var(--border-color); /* Використовуємо змінні */
+    transition: background 0.3s, border-color 0.3s;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px; /* Додав відступ під навігацією */
+}
+
+nav a {
+    text-decoration: none;
+    color: var(--accent-primary);
+    font-weight: 500; /* Medium */
+    cursor: pointer;
+    white-space: nowrap;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    padding: 4px 8px; /* Додав падінг для hover ефекту */
+    border-radius: 6px; /* Заокруглення */
+    transition: background 0.2s, color 0.2s;
+}
+
+nav a:hover {
+    background: var(--accent-light); /* Легкий фон */
+    color: var(--accent-dark); /* Темніший колір */
+    text-decoration: none;
+}
+body.dark-mode nav a:hover {
+    background: var(--accent-light); /* Використовуємо темний акцент */
+}
+
+nav a.active-day {
+    background: #28a745; /* Зелений */
+    color: white !important;
+    font-weight: bold;
+}
+body.dark-mode nav a.active-day {
+    background: #2e7d32;
+    color: white !important;
+}
+
+/* Прибираємо '|' на десктопі */
+@media (min-width: 601px) {
+  nav a:not(:last-child)::after {
+    content: ''; /* Пусто */
+  }
+}
+
+/* Мобільна версія навігації */
+@media (max-width: 600px) {
+  nav {
+    padding: 5px;
+    gap: 0;
+    justify-content: space-evenly;
+  }
+  nav a {
+    font-size: 14px;
+    flex-shrink: 0;
+    padding: 4px 6px; /* Трохи менший падінг */
+  }
+}
+
+/* Loading spinner */
+.loading { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 200px; text-align: center; }
+.spinner { border: 4px solid #f3f3f3; border-top: 4px solid var(--accent-primary); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 20px; }
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+body.dark-mode .spinner { border-color: #555; border-top-color: var(--accent-primary); }
+
+
+/* === Стилі для Фільтрів === */
+.filters {
+  margin-bottom: 15px;
+  text-align: center;
+  background: var(--card-bg);
+  padding: 15px;
+  border-radius: 12px;
+  box-shadow: var(--card-shadow);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+}
+/* Основні фільтри - без змін */
+.main-filters {
+    /* Можна додати специфічні стилі, якщо потрібно */
+}
+
+/* Прихована панель фільтрів */
+.advanced-filters {
+  border-top: 1px dashed var(--border-color);
+  margin-top: -10px; /* Підтягнути */
+  padding-top: 15px;
+  border-radius: 0 0 12px 12px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+}
+body.dark-mode .advanced-filters {
+    border-top-color: var(--border-color);
+}
+
+
+.filters label {
+  margin-right: 5px;
+  color: var(--text-secondary);
+  font-size: 0.9em; /* Трохи менший */
+}
+.filters select, .filters input[type="checkbox"] {
+  margin: 0 5px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-color-darker);
+  border-radius: 6px;
+  background: var(--input-bg);
+  color: var(--text-primary);
+  font-size: 14px;
+  cursor: pointer; /* Додав курсор */
+}
+.filters select {
+    min-width: 120px;
+}
+.filters input[type="checkbox"] {
+    vertical-align: middle; /* Вирівнюємо чекбокс */
+}
+
+/* Інформація про тиждень */
+#currentWeekInfo {
+  color: var(--accent-primary);
+  font-weight: bold;
+  font-size: 0.9em;
+  white-space: nowrap;
+  display: inline-block; /* Потрібно для роботи переносу */
+  text-align: center; /* Центруємо текст, якщо він переноситься */
+}
+/* Перенос дати на мобільних */
+@media (max-width: 600px) {
+  #currentWeekInfo .week-date {
+    display: block;
+    font-size: 0.9em;
+    font-weight: normal;
+    color: var(--text-secondary);
+    margin-top: 2px;
+  }
+  .main-filters {
+      gap: 10px;
+      padding: 10px; /* Менший падінг на мобільному */
+  }
+  .advanced-filters {
+      padding: 10px;
+      gap: 10px; /* Менший gap */
+  }
+  .filters label, .filters select, .filters input[type="checkbox"], .filters button {
+      margin-bottom: 5px; /* Невеликий відступ знизу для перенесених елементів */
+  }
+}
+
+/* Кнопка "Наст. тиждень" */
+.toggle-button {
+  padding: 8px 15px;
+  border: 1px solid var(--border-color-darker);
+  border-radius: 6px;
+  background: var(--input-bg);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+.toggle-button:hover {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+.toggle-button.active {
+  background: var(--accent-primary);
+  color: white;
+  border-color: var(--accent-primary);
+  font-weight: bold;
+}
+body.dark-mode .toggle-button.active {
+  background: var(--accent-primary);
+  color: #222; /* Темний текст на світлому акценті */
+  border-color: var(--accent-primary);
+}
+
+
+/* Кнопки Налаштувань */
+.settings-btn {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap; /* Заборона переносу тексту кнопки */
+}
+.settings-btn:hover {
+  background: var(--accent-light);
+  color: var(--accent-primary);
+  border-color: var(--border-color);
+}
+body.dark-mode .settings-btn:hover {
+    background: var(--accent-light);
+    color: var(--accent-primary);
+    border-color: var(--border-color);
+}
+
+/* === Тема (кнопка справа зверху) === */
+/* Початковий вигляд — паличка */
+.theme-toggle {
+  position: fixed;
+  top: 120px;
+  right: 0;
+  width: 12px;
+  height: 60px;
+  background: #9c27b0;
+  border: none;
+  border-radius: 8px 0 0 8px;
+  cursor: pointer;
+  z-index: 200;
+  transition: all 0.5s ease;
+  overflow: hidden;
+  padding: 0;
+  color: white;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+/* Коли стає круглою кнопкою */
+.theme-toggle.expanded {
+  right: 20px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  text-align: center;
+  line-height: 60px;
+}
+
+.theme-toggle.green { background: #28a745; }
+.theme-toggle.yellow { background: #ffc107; color: #222; }
+.theme-toggle.purple { background: #9c27b0; }
+
+
+/* === Розклад: Дні та Картки === */
+.day {
+  margin-bottom: 40px;
+}
+section.day { /* Для скролу */
+  scroll-margin-top: 80px; /* Збільшив відступ під навігацію */
+}
+
+.day h2 {
+  background: var(--accent-primary);
+  color: white;
+  padding: 10px 15px;
+  border-radius: 8px;
+  margin-bottom: 20px; /* Збільшив відступ */
+  font-size: 1.4em;
+  font-weight: 600; /* Semibold */
+}
+body.dark-mode .day h2 {
+    background: var(--accent-secondary); /* Використовуємо темний акцент */
+    color: var(--text-primary);
+}
+
+.day.today h2 {
+  background: #d81b60; /* Рожевий для сьогодні */
+}
+body.dark-mode .day.today h2 {
+  background: #f06292;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); /* Трохи ширші картки */
+  gap: 20px; /* Більший відступ */
+  margin-top: 20px;
+  /* animation: fadeIn 0.5s ease-in; */ /* Прибрав анімацію для плавності */
+}
+
+/* @keyframes fadeIn { ... } */ /* Закоментував або видалив */
+
+.card {
+  background: var(--card-bg);
+  border-radius: 12px;
+  box-shadow: var(--card-shadow);
+  padding: 18px 20px; /* Збільшив падінг */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.2s, box-shadow 0.2s, background 0.3s;
+  position: relative; /* Для кнопки скасування */
+}
+body.dark-mode .card {
+  background: var(--card-bg);
+  box-shadow: var(--card-shadow);
+}
+
+.card:hover {
+  transform: translateY(-4px); /* Більший підйом */
+  box-shadow: 0 8px 16px rgba(0,0,0,0.12); /* Чіткіша тінь */
+}
+body.dark-mode .card:hover {
+  box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+}
+
+/* Поточна та Наступна пара */
+.card.current { background: #d4edda !important; border-left: 5px solid #28a745; }
+body.dark-mode .card.current { background: #2d5a3a !important; }
+.card.upcoming { background: #fff3cd !important; border-left: 5px solid #ffc107; }
+body.dark-mode .card.upcoming { background: #4a4a2d !important; }
+
+/* Скасована пара */
+.card.canceled {
+  background: #e3f2fd; /* Світло-блакитний */
+  border-left: 5px solid #1e88e5; /* Синій */
+  opacity: 0.8; /* Трохи прозоріша */
+}
+body.dark-mode .card.canceled {
+  background: #2a3947;
+  border-left-color: var(--accent-primary);
+}
+.card.canceled .subgroup,
+.card.canceled .time,
+.card.canceled .teacher-room,
+.card.canceled p[data-main-content] { display: none; } /* Ховаємо вміст */
+.card.canceled .empty-message {
+  display: block; /* Переконатись, що видно */
+  color: #1e88e5;
+  font-weight: bold;
+  font-size: 16px;
+  margin-top: 10px; /* Відступ */
+}
+body.dark-mode .card.canceled .empty-message { color: var(--accent-primary); }
+
+
+.card h3 {
+  margin: 0 0 10px;
+  font-size: 1.1em; /* Трохи більший */
+  color: var(--accent-primary);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600; /* Semibold */
+}
+
+/* Кнопка скасування */
+.cancel-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  opacity: 0.3;
+  transition: opacity 0.2s;
+  padding: 0 5px;
+  line-height: 1;
+  color: var(--error-text); /* Червоний колір */
+}
+.card:hover .cancel-btn,
+.card.canceled .cancel-btn { opacity: 1; }
+.card.empty .cancel-btn { display: none; } /* Не показувати на порожніх */
+
+.card b { /* Назва предмету */
+  font-size: 1.05em; /* Трохи більший */
+  font-weight: 600; /* Semibold */
+  color: var(--text-primary);
+}
+.card p { margin: 6px 0; font-size: 14px; color: var(--text-secondary); } /* Зменшив margin */
+.card .time { color: var(--accent-primary); font-size: 0.9em; font-weight: 500; }
+.card .teacher-room { color: var(--muted); font-size: 0.85em; } /* Використовуємо --muted */
+
+/* Порожня картка */
+.empty {
+  background: var(--bg-primary); /* Фон як у тіла */
+  color: var(--muted);
+  text-align: center;
+  font-style: italic;
+  box-shadow: none; /* Без тіні */
+  border: 1px dashed var(--border-color); /* Штрихована рамка */
+}
+body.dark-mode .empty { border-color: var(--border-color); }
+.empty-message {
+  text-align: center;
+  font-style: italic;
+  color: var(--muted);
+  margin: 10px 0 0; /* Відступ зверху */
+}
+
+/* Підгрупи */
+.subgroup {
+  border-top: 1px dashed var(--border-color);
+  margin-top: 10px;
+  padding-top: 10px;
+  border-radius: 0; /* Прибираємо заокруглення */
+  font-size: 0.95em;
+  background: transparent; /* Прозорий фон */
+}
+body.dark-mode .subgroup { border-top-color: var(--border-color); }
+.subgroup p { margin: 4px 0; } /* Менший відступ */
+.subgroup .subgroup-label {
+  font-weight: 600; /* Semibold */
+  color: var(--text-primary); /* Основний колір */
+}
+/* Мітки тижнів (кольорові) */
+.week-label { font-weight: bold; font-size: 0.9em; }
+.week-label.num-label { color: #28a745; } /* Зелений */
+.week-label.den-label { color: #9c27b0; } /* Фіолетовий */
+body.dark-mode .week-label.num-label { color: #4caf50; }
+body.dark-mode .week-label.den-label { color: #ce93d8; }
+
+
+/* === Звіти та Статистика === */
+.reports {
+  margin-top: 40px; /* Більший відступ */
+  background: var(--card-bg);
+  padding: 25px 30px; /* Більший падінг */
+  border-radius: 12px;
+  box-shadow: var(--card-shadow);
+}
+.reports h3, .reports h4 {
+  color: var(--accent-primary);
+  margin-bottom: 20px; /* Більший відступ */
+  font-weight: 600; /* Semibold */
+}
+.reports h4 { font-size: 1.1em; } /* Менший заголовок для підсекцій */
+
+.stats-grid { /* Виправлено центрування */
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 15px;
+  margin-bottom: 20px;
+  justify-items: stretch; /* Розтягуємо елементи */
+}
+.stat-card { /* Виправлено */
+  background: var(--bg-primary); /* Фон як у тіла */
+  padding: 15px;
+  border-radius: 8px;
+  text-align: center;
+  border-left: 4px solid var(--accent-primary);
+  width: auto; /* Займає всю ширину комірки */
+  max-width: none; /* Забираємо обмеження */
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+body.dark-mode .stat-card {
+  background: var(--bg-primary); /* Використовуємо фон тіла */
+  border-left-color: var(--accent-primary);
+  box-shadow: none;
+}
+.stat-number { font-size: 24px; font-weight: 700; color: var(--accent-primary); margin-bottom: 5px; }
+.stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+
+.subjects-report { margin-top: 25px; }
+#subjectsBreakdown {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
+}
+.subject-item {
+  background: var(--bg-primary); /* Фон як у тіла */
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+}
+body.dark-mode .subject-item { background: var(--input-bg); } /* Фон як у полів */
+.subject-name { font-weight: 500; margin-bottom: 5px; color: var(--text-primary); }
+.subject-types { font-size: 12px; color: var(--muted); }
+
+/* === Модальне вікно === */
+.modal { /* Стилі для .modal (затемнення) - без змін */
+    display: none; position: fixed; z-index: 1000; left: 0; top: 0;
+    width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6);
+    animation: fadeInModal 0.3s;
+}
+@keyframes fadeInModal { from { opacity: 0; } to { opacity: 1; } }
+
+.modal-content { /* Стилі для вмісту модалки */
+  background-color: var(--card-bg); /* Змінна */
+  margin: 10% auto; /* Центрування, менший відступ зверху */
+  padding: 25px 30px; /* Більший падінг */
+  border: 1px solid var(--border-color); /* Змінна */
+  width: 90%; /* Більша ширина на моб */
+  max-width: 500px;
+  border-radius: 16px; /* Більше заокруглення */
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2); /* Сильніша тінь */
+  position: relative; /* Для позиціонування кнопки закриття */
+}
+.modal-close {
+  color: var(--muted); /* Змінна */
+  position: absolute; /* Позиціонуємо справа зверху */
+  top: 15px;
+  right: 20px;
+  font-size: 28px;
+  font-weight: bold;
+  cursor: pointer;
+  line-height: 1; /* Для кращого кліку */
+  transition: color 0.2s;
+}
+.modal-close:hover,
+.modal-close:focus { color: var(--text-primary); } /* Змінна */
+
+.modal h2 { margin-top: 0; color: var(--text-primary); font-weight: 600; }
+.modal p { color: var(--text-secondary); margin-bottom: 15px; font-size: 0.95em; }
+.modal code { background: var(--accent-light); color: var(--accent-dark); padding: 3px 6px; border-radius: 4px; font-size: 0.9em; }
+body.dark-mode .modal code { background: var(--input-bg); color: var(--accent-primary); }
+
+
+.modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 25px; /* Більший відступ */
+}
+.modal-btn { /* Загальний стиль для кнопок модалки */
+  padding: 12px 18px; /* Однаковий падінг */
+  font-size: 15px;
+  font-weight: 500; /* Medium */
+  border: 1px solid var(--border-color-darker); /* Рамка */
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+  text-align: center;
+  text-decoration: none; /* Для посилання */
+  background: var(--card-bg); /* Фон картки */
+  color: var(--text-primary); /* Основний текст */
+}
+.modal-btn:hover {
+  background-color: var(--accent-light); /* Легкий акцент */
+  border-color: var(--accent-primary);
+  color: var(--accent-dark);
+}
+/* Специфічні кольори для кнопок */
+.modal-btn.editor { background-color: #ffc107; color: #222; border-color: #ffc107; order: -1; margin-bottom: 15px; }
+.modal-btn.import { /* Зелений */ }
+.modal-btn.export { /* Синій */ }
+.modal-btn.delete { color: #f87171; border-color: #f87171; } /* Червоний */
+
+.modal-btn.editor:hover { background-color: #ffb600; border-color: #ffb600; }
+.modal-btn.import:hover { background-color: #dcfce7; border-color: #4ade80; color: #166534; }
+.modal-btn.export:hover { background-color: #e0e7ff; border-color: #818cf8; color: #4338ca; }
+.modal-btn.delete:hover { background-color: #fee2e2; border-color: #ef4444; color: #b91c1c; }
+
+/* === Темна тема для Модалки (Bybit Palette) === */
+body.dark-mode .modal { background-color: rgba(18, 20, 26, 0.8); } /* Сильніше затемнення */
+body.dark-mode .modal-content { background-color: #181A20; color: #FFFFFF; border: 1px solid #282A30; box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4); }
+body.dark-mode .modal-close { color: #828282; }
+body.dark-mode .modal-close:hover, body.dark-mode .modal-close:focus { color: #FFFFFF; }
+body.dark-mode .modal h2 { color: #FFFFFF; }
+body.dark-mode .modal p { color: #828282; }
+body.dark-mode .modal code { background: #282A30; color: #A7F3D0; }
+
+body.dark-mode .modal-btn { background-color: #282A30; color: #FFFFFF; border-color: #282A30; }
+body.dark-mode .modal-btn:hover { border-color: #828282; }
+body.dark-mode .modal-btn.editor { background-color: #fff176; color: #181A20; border-color: #fff176; }
+body.dark-mode .modal-btn.editor:hover { background-color: #eee169; border-color: #eee169; }
+body.dark-mode .modal-btn.import { background-color: #00B873; color: #FFFFFF; border-color: #00B873; }
+body.dark-mode .modal-btn.import:hover { background-color: #00a164; border-color: #00a164; }
+body.dark-mode .modal-btn.export { background-color: #282A30; color: #FFFFFF; border-color: #282A30; }
+body.dark-mode .modal-btn.export:hover { border-color: #828282; }
+body.dark-mode .modal-btn.delete { background-color: transparent; color: #ff4d4f; border-color: #ff4d4f; }
+body.dark-mode .modal-btn.delete:hover { background-color: rgba(255, 77, 79, 0.1); color: #ff7875; border-color: #ff7875; }
+
+body.dark-mode #importStatus { color: #828282; }
+body.dark-mode #importStatus.success { color: #00B873; }
+body.dark-mode #importStatus.error { color: #ff4d4f; }
+
+
+/* Мобільна адаптивність (основний сайт) */
+@media (max-width: 600px) {
+  body { padding: 0 5px 10px 5px; } /* Ще менше падінгу */
+  .cards { grid-template-columns: 1fr; gap: 15px; } /* По одній картці */
+  .card { padding: 15px; }
+  .filters { gap: 8px; /* Ще менший gap */ }
+  .reports { padding: 20px; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .modal-content { width: 95%; margin: 8% auto; padding: 20px; } /* Модалка вище */
+}
+
+/* Друк */
+@media print {
+  body { background: white; color: black; }
+  nav, .filters, .theme-toggle, footer .reports, footer p, .modal, .settings-btn { display: none; }
+  .card { box-shadow: none; border: 1px solid #ccc; break-inside: avoid; }
+  .day { break-before: page; }
+  #schedule-title { text-align: center; } /* Центруємо заголовок при друці */
+}
+
+/* Футер копірайту */
+footer[style*="text-align: center"] {
+    margin-top: 40px; /* Збільшив відступ зверху */
+    padding: 20px;
+    color: var(--muted);
+    font-size: 0.9em;
+}
+
+/* === Фіксована панель оновлення (замість навігації) === */
+#update-bar {
+  /* Позиціонування - таке саме, як у твоєї <nav> */
+  position: sticky;
+  top: 0;
+  background: var(--bg-primary);
+  padding: 10px 15px;
+  z-index: 100;
+  border-bottom: 1px solid var(--border-color);
+
+  /* Flexbox для вирівнювання */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+  width: 100%;
+  box-sizing: border-box; /* Важливо для 100% width + padding */
+
+  animation: fadeInModal 0.3s;
+}
+
+#update-bar p {
+  margin: 0;
+  color: var(--text-primary);
+  font-weight: 500;
+  font-size: 0.9em;
+}
+
+/* Стиль кнопки: "овальна синя з чорним текстом" */
+#update-bar #update-now-btn {
+  background-color: var(--accent-primary); /* #3f51b5 (синій) */
+  color: #000000; /* Чорний текст, як ти просив */
+  border: none;
+  border-radius: 9999px; /* Робить її овальною */
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform 0.2s, background-color 0.3s;
+}
+
+#update-bar #update-now-btn:hover {
+  transform: scale(1.05);
+}
+
+/* Темна тема (кнопка) */
+body.dark-mode #update-bar #update-now-btn {
+  background-color: var(--accent-primary); /* #fff176 (твій жовтий) */
+  color: #000000; /* Чорний текст */
+}
+
+/* Адаптивність для панелі */
+@media (max-width: 600px) {
+  #update-bar {
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px 10px;
+  }
+  #update-bar p {
+    font-size: 0.85em;
+  }
+  #update-bar #update-now-btn {
+    padding: 6px 14px;
+    font-size: 13px;
+  }
+}
+
+

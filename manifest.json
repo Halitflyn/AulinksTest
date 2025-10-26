@@ -1,0 +1,15 @@
+{
+  "name": "Розклад занять",
+  "short_name": "Розклад",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "start_url": ".",
+  "display": "fullscreen",
+  "theme_color": "#3f51b5",
+  "background_color": "#f4f6fa"
+}

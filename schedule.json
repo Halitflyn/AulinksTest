@@ -1,0 +1,385 @@
+{
+  "group": "ІВ-12",
+  "semester": "1 семестр 2024-2025",
+  "startDate": "2025-10-20",
+  "schedule": {
+    "monday": {
+      "name": "Понеділок",
+      "lessons": [
+        {
+          "number": 1,
+          "time": "08:00 – 09:20",
+          "subject": "Фізичне виховання",
+          "type": "practical",
+          "teacher": "",
+          "room": "ХХІІ н.к.",
+          "weeks": "all",
+          "subgroups": []
+        },
+        {
+          "number": 2,
+          "time": "10:05 – 11:25",
+          "subject": "",
+          "type": "empty",
+          "teacher": "",
+          "room": "",
+          "weeks": "all",
+          "subgroups": []
+        },
+        {
+          "number": 3,
+          "time": "11:40 – 13:00",
+          "subject": "Фізика",
+          "type": "lecture",
+          "teacher": "Товстюк Н.К.",
+          "room": "139 Гол. н.к.",
+          "weeks": "all",
+          "subgroups": []
+        },
+        {
+          "number": 4,
+          "time": "13:15 – 14:35",
+          "subject": "Українська мова",
+          "type": "practical",
+          "teacher": "Ковалів С.В.",
+          "room": "713 V н.к.",
+          "weeks": "all",
+          "subgroups": []
+        },
+        {
+          "number": 5,
+          "time": "14:50 – 16:10",
+          "subject": "",
+          "type": "empty",
+          "teacher": "",
+          "room": "",
+          "weeks": "all",
+          "subgroups": []
+        }
+      ]
+    },
+    "tuesday": {
+      "name": "Вівторок",
+      "lessons": [
+        {
+          "number": 1,
+          "time": "08:30 – 09:50",
+          "subject": "",
+          "type": "empty",
+          "teacher": "",
+          "room": "",
+          "weeks": "all",
+          "subgroups": []
+        },
+        {
+          "number": 2,
+          "time": "10:05 – 11:25",
+          "subject": "",
+          "type": "mixed",
+          "teacher": "",
+          "room": "",
+          "weeks": "all",
+          "subgroups": [
+            {
+              "group": "sub1",
+              "weeks": "num",
+              "subject": "Програмування",
+              "type": "lab",
+              "teacher": "Сегеда О.В.",
+              "room": "702 V н.к."
+            },
+            {
+              "group": "sub2",
+              "weeks": "den",
+              "subject": "Програмування",
+              "type": "lab",
+              "teacher": "Сегеда О.В.",
+              "room": "702 V н.к."
+            }
+          ]
+        },
+        {
+          "number": 3,
+          "time": "11:40 – 13:00",
+          "subject": "Програмування",
+          "type": "lecture",
+          "teacher": "Озгович А.І.",
+          "room": "711 V н.к.",
+          "weeks": "all",
+          "subgroups": []
+        },
+        {
+          "number": 4,
+          "time": "13:15 – 14:35",
+          "subject": "Програмування",
+          "type": "practical",
+          "teacher": "Озгович А.І.",
+          "room": "711 V н.к.",
+          "weeks": "all",
+          "subgroups": []
+        },
+        {
+          "number": 5,
+          "time": "14:50 – 16:10",
+          "subject": "",
+          "type": "mixed",
+          "teacher": "",
+          "room": "",
+          "weeks": "all",
+          "subgroups": [
+            {
+              "group": "sub1",
+              "weeks": "all",
+              "subject": "Іноземна мова",
+              "type": "practical",
+              "teacher": "Колесник Г.О.",
+              "room": "027 VII н.к."
+            },
+            {
+              "group": "sub2",
+              "weeks": "all",
+              "subject": "Іноземна мова",
+              "type": "practical",
+              "teacher": "Колесник Г.О.",
+              "room": "015 VII н.к."
+            }
+          ]
+        }
+      ]
+    },
+    "wednesday": {
+      "name": "Середа",
+      "lessons": [
+        {
+          "number": 1,
+          "time": "08:30 – 09:50",
+          "subject": "",
+          "type": "mixed",
+          "teacher": "",
+          "room": "",
+          "weeks": "all",
+          "subgroups": [
+            {
+              "group": "sub2",
+              "weeks": "all",
+              "subject": "Програмування",
+              "type": "lab",
+              "teacher": "Сегеда О.В.",
+              "room": "702 V н.к."
+            }
+          ]
+        },
+        {
+          "number": 2,
+          "time": "10:05 – 11:25",
+          "subject": "Вища математика",
+          "type": "lecture",
+          "teacher": "Кунинець А.В.",
+          "room": "713 V н.к.",
+          "weeks": "all",
+          "subgroups": []
+        },
+        {
+          "number": 3,
+          "time": "11:40 – 13:00",
+          "subject": "",
+          "type": "mixed",
+          "teacher": "",
+          "room": "",
+          "weeks": "all",
+          "subgroups": [
+            {
+              "group": "all",
+              "weeks": "num",
+              "subject": "Фізика",
+              "type": "practical",
+              "teacher": "Кунинець А.В.",
+              "room": "713 V н.к."
+            },
+            {
+              "group": "all",
+              "weeks": "den",
+              "subject": "Вища математика",
+              "type": "practical",
+              "teacher": "Кунинець А.В.",
+              "room": "713 V н.к."
+            }
+          ]
+        },
+        {
+          "number": 4,
+          "time": "13:15 – 14:35",
+          "subject": "",
+          "type": "empty",
+          "teacher": "",
+          "room": "",
+          "weeks": "all",
+          "subgroups": []
+        },
+        {
+          "number": 5,
+          "time": "14:50 – 16:10",
+          "subject": "",
+          "type": "empty",
+          "teacher": "",
+          "room": "",
+          "weeks": "all",
+          "subgroups": []
+        }
+      ]
+    },
+    "thursday": {
+      "name": "Четвер",
+      "lessons": [
+        {
+          "number": 1,
+          "time": "08:30 – 09:50",
+          "subject": "",
+          "type": "empty",
+          "teacher": "",
+          "room": "",
+          "weeks": "all",
+          "subgroups": []
+        },
+        {
+          "number": 2,
+          "time": "10:05 – 11:25",
+          "subject": "",
+          "type": "mixed",
+          "teacher": "",
+          "room": "",
+          "weeks": "all",
+          "subgroups": [
+            {
+              "group": "sub1",
+              "weeks": "all",
+              "subject": "Програмування",
+              "type": "lab",
+              "teacher": "Сегеда О.В.",
+              "room": "702 V н.к."
+            }
+          ]
+        },
+        {
+          "number": 3,
+          "time": "11:40 – 13:00",
+          "subject": "",
+          "type": "mixed",
+          "teacher": "",
+          "room": "",
+          "weeks": "all",
+          "subgroups": [
+            {
+              "group": "all",
+              "weeks": "num",
+              "subject": "Інженерна та комп`ютерна графіка",
+              "type": "lecture",
+              "teacher": "Шевчук А.О.",
+              "room": "111 IV н.к."
+            },
+            {
+              "group": "all",
+              "weeks": "den",
+              "subject": "Вища математика",
+              "type": "lecture",
+              "teacher": "Кунинець А.В.",
+              "room": "713 V н.к."
+            }
+          ]
+        },
+        {
+          "number": 4,
+          "time": "13:15 – 14:35",
+          "subject": "Інженерна та комп`ютерна графіка",
+          "type": "lab",
+          "teacher": "Комаров С.М.",
+          "room": "109 IV н.к.",
+          "weeks": "all",
+          "subgroups": []
+        },
+        {
+          "number": 5,
+          "time": "14:50 – 16:10",
+          "subject": "",
+          "type": "empty",
+          "teacher": "",
+          "room": "",
+          "weeks": "all",
+          "subgroups": []
+        }
+      ]
+    },
+    "friday": {
+      "name": "П’ятниця",
+      "lessons": [
+        {
+          "number": 1,
+          "time": "08:30 – 09:50",
+          "subject": "",
+          "type": "mixed",
+          "teacher": "",
+          "room": "",
+          "weeks": "all",
+          "subgroups": [
+            {
+              "group": "sub1",
+              "weeks": "all",
+              "subject": "Фізика",
+              "type": "lab",
+              "teacher": "Товстюк Н.К.",
+              "room": "ел.2лаб Гол. н.к., мол.2лаб Гол. н.к."
+            },
+            {
+              "group": "sub2",
+              "weeks": "all",
+              "subject": "Фізика",
+              "type": "lab",
+              "teacher": "Мороз І.Є.",
+              "room": "ел.2лаб Гол. н.к., мол.2лаб Гол. н.к."
+            }
+          ]
+        },
+        {
+          "number": 2,
+          "time": "10:05 – 11:25",
+          "subject": "Вища математика",
+          "type": "practical",
+          "teacher": "Кунинець А.В.",
+          "room": "713 V н.к.",
+          "weeks": "all",
+          "subgroups": []
+        },
+        {
+          "number": 3,
+          "time": "11:40 – 13:00",
+          "subject": "",
+          "type": "empty",
+          "teacher": "",
+          "room": "",
+          "weeks": "all",
+          "subgroups": []
+        },
+        {
+          "number": 4,
+          "time": "13:15 – 14:35",
+          "subject": "",
+          "type": "empty",
+          "teacher": "",
+          "room": "",
+          "weeks": "all",
+          "subgroups": []
+        },
+        {
+          "number": 5,
+          "time": "14:50 – 16:10",
+          "subject": "",
+          "type": "empty",
+          "teacher": "",
+          "room": "",
+          "weeks": "all",
+          "subgroups": []
+        }
+      ]
+    }
+  }
+}
