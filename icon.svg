@@ -1,15 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <rect width="90" height="90" x="5" y="5" rx="10" fill="#f0f0f0"/>
-
-  <g transform="rotate(-6 33 32.5)">
-    <rect width="30" height="25" x="19" y="21" rx="3" fill="#000" opacity="0.2"/>
-    <rect width="30" height="25" x="18" y="20" rx="3" fill="#3f51b5"/>
-  </g>
-
-  <g transform="rotate(8 67 67.5)">
-    <rect width="30" height="25" x="53" y="56" rx="3" fill="#000" opacity="0.2"/>
-    <rect width="30" height="25" x="52" y="55" rx="3" fill="#fff176"/>
-    <circle cx="67" cy="58" r="5" fill="#e53935"/>
-    <circle cx="68.5" cy="57" r="1.5" fill="#ffcdd2"/>
-  </g>
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect x="10" y="10" width="20" height="20" rx="4" fill="#4CAF50"/>
+<rect x="34" y="10" width="20" height="20" rx="4" fill="#4CAF50"/>
+<rect x="10" y="34" width="20" height="20" rx="4" fill="#E0E0E0"/>
+<circle cx="44" cy="44" r="10" fill="#9C27B0"/>
 </svg>
