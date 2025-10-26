@@ -1,20 +1,22 @@
-// Глобальні змінні
-let scheduleData = null;
-let themeAutoHideTimer; // Розкоментовано
-const themeBtn = document.getElementById('themeBtn'); // Кнопка Теми (кругла справа)
+// Ключ для збереження кастомного розкладу в пам'яті браузера
 const SCHEDULE_STORAGE_KEY = 'myCustomSchedule';
 
-// Елементи (оголошуємо глобально для доступу)
+// === Глобальні змінні ===
+// Ми зберігаємо тут дані розкладу, щоб всі функції мали до них доступ
+let scheduleData = null;
+// Таймер для плаваючої кнопки теми
+let themeAutoHideTimer; 
+// Оголошуємо змінні для елементів DOM, щоб вони були доступні в усьому скрипті
 let subgroupFilter, showAllWeeks, hideEmptyLessons, showNextWeekBtn;
 let toggleFiltersBtn, advancedFiltersPanel, openModalBtn, settingsModal, modalClose;
-let importBtn, importFile, exportBtn, deleteBtn, importStatusEl; // Елементи модалки
-
-// === CSS Змінні (для JS доступу, якщо потрібно) ===
+let importBtn, importFile, exportBtn, deleteBtn, importStatusEl;
+const themeBtn = document.getElementById('themeBtn');
 const cssRoot = document.documentElement;
-const getCssVar = (varName) => getComputedStyle(cssRoot).getPropertyValue(varName).trim();
-// const setCssVar = (varName, value) => cssRoot.style.setProperty(varName, value); // Поки не використовується
 
-// Функції для cookies (для налаштувань фільтрів)
+// =======================================
+// === УТИЛІТИ (Cookies) ===
+// =======================================
+
 function setCookie(name, value, days = 30) {
   const expires = new Date();
   expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
@@ -32,7 +34,11 @@ function getCookie(name) {
   return null;
 }
 
-// --- Функції для скасованих пар ---
+// =======================================
+// === ЛОГІКА СКАСОВАНИХ ПАР ===
+// =======================================
+
+/** Отримує сьогоднішню дату у форматі YYYY-MM-DD */
 function getTodayDateString() {
     const today = new Date();
     const y = today.getFullYear();
@@ -40,71 +46,73 @@ function getTodayDateString() {
     const d = String(today.getDate()).padStart(2, '0');
     return `${y}-${m}-${d}`;
 }
+
+/** Рахує різницю днів між двома датами */
 function daysDifference(dateStr1, dateStr2) {
-    // Перевірка на валідність дат
     const d1 = new Date(dateStr1);
     const d2 = new Date(dateStr2);
     if (isNaN(d1.getTime()) || isNaN(d2.getTime())) {
         console.error("Invalid date string provided to daysDifference:", dateStr1, dateStr2);
-        return Infinity; // Повертаємо нескінченність, щоб старі записи точно видалялись
+        return Infinity;
     }
     const diffTime = Math.abs(d2.getTime() - d1.getTime());
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 }
+
+/** Завантажує список скасованих пар з cookie та чистить старі (старше 7 днів) */
 function loadCanceledLessons() {
     const cookie = getCookie('canceledLessons');
     if (!cookie) return { asSet: new Set(), asList: [] };
     let list = [];
     try { list = JSON.parse(cookie); if (!Array.isArray(list)) list = []; } catch (e) { list = []; }
     const today = getTodayDateString();
-    // Фільтруємо невалідні записи та старі
+    
+    // Фільтруємо невалідні записи та старі (зберігаємо лише 7 днів)
     const cleanedList = list.filter(item => item && item.id && item.canceledOn && daysDifference(item.canceledOn, today) < 7);
     if (cleanedList.length < list.length) setCookie('canceledLessons', JSON.stringify(cleanedList));
     return { asSet: new Set(cleanedList.map(item => item.id)), asList: cleanedList };
 }
+
+/** Додає або видаляє пару зі списку скасованих */
 function toggleCanceledLesson(id) {
-    if (!id) return; // Перевірка
+    if (!id) return;
     const { asList } = loadCanceledLessons();
     const today = getTodayDateString();
     const index = asList.findIndex(item => item.id === id);
     if (index > -1) asList.splice(index, 1); else asList.push({ id: id, canceledOn: today });
     setCookie('canceledLessons', JSON.stringify(asList));
 }
-// --- Кінець функцій скасування ---
 
-// --- Функції для тижнів ---
+// =======================================
+// === ЛОГІКА ТИЖНІВ ТА ДАТ ===
+// =======================================
+
+/** Повертає номер тижня за стандартом ISO */
 function getISOWeek(date) {
-    if (!(date instanceof Date) || isNaN(date.getTime())) return NaN; // Перевірка валідності
+    if (!(date instanceof Date) || isNaN(date.getTime())) return NaN;
     const d = new Date(date.getTime()); d.setHours(0, 0, 0, 0);
     d.setDate(d.getDate() + 3 - (d.getDay() + 6) % 7);
     const yearStart = new Date(d.getFullYear(), 0, 1);
-    // Перевірка на валідність року
-    const week1 = new Date(d.getFullYear(), 0, 4);
-      if (isNaN(week1.getTime())) return NaN;
-    // Calculate full weeks to nearest Thursday
     const dayOfYear = ((d - yearStart) / 86400000) + 1;
-    const weekNum = Math.ceil((dayOfYear - d.getDay() + 4) / 7);
-
-    // // Старий розрахунок, може давати помилки на межі року
-    // const week1 = new Date(d.getFullYear(), 0, 4);
-    // return 1 + Math.round(((d.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
-      return weekNum;
+    return Math.ceil((dayOfYear - d.getDay() + 4) / 7);
 }
+
+/** Визначає, який зараз тиждень (чисельник 'num' або знаменник 'den') */
 function getCurrentType() {
     const showNextWeek = showNextWeekBtn?.classList.contains('active') || false;
     const now = new Date();
     if (showNextWeek) now.setDate(now.getDate() + 7);
 
     const startSemesterStr = scheduleData?.startDate;
-    if (!startSemesterStr) { // Якщо дата не задана, вважаємо поточний тиждень чисельником
-        console.warn("startDate is not defined in scheduleData. Assuming current week is numerator.");
+    if (!startSemesterStr) { 
+        console.warn("startDate is not defined. Assuming current week is numerator.");
         const currentWeekNum = getISOWeek(now);
         return isNaN(currentWeekNum) || currentWeekNum % 2 !== 0 ? 'num' : 'den';
     }
 
     const startSemester = new Date(startSemesterStr);
-      if (isNaN(startSemester.getTime())) { // Якщо дата невалідна
-        console.error("Invalid startDate in scheduleData:", startSemesterStr,". Assuming current week is numerator.");
+      if (isNaN(startSemester.getTime())) {
+        console.error("Invalid startDate:", startSemesterStr);
           const currentWeekNum = getISOWeek(now);
           return isNaN(currentWeekNum) || currentWeekNum % 2 !== 0 ? 'num' : 'den';
     }
@@ -114,30 +122,32 @@ function getCurrentType() {
 
     if (isNaN(weekStart) || isNaN(currentWeek)) {
           console.error("Could not calculate week numbers. Assuming numerator.");
-          return 'num'; // Fallback
+          return 'num';
     }
 
-    const weeksSinceStart = currentWeek - weekStart + 1;
-    // Якщо тиждень старту непарний (чис), то всі непарні відносно нього - чис.
-    // Якщо тиждень старту парний (знам), то всі парні відносно нього - знам (тобто непарні - чис).
-    // const isNumerator = (weeksSinceStart % 2 !== 0); // Це працює тільки якщо startWeek завжди 1 чи інше непарне число
-      const startWeekIsOdd = weekStart % 2 !== 0;
-      const currentWeekIsOdd = currentWeek % 2 !== 0;
-      const isNumerator = startWeekIsOdd === currentWeekIsOdd; // Чисельник, якщо парність тижнів збігається
+    // Логіка визначення: парність тижня збігається з парністю тижня початку?
+    const startWeekIsOdd = weekStart % 2 !== 0;
+    const currentWeekIsOdd = currentWeek % 2 !== 0;
+    const isNumerator = startWeekIsOdd === currentWeekIsOdd; 
 
     return isNumerator ? 'num' : 'den';
 }
+
+/** Повертає дати понеділка та п'ятниці для вказаної дати */
 function getWeekDates(date) {
-    if (!(date instanceof Date) || isNaN(date.getTime())) date = new Date(); // Fallback на поточну дату
+    if (!(date instanceof Date) || isNaN(date.getTime())) date = new Date();
     const d = new Date(date); const day = d.getDay();
     const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-    const monday = new Date(d.getFullYear(), d.getMonth(), diff); // Використовуємо конструктор
+    const monday = new Date(d.getFullYear(), d.getMonth(), diff);
     const friday = new Date(monday); friday.setDate(friday.getDate() + 4);
     return { start: monday, end: friday };
 }
-// --- ---
 
-// --- Завантаження JSON даних ---
+// =======================================
+// === ЗАВАНТАЖЕННЯ ТА ГЕНЕРАЦІЯ UI ===
+// =======================================
+
+/** Завантажує розклад: спочатку з localStorage, якщо немає - з файлу schedule.json */
 async function loadScheduleData() {
     const customSchedule = localStorage.getItem(SCHEDULE_STORAGE_KEY);
     if (customSchedule) {
@@ -166,41 +176,39 @@ async function loadScheduleData() {
               <div style="color: #d32f2f; text-align: center;">
                 <h3>❌ Помилка завантаження</h3>
                 <p>Не вдалося завантажити дані розкладу (${error.message}). Спробуйте оновити сторінку.</p>
-                <p style="font-size: 0.8em; color: #666;">(Можлива помилка в schedule.json або проблеми з мережею)</p>
               </div>`;
         }
         return null;
     }
 }
-// --- ---
 
-// --- Генерація навігації ---
+/** Генерує верхню навігацію (Пн, Вт, Ср...) */
 function generateNavigation() {
     const nav = document.getElementById('navigation');
     if (!nav || !scheduleData?.schedule) return;
     const days = Object.keys(scheduleData.schedule);
-nav.innerHTML = days.map(dayKey => {
-    const dayName = scheduleData.schedule[dayKey]?.name || dayKey;
-    const shortName = getShortDayName(dayName);
-    // Прибрали onclick, додали data-day-id
-    return `<a href="#" data-day-id="${dayKey}"
-              data-full="${dayName}" data-short="${shortName}">${dayName}</a>`;
-}).join('');
+    nav.innerHTML = days.map(dayKey => {
+        const dayName = scheduleData.schedule[dayKey]?.name || dayKey;
+        const shortName = getShortDayName(dayName);
+        // Використовуємо data-атрибути замість onclick для чистоти коду
+        return `<a href="#" data-day-id="${dayKey}"
+                  data-full="${dayName}" data-short="${shortName}">${dayName}</a>`;
+    }).join('');
 }
+
 function getShortDayName(fullName) {
     const shortNames = { 'Понеділок': 'ПН', 'Вівторок': 'ВТ', 'Середа': 'СР', 'Четвер': 'ЧТ', 'П\'ятниця': 'ПТ' };
-    return shortNames[fullName] || fullName?.substring(0, 2).toUpperCase() || '?'; // Додав ?.
+    return shortNames[fullName] || fullName?.substring(0, 2).toUpperCase() || '?';
 }
-// --- ---
 
-// --- Генерація розкладу ---
+/** Генерує HTML-секції для кожного дня */
 function generateSchedule() {
     const container = document.getElementById('schedule-container');
     if (!container || !scheduleData?.schedule) return;
     const days = Object.keys(scheduleData.schedule);
     container.innerHTML = days.map(dayKey => {
         const day = scheduleData.schedule[dayKey];
-        if (!day || !Array.isArray(day.lessons)) return ''; // Перевірка на масив
+        if (!day || !Array.isArray(day.lessons)) return '';
         return `
           <section class="day" id="${dayKey}">
             <h2>${day.name || dayKey}</h2>
@@ -210,54 +218,86 @@ function generateSchedule() {
           </section>`;
     }).join('');
 }
+
+/** Генерує HTML-картку для однієї пари */
 function generateLessonCard(lesson, dayKey) {
-    if (!lesson) return ''; // Перевірка
+    if (!lesson) return ''; // Вихід, якщо дані пари відсутні
+
+    // Визначаємо, чи є у пари деталі для підгруп
     const hasSubgroups = Array.isArray(lesson.subgroups) && lesson.subgroups.length > 0;
+    // Визначаємо, чи вважається пара "порожньою" (немає основного предмету І немає підгруп)
     const isEmpty = (lesson.type === 'empty' || !lesson.subject) && !hasSubgroups;
-    let cardClass = isEmpty ? 'card empty' : `card ${lesson.type || 'unknown'}`; // Додав fallback
+
+    // Базовий CSS клас для картки
+    let cardClass = isEmpty ? 'card empty' : `card ${lesson.type || 'unknown'}`;
+    // Додаємо класи для чисельника/знаменника, якщо це не урок з підгрупами
     if (!hasSubgroups && lesson.weeks && (lesson.weeks === 'num' || lesson.weeks === 'den')) {
         cardClass += ` numden ${lesson.weeks}`;
     }
-    const lessonId = `lesson-${dayKey}-${lesson.number || '?'}`; // Fallback для номера
+
+    // Генеруємо унікальний ID для елемента картки уроку
+    const lessonId = `lesson-${dayKey}-${lesson.number || '?'}`;
+
+    // --- Генеруємо HTML залежно від типу уроку ---
+
+    // 1. Якщо урок повністю порожній
     if (isEmpty) {
         return `<article class="${cardClass}" id="${lessonId}"><h3>${lesson.number || '?'} пара</h3><p class="empty-message">Немає</p></article>`;
     }
-    let subgroupsHtml = ''; let mainContent = '';
+
+    // Готуємо змінні для основного контенту та HTML підгруп
+    let subgroupsHtml = '';
+    let mainContent = '';
+
+    // 2. Якщо урок має деталі для підгруп
     if (hasSubgroups) {
         subgroupsHtml = lesson.subgroups.map(sub => {
-            if (!sub) return ''; // Перевірка підгрупи
-            const subClass = getSubgroupClass(sub); const subLabel = getSubgroupLabel(sub);
+            if (!sub) return ''; // Пропускаємо невалідні дані підгрупи
+            const subClass = getSubgroupClass(sub); // напр., "numden num sub1"
+            const subLabel = getSubgroupLabel(sub); // напр., "Підгрупа 1"
             let weekLabel = '';
             if (sub.weeks === 'num') weekLabel = '<span class="week-label num-label"> (Чисельник)</span>';
             else if (sub.weeks === 'den') weekLabel = '<span class="week-label den-label"> (Знаменник)</span>';
+
+            // HTML для одного запису підгрупи
             return `
               <div class="subgroup ${subClass}">
                 <p class="subgroup-label">${subLabel}${weekLabel}</p>
                 <p><b>${sub.subject || '?'}</b> (${getTypeLabel(sub.type)})</p>
-                <p class="teacher-room">${sub.teacher || ''}${sub.room ? ', ' + sub.room : ''}</p>
-              </div>`;
-        }).join('');
+                <p class="teacher-room">${sub.teacher || ''}${sub.room ? ', ' + sub.room : ''}</p> 
+              </div>`; // Використовуємо sub.teacher та sub.room тут
+        }).join(''); // Об'єднуємо всі HTML рядки підгруп разом
+    
+    // 3. Якщо урок має основний предмет (і немає підгруп)
     } else if (lesson.subject) {
         mainContent = `
           <p data-main-content="true"><b>${lesson.subject}</b> (${getTypeLabel(lesson.type)})</p>
-          <p class="teacher-room">${lesson.teacher || ''}${lesson.room ? ', ' + lesson.room : ''}</p>`;
+          <p class="teacher-room">${lesson.teacher || ''}${lesson.room ? ', ' + lesson.room : ''}</p>`; // Використовуємо lesson.room тут
     }
+
+    // --- Об'єднуємо всі частини в фінальний HTML картки ---
+    // Цей return, ймовірно, є рядком ~256
     return `
       <article class="${cardClass}" id="${lessonId}">
         <h3>
           ${lesson.number || '?'} пара
           <button class="cancel-btn" title="Скасувати/повернути пару" data-lesson-id="${lessonId}">❌</button>
         </h3>
-        ${mainContent}${subgroupsHtml}
+        ${mainContent}
+        ${subgroupsHtml}
         <p class="time">${lesson.time || '??:?? - ??:??'}</p>
       </article>`;
 }
+
 function getSubgroupClass(sub) { return (sub?.weeks ? `numden ${sub.weeks}` : '') + (sub?.group ? ` ${sub.group}`: ''); }
 function getSubgroupLabel(sub) { if (sub?.group === 'sub1') return 'Підгрупа 1'; if (sub?.group === 'sub2') return 'Підгрупа 2'; return ''; }
 function getTypeLabel(type) { const types = { 'lecture': 'Лекція', 'practical': 'Практична', 'lab': 'Лабораторна', 'mixed': 'Змішана' }; return types[type] || type || '?'; }
-// --- ---
 
-// Фільтрація розкладу
+// =======================================
+// === ГОЛОВНИЙ ФІЛЬТР ===
+// =======================================
+
+/** Головна функція, яка фільтрує видимі картки на основі налаштувань */
 function filterSchedule() {
     const subgroup = subgroupFilter?.value || 'all';
     const showAll = showAllWeeks?.checked || false;
@@ -275,14 +315,15 @@ function filterSchedule() {
     }
 
     cards.forEach(card => {
-        if (!card) return; // Додаткова перевірка
+        if (!card) return;
         let emptyMsg = card.querySelector('.empty-message');
         const timeEl = card.querySelector('.time');
         const mainContentEl = card.querySelector('p[data-main-content]');
         const teacherRoomEl = card.querySelector('.teacher-room');
         const subgroups = card.querySelectorAll('.subgroup');
-        const h3El = card.querySelector('h3'); // Знаходимо H3 для вставки повідомлення
+        const h3El = card.querySelector('h3');
 
+        // 1. Обробка скасованих пар
         const isCanceled = canceledLessonIds.has(card.id);
         card.classList.toggle('canceled', isCanceled);
 
@@ -298,13 +339,15 @@ function filterSchedule() {
             return;
         }
 
+        // 2. Відновлення видимості (якщо пара не скасована)
         if (emptyMsg) { if (emptyMsg.textContent === 'Скасовано') emptyMsg.remove(); else emptyMsg.style.display = 'none'; }
-        // Відновлюємо видимість елементів (якщо вони існують)
         if (timeEl) timeEl.style.display = 'block';
         if (mainContentEl) mainContentEl.style.display = 'block';
         if (teacherRoomEl) teacherRoomEl.style.display = 'block';
 
         let hasVisibleContent = false;
+        
+        // 3. Фільтрація основного контенту (якщо це не картка з підгрупами)
         if (mainContentEl) {
             let mainVisible = true;
             if (!showAll) {
@@ -315,12 +358,15 @@ function filterSchedule() {
             else { mainContentEl.style.display = 'none'; if (teacherRoomEl) teacherRoomEl.style.display = 'none'; }
         }
 
+        // 4. Фільтрація підгруп
         if (subgroups.length > 0) {
             subgroups.forEach(sub => {
-                if (!sub) return; // Перевірка
+                if (!sub) return;
                 let visible = true;
                 const subType = sub.classList.contains('sub1') ? 'sub1' : (sub.classList.contains('sub2') ? 'sub2' : 'all');
+                // Фільтр по підгрупі
                 if (subgroup !== 'all' && subType !== 'all' && subType !== subgroup) visible = false;
+                // Фільтр по тижню
                 if (!showAll) {
                     const weekType = sub.classList.contains('num') ? 'num' : (sub.classList.contains('den') ? 'den' : 'all');
                     if (weekType !== 'all' && weekType !== currentType) visible = false;
@@ -330,36 +376,45 @@ function filterSchedule() {
             });
         }
 
-        // Перевіряємо, чи це картка, яка початково була порожньою (має клас empty і НЕ має підгруп/головного контенту)
+        // 5. Перевірка, чи картка була порожньою з самого початку
         if (card.classList.contains('empty') && !mainContentEl && subgroups.length === 0) {
               hasVisibleContent = false;
         }
 
+        // 6. Фінальне рішення: ховати чи показувати картку
         if (hasVisibleContent) {
-            card.classList.remove('empty'); // Прибираємо клас empty, якщо з'явився контент
+            card.classList.remove('empty');
             card.style.display = 'flex';
-            if (timeEl) timeEl.style.display = 'block'; // Показуємо час
-            if (emptyMsg) emptyMsg.style.display = 'none'; // Ховаємо "Немає"
+            if (timeEl) timeEl.style.display = 'block';
+            if (emptyMsg) emptyMsg.style.display = 'none';
         } else {
-            // Якщо картка стала порожньою ПІСЛЯ фільтрації
-            if (!card.classList.contains('empty')) { // Додаємо клас, якщо його не було
+            // Картка стала порожньою *після* фільтрації
+            if (!card.classList.contains('empty')) {
                 card.classList.add('empty');
             }
-            if (timeEl) timeEl.style.display = 'none'; // Ховаємо час
+            if (timeEl) timeEl.style.display = 'none';
             if (!emptyMsg && h3El) { emptyMsg = document.createElement('p'); emptyMsg.className = 'empty-message'; h3El.insertAdjacentElement('afterend', emptyMsg); }
-            if (emptyMsg) { emptyMsg.textContent = 'Немає'; emptyMsg.style.display = 'block'; } // Показуємо "Немає"
-            card.style.display = hideEmpty ? 'none' : 'flex'; // Ховаємо або показуємо як порожню
+            if (emptyMsg) { emptyMsg.textContent = 'Немає'; emptyMsg.style.display = 'block'; }
+            card.style.display = hideEmpty ? 'none' : 'flex';
         }
     });
 
+    // Оновлюємо UI
     const weekLabels = document.querySelectorAll('.week-label');
     weekLabels.forEach(label => label.style.display = showAll ? 'none' : 'inline');
 
     updateWeekInfo();
     highlightCurrentPair();
-  // --- Допоміжна функція: Перевіряє, чи є пари в цей день ---
+    saveSettings();
+}
+
+// =======================================
+// === ЛОГІКА ПРОКРУТКИ ДО ДНЯ ===
+// (ВИПРАВЛЕНО: Функції винесені з filterSchedule)
+// =======================================
+
+/** Допоміжна функція: Перевіряє, чи є пари в цей день */
 function dayHasClasses(dayKey) {
-  // Перевіряємо, чи існує такий день в нашому JSON
   if (!scheduleData || !scheduleData.schedule || !scheduleData.schedule[dayKey]) {
     return false; // Такого дня немає (наприклад, 'sunday')
   }
@@ -367,13 +422,11 @@ function dayHasClasses(dayKey) {
   if (!lessons || lessons.length === 0) {
     return false;
   }
-  
-  // .some() поверне true, якщо ХОЧА Б ОДНА пара не є 'empty'
-  // (тобто має 'subject' або підгрупи)
+  // Поверне true, якщо ХОЧА Б ОДНА пара не є 'empty'
   return lessons.some(lesson => lesson.type !== 'empty');
 }
 
-// --- Головна функція: Прокрутка до потрібного дня при завантаженні ---
+/** Головна функція: Прокрутка до потрібного дня при завантаженні */
 function scrollToCorrectDay() {
   const dayKeys = [
     'sunday',    // 0
@@ -386,11 +439,9 @@ function scrollToCorrectDay() {
   ];
   
   const todayIndex = new Date().getDay();
-  let targetKey = dayKeys[todayIndex]; // Починаємо з 'сьогодні' (напр. 'tuesday')
+  let targetKey = dayKeys[todayIndex]; 
 
-  // Правило 4: Виняток для П'ятниці.
-  // Якщо сьогодні п'ятниця, ми ЗАВЖДИ відкриваємо п'ятницю,
-  // незалежно від того, чи є там пари.
+  // Правило 1: Виняток для П'ятниці
   if (targetKey === 'friday') {
     console.log('Сьогодні п\'ятниця, відкриваємо п\'ятницю.');
     scrollToDay('friday');
@@ -398,23 +449,20 @@ function scrollToCorrectDay() {
   }
 
   // Правило 2: Перевіряємо 'сьогодні'
-  // (Це покриває твій випадок про 5:00 ранку. Якщо пари є, день відкриється)
   if (dayHasClasses(targetKey)) {
     console.log('Сьогодні є пари, відкриваємо:', targetKey);
     scrollToDay(targetKey);
     return;
   }
 
-  // Правило 3: 'Сьогодні' пар немає (напр. 'saturday' або 'sunday').
-  // Шукаємо наступний день.
+  // Правило 3: 'Сьогодні' пар немає (вихідний). Шукаємо наступний день.
   console.log('Сьогодні пар немає, шукаємо наступний день...');
-  let nextDayIndex = (todayIndex + 1) % 7; // Починаємо з завтра (напр. 0 - 'sunday')
+  let nextDayIndex = (todayIndex + 1) % 7; 
 
   for (let i = 0; i < 7; i++) {
     const nextDayKey = dayKeys[nextDayIndex];
 
-    // Якщо наступний день - це П'ятниця (і ми дійшли до неї),
-    // ми зупиняємось на ній (за логікою винятку).
+    // Якщо наступний день - це П'ятниця
     if (nextDayKey === 'friday') {
       console.log('Дійшли до п\'ятниці, зупиняємось на ній.');
       scrollToDay('friday');
@@ -425,23 +473,22 @@ function scrollToCorrectDay() {
     if (dayHasClasses(nextDayKey)) {
       console.log('Знайдено наступний день з парами:', nextDayKey);
       scrollToDay(nextDayKey);
-      return; // Знайшли!
+      return;
     }
     
     nextDayIndex = (nextDayIndex + 1) % 7; // Йдемо далі по колу
   }
   
-  // Якщо ми пройшли все коло і нічого не знайшли (весь тиждень порожній),
-  // просто відкриваємо понеділок.
+  // Fallback: якщо весь тиждень порожній
   console.log('Весь тиждень порожній. Відкриваємо понеділок.');
   scrollToDay('monday');
 }
-    saveSettings();
-    // generateReports(); // Можна викликати рідше
-}
 
+// =======================================
+// === ОНОВЛЕННЯ UI (Інфо, Скрол, Тема) ===
+// =======================================
 
-// Оновлення інформації про тиждень
+/** Оновлює текст "Чисельник/Знаменник (дати)" */
 function updateWeekInfo() {
   const showAll = showAllWeeks?.checked || false;
   const showNextWeek = showNextWeekBtn?.classList.contains('active') || false;
@@ -454,19 +501,16 @@ function updateWeekInfo() {
     const date = new Date();
     if (showNextWeek) date.setDate(date.getDate() + 7);
 
-    // Встановлюємо колір залежно від теми та стану кнопки
     if (showNextWeek) {
-        infoSpan.style.color = getCssVar(document.body.classList.contains('dark-mode') ? '--accent-secondary' : '--accent-dark'); // Фіолетовий/Темно-синій
+        infoSpan.style.color = getCssVar(document.body.classList.contains('dark-mode') ? '--accent-secondary' : '--accent-dark');
     } else {
-        infoSpan.style.color = ''; // Повертаємо стандартний колір (успадковується або з CSS)
+        infoSpan.style.color = '';
     }
 
     const type = getCurrentType();
     const dates = getWeekDates(date);
     const typeName = type === 'num' ? 'Чисельник' : 'Знаменник';
     const prefix = showNextWeek ? 'Наст. тиждень: ' : '';
-
-    // Перевірка валідності дат
     const startDateStr = !isNaN(dates.start.getTime()) ? dates.start.toLocaleDateString('uk-UA') : '??.??.????';
     const endDateStr = !isNaN(dates.end.getTime()) ? dates.end.toLocaleDateString('uk-UA') : '??.??.????';
 
@@ -474,19 +518,28 @@ function updateWeekInfo() {
   }
 }
 
-// --- Навігація, Темна тема, Поточний день ---
-function scrollToDay(dayId) { const el = document.getElementById(dayId); if(el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); return false; }
+/** Прокручує сторінку до секції дня */
+function scrollToDay(dayId) { 
+    const el = document.getElementById(dayId); 
+    if(el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); 
+    return false; 
+}
+
+/** Оновлює текст навігації (ПН/Понеділок) залежно від ширини екрану */
 function updateNavText() {
     const isMobile = window.innerWidth <= 600;
     document.querySelectorAll('nav a').forEach(link => {
         link.textContent = isMobile ? link.dataset.short : link.dataset.full;
     });
 }
+
+/** Перемикає темну/світлу тему */
 function toggleDarkMode() {
     const isDark = document.body.classList.toggle('dark-mode');
     localStorage.setItem('theme', isDark ? 'dark' : 'light');
-    // РЯДОК (themeBtn.textContent = ...) ВИДАЛЕНО ЗВІДСИ
 }
+
+/** Виділяє сьогоднішній день у навігації та в списку */
 function highlightToday() {
     const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
     const today = new Date().getDay();
@@ -497,13 +550,12 @@ function highlightToday() {
     });
     document.querySelectorAll('nav a').forEach(link => {
         link.classList.remove('active-day');
-        const dayName = scheduleData?.schedule?.[todayKey]?.name; // Безпечний доступ
+        const dayName = scheduleData?.schedule?.[todayKey]?.name;
         if (dayName && link.dataset.full === dayName) link.classList.add('active-day');
     });
-      // Не скролимо при початковому завантаженні, щоб не заважати користувачу
-      // const todaySection = document.getElementById(todayKey);
-      // if (todaySection) todaySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
+
+/** Виділяє поточну та наступну (за 15хв) пару */
 function highlightCurrentPair() {
     const now = new Date();
     const currentMinutes = now.getHours() * 60 + now.getMinutes();
@@ -518,7 +570,7 @@ function highlightCurrentPair() {
     cards.forEach(card => {
         if (card.style.display === 'none' || card.classList.contains('canceled')) return;
         const timeP = card.querySelector('.time');
-        if (!timeP?.textContent) return; // Безпечний доступ
+        if (!timeP?.textContent) return;
         const timeMatch = timeP.textContent.match(/(\d{2}):(\d{2})\s*–\s*(\d{2}):(\d{2})/);
         if (!timeMatch) return;
 
@@ -530,7 +582,7 @@ function highlightCurrentPair() {
 
         if (currentMinutes >= startMinutes && currentMinutes < endMinutes) {
             currentCard = card;
-            return; // Виходимо з forEach, якщо знайшли поточну
+            return;
         }
         if (startMinutes > currentMinutes) {
             const diff = startMinutes - currentMinutes;
@@ -542,9 +594,11 @@ function highlightCurrentPair() {
     if (currentCard) currentCard.classList.add('current');
     if (upcomingCard && minDiffToStart <= 15) upcomingCard.classList.add('upcoming');
 }
-// --- ---
 
-// --- Кнопка Теми ---
+// =======================================
+// === ПЛАВАЮЧА КНОПКА ТЕМИ ===
+// =======================================
+
 if (themeBtn) {
   themeBtn.addEventListener('click', () => {
     if (!themeBtn.classList.contains('expanded')) {
@@ -572,7 +626,7 @@ if (themeBtn) {
 }
 function vibrate() { if (navigator.vibrate) navigator.vibrate(50); }
 
-// Збір проміжків часу для кнопки теми
+/** Збирає часові інтервали пар на сьогодні */
 function collectTodayIntervals() {
   const todaySection = document.querySelector('.day.today');
   if (!todaySection) return [];
@@ -595,7 +649,7 @@ function collectTodayIntervals() {
   return intervals;
 }
 
-// Оновлення кнопки теми
+/** Оновлює колір та текст плаваючої кнопки */
 function updateThemeButtonTime() {
   if (!themeBtn || !themeBtn.classList.contains('expanded')) return;
   const now = new Date();
@@ -618,29 +672,30 @@ function updateThemeButtonTime() {
 
   themeBtn.className = 'theme-toggle expanded';
   if (current) {
-    themeBtn.classList.add('green');
+    themeBtn.classList.add('green'); // Йде пара
     themeBtn.textContent = `${minutesLeft}хв`;
   } else if (upcomingDiff !== Infinity) {
-    themeBtn.classList.add('yellow');
+    themeBtn.classList.add('yellow'); // Скоро пара
     themeBtn.textContent = `${upcomingDiff}хв`;
   } else {
-    themeBtn.classList.add('purple');
+    themeBtn.classList.add('purple'); // Пари закінчились
     themeBtn.textContent = document.body.classList.contains('dark-mode') ? '☀️' : '🌙';
   }
 }
-// --- ---
 
-// Завантаження налаштувань
+// =======================================
+// === НАЛАШТУВАННЯ (Збереження/Завантаження) ===
+// =======================================
+
+/** Завантажує тему та фільтри з localStorage/cookies */
 function loadSettings() {
   const savedTheme = localStorage.getItem('theme');
-  // Встановлюємо тему ДО того, як завантажувати інші налаштування
   if (savedTheme === 'dark') document.body.classList.add('dark-mode');
   else document.body.classList.remove('dark-mode');
-  // РЯДОК (themeBtn.textContent = ...) ВИДАЛЕНО ЗВІДСИ
 
   const subgroup = getCookie('subgroupFilter');
   if (subgroup && subgroupFilter) subgroupFilter.value = subgroup;
-  else if (subgroupFilter) subgroupFilter.value = 'all'; // За замовчуванням
+  else if (subgroupFilter) subgroupFilter.value = 'all';
 
   const showAll = getCookie('showAllWeeks');
   if (showAllWeeks) showAllWeeks.checked = (showAll === 'true');
@@ -655,7 +710,7 @@ function loadSettings() {
   }
 }
 
-// Збереження налаштувань
+/** Зберігає налаштування фільтрів у cookies */
 function saveSettings() {
   if (subgroupFilter) setCookie('subgroupFilter', subgroupFilter.value);
   if (showAllWeeks) setCookie('showAllWeeks', showAllWeeks.checked ? 'true' : 'false');
@@ -663,18 +718,20 @@ function saveSettings() {
   if (showNextWeekBtn) setCookie('showNextWeek', showNextWeekBtn.classList.contains('active') ? 'true' : 'false');
 }
 
-// --- Обробник кліку скасування ---
+/** Обробник кліку на кнопку "Скасувати" (х) на картці */
 function handleCancelClick(e) {
-    if (e.target?.classList.contains('cancel-btn')) { // Безпечний доступ
+    if (e.target?.classList.contains('cancel-btn')) {
         const id = e.target.dataset.lessonId;
         toggleCanceledLesson(id);
         filterSchedule();
         vibrate();
     }
 }
-// --- ---
 
-// --- Звіти та Статистика ---
+// =======================================
+// === ЗВІТИ ТА СТАТИСТИКА ===
+// =======================================
+
 function generateReports() {
     if (!scheduleData?.schedule) return;
     const stats = calculateStatistics();
@@ -682,7 +739,7 @@ function generateReports() {
     const subjectsBreakdown = document.getElementById('subjectsBreakdown');
     if (totalLessonsEl) totalLessonsEl.textContent = stats.totalLessons || 0;
     if (subjectsBreakdown) {
-        subjectsBreakdown.innerHTML = Array.from(stats.subjectTypes?.entries() || []) // Безпечний доступ
+        subjectsBreakdown.innerHTML = Array.from(stats.subjectTypes?.entries() || [])
             .map(([subject, types]) => `
               <div class="subject-item">
                 <div class="subject-name">${subject}</div>
@@ -690,6 +747,7 @@ function generateReports() {
               </div>`).join('');
     }
 }
+
 function calculateStatistics() {
     const stats = { subjects: new Set(), teachers: new Set(), subjectTypes: new Map(), totalLessons: 0, busyDays: 0 };
     if (!scheduleData?.schedule) return stats;
@@ -706,7 +764,7 @@ function calculateStatistics() {
             const processItem = (item, isSubgroup) => {
                 if (!item?.subject) return;
                 dayHasLessons = true;
-                if (!isSubgroup || !lessonCounted) { // Рахуємо пару один раз
+                if (!isSubgroup || !lessonCounted) { 
                     stats.totalLessons++;
                     lessonCounted = true;
                 }
@@ -716,16 +774,19 @@ function calculateStatistics() {
                 if(item.type) stats.subjectTypes.get(item.subject).add(item.type);
             };
 
-            processItem(lesson, false); // Обробка основної пари
-            if (hasSubgroups) lesson.subgroups.forEach(sub => processItem(sub, true)); // Обробка підгруп
+            processItem(lesson, false);
+            if (hasSubgroups) lesson.subgroups.forEach(sub => processItem(sub, true));
         });
         if (dayHasLessons) stats.busyDays++;
     });
     return stats;
 }
-// --- ---
 
-// --- Модальне вікно Імпорту/Експорту ---
+// =======================================
+// === МОДАЛЬНІ ВІКНА ===
+// =======================================
+
+/** Ініціалізує модальне вікно "Керування" (Імпорт/Експорт) */
 function initModal() {
   settingsModal = document.getElementById('settingsModal');
   modalClose = document.getElementById('modalClose');
@@ -757,23 +818,23 @@ function initModal() {
               if (importStatusEl) { importStatusEl.textContent = '❌ Помилка! Невірний формат файлу.'; importStatusEl.className = 'status error active';}
           }
       };
-      reader.onerror = () => { console.error('File read error'); if (importStatusEl) { /* ... */ } };
+      reader.onerror = () => { console.error('File read error'); };
       reader.readAsText(file);
       event.target.value = null;
   };
 
   exportBtn.onclick = () => {
-      if (!scheduleData) { if(importStatusEl) { /* ... помилка ... */} return; }
+      if (!scheduleData) { return; }
       try {
           const dataStr = JSON.stringify(scheduleData, null, 2);
           const dataBlob = new Blob([dataStr], {type: 'application/json'});
           const url = URL.createObjectURL(dataBlob);
           const a = document.createElement('a'); a.href = url;
-          a.download = `${scheduleData.group?.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'schedule'}.json`; // Безпечна назва
+          a.download = `${scheduleData.group?.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'schedule'}.json`;
           a.click(); URL.revokeObjectURL(url); a.remove();
           if (importStatusEl) { importStatusEl.textContent = '✅ Експортовано!'; importStatusEl.className = 'status info active'; }
       } catch (err) {
-          console.error('Export error:', err); if (importStatusEl) { /* ... помилка ... */}
+          console.error('Export error:', err);
       }
   };
   deleteBtn.onclick = () => {
@@ -784,67 +845,77 @@ function initModal() {
       }
   };
 }
-// --- ---
 
+/** Ініціалізує одноразове вікно "Що нового" */
+function handleUpdateModal() {
+  const updateModal = document.getElementById('updateModal');
+  const closeUpdateBtn = document.getElementById('closeUpdateBtn');
 
-// === Ініціалізація додатку ===
-async function initApp() {
-    console.log("Initializing app..."); // Логування старту
+  if (!updateModal || !closeUpdateBtn) {
+    console.warn('Елементи модального вікна оновлень не знайдені.');
+    return; 
+  }
 
-    // Знаходимо елементи DOM якомога раніше
-    subgroupFilter = document.getElementById('subgroupFilter');
-    showAllWeeks = document.getElementById('showAllWeeks');
-    hideEmptyLessons = document.getElementById('hideEmptyLessons');
-    showNextWeekBtn = document.getElementById('showNextWeekBtn');
-    toggleFiltersBtn = document.getElementById('toggleFiltersBtn');
-    advancedFiltersPanel = document.getElementById('advancedFiltersPanel');
-    openModalBtn = document.getElementById('openModalBtn');
-    // settingsModal ініціалізується в initModal
+  const storageKey = 'seenUpdate_Oct2025_v1'; // Унікальний ключ для цього оновлення
+  const deadline = new Date(2025, 9, 29, 23, 59, 59); // 29 Жовтня 2025
+  const today = new Date();
 
-    // Спочатку завантажуємо налаштування (включаючи тему)
-    loadSettings();
-    console.log("Settings loaded.");
+  const hasSeenPopup = localStorage.getItem(storageKey);
 
-    const data = await loadScheduleData();
-    if (!data) {
-        console.error("Failed to load schedule data. Stopping initialization.");
-        // Повідомлення про помилку вже виведено в loadScheduleData
-        return;
+  // Показуємо, якщо:
+  // а) Дата ще не пройшла
+  // б) Користувач ще не бачив вікно
+  if (today <= deadline && !hasSeenPopup) {
+    updateModal.style.display = 'block';
+  }
+
+  const closeAndMarkAsSeen = () => {
+    updateModal.style.display = 'none';
+    try {
+      localStorage.setItem(storageKey, 'true');
+    } catch (e) {
+      console.error('Не вдалося зберегти в localStorage:', e);
     }
-    console.log("Schedule data loaded:", data);
+  };
 
-    const titleEl = document.getElementById('schedule-title');
-    if (titleEl) titleEl.textContent = `Розклад занять`;
-
-generateNavigation();
-console.log("Navigation generated.");
-document.getElementById('navigation').addEventListener('click', (event) => {
-    // Знаходимо, чи був клік саме по посиланню, яке нас цікавить
-    const link = event.target.closest('a[data-day-id]');
-
-    if (link) {
-        event.preventDefault(); // Забороняємо посиланню стрибати наверх
-        const dayId = link.dataset.dayId; // Беремо ID дня з data-атрибута
-
-        // Викликаємо нашу функцію scrollToDay (зсередини модуля це працює!)
-        scrollToDay(dayId);
+  closeUpdateBtn.addEventListener('click', closeAndMarkAsSeen);
+  updateModal.addEventListener('click', (event) => {
+    if (event.target === updateModal) {
+      closeAndMarkAsSeen();
     }
-});
-generateSchedule();
-    console.log("Schedule generated.");
+  });
+}
 
-    // Обробники подій
+// =======================================
+// === ГОЛОВНА ФУНКЦІЯ ЗАПУСКУ (INIT) ===
+// =======================================
+
+/** Налаштовує всі обробники подій */
+function setupEventListeners() {
+    // Слухач для навігації (делегування подій)
+    document.getElementById('navigation').addEventListener('click', (event) => {
+        const link = event.target.closest('a[data-day-id]');
+        if (link) {
+            event.preventDefault(); // Забороняємо посиланню стрибати
+            const dayId = link.dataset.dayId;
+            scrollToDay(dayId);
+        }
+    });
+
+    // Слухачі для фільтрів
     toggleFiltersBtn?.addEventListener('click', () => {
         if (advancedFiltersPanel) {
             const isVisible = advancedFiltersPanel.style.display === 'block';
             advancedFiltersPanel.style.display = isVisible ? 'none' : 'block';
-            if(toggleFiltersBtn) toggleFiltersBtn.textContent = isVisible ? '⚙️ Фільтри' : '⚙️ Сховати'; // Перевірка toggleFiltersBtn
+            if(toggleFiltersBtn) toggleFiltersBtn.textContent = isVisible ? '⚙️ Фільтри' : '⚙️ Сховати';
         }
     });
     openModalBtn?.addEventListener('click', () => {
         if (settingsModal) settingsModal.style.display = 'block';
-        if (importStatusEl) importStatusEl.textContent = '';
-        if (importStatusEl) importStatusEl.className = 'status'; // Скидаємо клас статусу
+        if (importStatusEl) {
+            importStatusEl.textContent = '';
+            importStatusEl.className = 'status';
+        }
     });
     showNextWeekBtn?.addEventListener('click', () => {
         showNextWeekBtn.classList.toggle('active');
@@ -853,123 +924,105 @@ generateSchedule();
     subgroupFilter?.addEventListener('change', filterSchedule);
     showAllWeeks?.addEventListener('change', filterSchedule);
     hideEmptyLessons?.addEventListener('change', filterSchedule);
+
+    // Слухач для скасування пар
     document.getElementById('schedule-container')?.addEventListener('click', handleCancelClick);
+
+    // Слухачі оновлення UI
+    window.addEventListener('resize', updateNavText);
+    setInterval(() => {
+      highlightCurrentPair();
+      updateThemeButtonTime();
+    }, 60000); // Оновлення кожну хвилину
+}
+
+/** Головна асинхронна функція, що запускає додаток */
+async function initApp() {
+    console.log("Initializing app...");
+
+    // 1. Знаходимо ключові елементи DOM
+    subgroupFilter = document.getElementById('subgroupFilter');
+    showAllWeeks = document.getElementById('showAllWeeks');
+    hideEmptyLessons = document.getElementById('hideEmptyLessons');
+    showNextWeekBtn = document.getElementById('showNextWeekBtn');
+    toggleFiltersBtn = document.getElementById('toggleFiltersBtn');
+    advancedFiltersPanel = document.getElementById('advancedFiltersPanel');
+    openModalBtn = document.getElementById('openModalBtn');
+
+    // 2. Завантажуємо налаштування (включаючи тему)
+    loadSettings();
+    console.log("Settings loaded.");
+
+    // 3. Завантажуємо дані розкладу
+    const data = await loadScheduleData();
+    if (!data) {
+        console.error("Failed to load schedule data. Stopping initialization.");
+        return;
+    }
+    console.log("Schedule data loaded.");
+
+    // 4. Оновлюємо заголовок
+    const titleEl = document.getElementById('schedule-title');
+    if (titleEl) titleEl.textContent = `Розклад занять`;
+
+    // 5. Генеруємо UI
+    generateNavigation();
+    console.log("Navigation generated.");
+    generateSchedule();
+    console.log("Schedule generated.");
+
+    // 6. Налаштовуємо всі обробники подій
+    setupEventListeners();
     console.log("Event listeners added.");
 
-    initModal(); // Ініціалізуємо модальне вікно
-    handleUpdateModal(); // <--- ДОДАЙТЕ ЦЕЙ РЯДОК
-    console.log("Modal initialized.");
+    // 7. Ініціалізуємо модальні вікна (звичайне та "Що нового")
+    initModal();
+    handleUpdateModal();
+    console.log("Modals initialized.");
 
-    // Перший запуск фільтрації ПІСЛЯ того, як всі елементи створено
+    // 8. Перший запуск фільтрації та UI оновлень
     filterSchedule();
+    console.log("Initial filter applied.");
 
-// --- Модальне вікно "Що нового" ---
-function handleUpdateModal() {
-  // 1. Знаходимо елементи
-  const updateModal = document.getElementById('updateModal');
-  const closeUpdateBtn = document.getElementById('closeUpdateBtn');
-
-  // Якщо елементи не знайдені, нічого не робимо
-  if (!updateModal || !closeUpdateBtn) {
-    console.warn('Елементи модального вікна оновлень не знайдені.');
-    return; 
-  }
-
-  // 2. Встановлюємо ключові змінні
-  const storageKey = 'seenUpdate_Oct2025_v1'; // Унікальний ключ для цього оновлення
-  // 29 Жовтня 2025, 23:59:59 (місяці в JS рахуються з 0, тому 9 = Жовтень)
-  const deadline = new Date(2025, 9, 29, 23, 59, 59); 
-  const today = new Date(); // Сьогодні 25.10.2025
-
-  // 3. Перевіряємо, чи бачив користувач це вікно
-  const hasSeenPopup = localStorage.getItem(storageKey);
-
-  // 4. ГОЛОВНА ЛОГІКА:
-  //    Показуємо, якщо:
-  //    а) Сьогоднішня дата ще НЕ пізніша за дедлайн
-  //    б) Користувач ще НЕ бачив це вікно (!hasSeenPopup)
-  if (today <= deadline && !hasSeenPopup) {
-    updateModal.style.display = 'block'; // Показуємо вікно
-  }
-
-  // 5. Функція, яка закриває вікно і зберігає позначку
-  const closeAndMarkAsSeen = () => {
-    updateModal.style.display = 'none'; // Ховаємо вікно
-
-    // ВАЖЛИВО: Зберігаємо позначку в localStorage
-    try {
-      localStorage.setItem(storageKey, 'true');
-    } catch (e) {
-      console.error('Не вдалося зберегти в localStorage:', e);
-    }
-  };
-
-  // 6. Додаємо обробники подій для закриття
-
-  // Закриття по натисканню на 'х'
-  closeUpdateBtn.addEventListener('click', closeAndMarkAsSeen);
-
-  // (Як у вашій функції initModal) Закриття по кліку на темний фон
-  updateModal.addEventListener('click', (event) => {
-    // Якщо клікнули саме на фон (а не на вміст вікна)
-    if (event.target === updateModal) {
-      closeAndMarkAsSeen();
-    }
-  });
-}
-// --- Кінець блоку модального вікна ---
-// ...
-  initModal(); // Ініціалізуємо модальне вікно
-  handleUpdateModal(); 
-  console.log("Modal initialized.");
-
-  // Перший запуск фільтрації ПІСЛЯ того, як всі елементи створено
-  filterSchedule();
-  console.log("Initial filter applied.");
-
-  highlightToday(); // Виділяємо сьогоднішній день
-  scrollToCorrectDay();
-    updateNavText(); // Оновлюємо текст навігації
-    generateReports(); // Генеруємо звіти
+    highlightToday();
+    scrollToCorrectDay(); // Прокрутка до поточного дня
+    updateNavText();
+    generateReports();
     console.log("UI updated.");
 
+    // 9. Показуємо контент
     const loadingEl = document.getElementById('loading');
     const containerEl = document.getElementById('schedule-container');
     if (loadingEl) loadingEl.style.display = 'none';
     if (containerEl) containerEl.style.display = 'block';
+    
     console.log("App ready.");
 }
 
-// Запуск додатку
+// =======================================
+// === ТОЧКА ВХОДУ ===
+// =======================================
+
+// Запускаємо додаток, коли HTML-документ готовий
 document.addEventListener('DOMContentLoaded', initApp);
 
-// Оновлення кожну хвилину
-const minuteUpdater = setInterval(() => {
-  highlightCurrentPair();
-  updateThemeButtonTime(); // <--- ДОДАНО
-}, 60000);
-
-// Обробка зміни розміру екрану
-window.addEventListener('resize', updateNavText);
-
-// === НОВИЙ КОД (ВСТАВ ЗАМІСТЬ СТАРОГО) ===
+// Реєструємо Service Worker, коли сторінка повністю завантажилась
 window.addEventListener('load', () => {
   if ('serviceWorker' in navigator) {
     
     let waitingServiceWorker; // Змінна для збереження "очікуючого" SW
     let isReloading = false; // Прапорець, щоб уникнути подвійного перезавантаження
 
-    // 1. Знаходимо елементи (нову панель оновлення ТА стару навігацію)
+    // 1. Знаходимо елементи (панель оновлення ТА навігацію)
     const updateBar = document.getElementById('update-bar');
     const updateButton = document.getElementById('update-now-btn');
-    const navigation = document.getElementById('navigation'); // Твоя навігація (Пн, Вт...)
+    const navigation = document.getElementById('navigation');
 
     // 2. Логіка кнопки "Оновити"
     if (updateButton && updateBar) {
       updateButton.addEventListener('click', () => {
         if (waitingServiceWorker) {
           console.log('[App] Користувач натиснув "Оновити". Надсилаємо команду SKIP_WAITING...');
-          
           // Надсилаємо команду Service Worker'у, щоб він активувався
           waitingServiceWorker.postMessage({ type: 'SKIP_WAITING' });
           updateBar.style.display = 'none'; // Ховаємо панель оновлення
@@ -994,9 +1047,8 @@ window.addEventListener('load', () => {
               console.log('[App] Новий SW очікує. Блокуємо навігацію.');
               waitingServiceWorker = newWorker; // Зберігаємо його
               
-              // === ГОЛОВНА ЛОГІКА (ЯК ТИ ХОТІВ) ===
               if (navigation) navigation.style.display = 'none'; // Ховаємо навігацію
-              if (updateBar) updateBar.style.display = 'flex'; // Показуємо твою панель!
+              if (updateBar) updateBar.style.display = 'flex'; // Показуємо панель!
             }
           }
         });
@@ -1027,7 +1079,3 @@ window.addEventListener('load', () => {
     
   }
 });
-
-
-
-
