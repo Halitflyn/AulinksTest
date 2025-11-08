@@ -583,7 +583,7 @@ body.dark-mode .subject-item { background: var(--input-bg); } /* Фон як у 
 }
 .modal-close {
   color: var(--muted); /* Змінна */
-  position: absolute; /* Позиціонуємо справа зверху */
+  ; /* Позиціонуємо справа зверху */
   top: 15px;
   right: 20px;
   font-size: 28px;
@@ -672,41 +672,68 @@ body.dark-mode #importStatus.error { color: #ff4d4f; }
   .modal-content { width: 95%; margin: 8% auto; padding: 20px; } /* Модалка вище */
 }
 
-/* === (НОВІ СТИЛІ) Кнопка "Приєднатись" на картці === 
-*/
-.join-btn {
-    display: block; /* Займає всю ширину */
-    text-align: center;
-    text-decoration: none;
-    font-weight: 500; /* Medium */
-    font-size: 14px;
-    color: white;
-    background-color: var(--accent-primary);
-    padding: 8px 10px;
-    border-radius: 6px;
-    margin-top: 10px; /* Відступ від тексту вище */
-    transition: transform 0.2s, background-color 0.2s;
+/* === (ЗАМІНА) Анімована SVG-кнопка "Приєднатись" === */
+
+/* Контейнер для кнопки-посилання */
+.join-svg-btn {
+    position: absolute; /* Позиціонуємо відносно картки */
+    bottom: 12px;
+    right: 15px;
+    width: 28px; /* Розмір */
+    height: 28px;
+    border-radius: 50%;
+    cursor: pointer;
+    background: var(--bg-primary); /* Легкий фон, щоб було видно */
+    border: 1px solid var(--border-color);
+    transition: transform 0.2s, box-shadow 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
-.join-btn:hover {
-    transform: scale(1.02); /* Легке збільшення */
-    text-decoration: none;
-}
-/* Специфічно для підгруп: кнопка має бути меншою */
-.subgroup .join-btn {
-    padding: 6px 8px;
-    font-size: 13px;
-    margin-top: 8px;
+.join-svg-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 10px var(--accent-primary);
 }
 
-/* Темна тема */
-body.dark-mode .join-btn {
-    background-color: var(--accent-primary); /* Жовтий */
-    color: #222; /* Темний текст */
-}
-body.dark-mode .join-btn:hover {
-    background-color: #f5e86a; /* Трохи світліший жовтий */
+/* Сама SVG-іконка */
+.join-svg {
+    width: 20px;
+    height: 20px;
 }
 
+/* Елементи SVG для анімації */
+.join-svg .svg-dot {
+    fill: var(--accent-primary); /* Колір "ядра" */
+}
+.join-svg .svg-pulse {
+    fill: var(--accent-primary);
+    stroke: none;
+    transform-origin: center;
+    animation: pulse-animation 2s infinite cubic-bezier(0.4, 0, 0, 1);
+}
+body.dark-mode .join-svg .svg-dot {
+    fill: var(--accent-primary); /* Жовтий */
+}
+body.dark-mode .join-svg .svg-pulse {
+    fill: var(--accent-primary); /* Жовтий */
+}
+
+/* Анімація пульсації */
+@keyframes pulse-animation {
+    0% {
+        transform: scale(0.6);
+        opacity: 0.5;
+    }
+    100% {
+        transform: scale(1.3);
+        opacity: 0;
+    }
+}
+
+/* Ховаємо кнопку на скасованих картках */
+.card.canceled .join-svg-btn {
+    display: none;
+}
 
 /* Друк */
 @media print {
@@ -791,3 +818,4 @@ body.dark-mode #update-bar #update-now-btn {
     font-size: 13px;
   }
 }
+
