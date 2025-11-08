@@ -2,7 +2,8 @@
 const SCHEDULE_STORAGE_KEY = 'myCustomSchedule';
 
 // Елементи керування (оголошуємо тут, щоб були доступні глобально всередині файлу)
-let saveBtn, loadStorageBtn, loadFileBtn, loadFileInput, exportJsonBtn, scheduleFormContainer, statusEl, themeToggle;
+let saveBtn, loadStorageBtn, loadFileBtn, loadFileInput, exportJsonBtn, scheduleFormContainer, statusEl, themeToggle,
+    lessonCountInput, defaultTimesContainer; // <-- ДОДАНО НОВІ
 
 // Дані для генерації форми
 const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
@@ -13,13 +14,7 @@ const dayNames = {
   thursday: 'Четвер',
   friday: 'П’ятниця'
 };
-const times = [
-  '08:30 – 09:50',
-  '10:05 – 11:25',
-  '11:40 – 13:00',
-  '13:15 – 14:35',
-  '14:50 – 16:10'
-];
+// МАСИВ 'times' - ВИДАЛЕНО
 const lessonTypes = {
     'Лекція': 'lecture',
     'Практична': 'practical',
@@ -36,9 +31,9 @@ const lessonTypesReverse = {
     '': ''
 };
 
-// --- Генерація HTML для однієї пари ---
-function generatePairHTML(day, pairNum) {
-  const defaultTime = times[pairNum - 1] || '00:00 - 00:00';
+// --- Генерація HTML для однієї пари (ОНОВЛЕНО) ---
+function generatePairHTML(day, pairNum, defaultTime) {
+  // const defaultTime = times[pairNum - 1] || '00:00 - 00:00'; // <-- ВИДАЛЕНО
   const baseId = `${day}-${pairNum}`;
 
   const typeOptions = `
@@ -71,6 +66,7 @@ function generatePairHTML(day, pairNum) {
           <div><label>Тип:</label><select id="${baseId}-type">${typeOptions}</select></div>
           <div><label>Викладач:</label><input type="text" id="${baseId}-teacher"></div>
           <div><label>Аудиторія:</label><input type="text" id="${baseId}-room"></div>
+          <div><label>Посилання:</label><input type="text" id="${baseId}-link" placeholder="https://meet.google.com/..."></div>
         </div>
 
         <div class="subgroup-inputs mode-subgroups details-block">
@@ -89,6 +85,7 @@ function generatePairHTML(day, pairNum) {
                     <div><label>Тип:</label><select id="${baseId}-sub${subNum}-type">${typeOptions}</select></div>
                     <div><label>Викладач:</label><input type="text" id="${baseId}-sub${subNum}-teacher"></div>
                     <div><label>Аудиторія:</label><input type="text" id="${baseId}-sub${subNum}-room"></div>
+                    <div><label>Посилання:</label><input type="text" id="${baseId}-sub${subNum}-link" placeholder="https://meet.google.com/..."></div>
                   </div>
 
                   <div class="num-den-inputs sub-numden mode-numden details-block">
@@ -105,6 +102,7 @@ function generatePairHTML(day, pairNum) {
                               <div><label>Тип:</label><select id="${baseId}-sub${subNum}-${weekType}-type">${typeOptions}</select></div>
                               <div><label>Викладач:</label><input type="text" id="${baseId}-sub${subNum}-${weekType}-teacher"></div>
                               <div><label>Аудиторія:</label><input type="text" id="${baseId}-sub${subNum}-${weekType}-room"></div>
+                              <div><label>Посилання:</label><input type="text" id="${baseId}-sub${subNum}-${weekType}-link" placeholder="https://meet.google.com/..."></div>
                             </div>
                         </div>
                       </div>
@@ -129,6 +127,7 @@ function generatePairHTML(day, pairNum) {
                      <div><label>Тип:</label><select id="${baseId}-${weekType}-type">${typeOptions}</select></div>
                      <div><label>Викладач:</label><input type="text" id="${baseId}-${weekType}-teacher"></div>
                      <div><label>Аудиторія:</label><input type="text" id="${baseId}-${weekType}-room"></div>
+                     <div><label>Посилання:</label><input type="text" id="${baseId}-${weekType}-link" placeholder="https://meet.google.com/..."></div>
                    </div>
                </div>
              </div>
@@ -139,20 +138,29 @@ function generatePairHTML(day, pairNum) {
   return html;
 }
 
-// --- Генерація повної форми ---
+// --- Генерація повної форми (ОНОВЛЕНО) ---
 function generateForm() {
   let formHTML = '';
+  // Читаємо кількість пар з нового поля
+  const lessonCount = parseInt(lessonCountInput?.value, 10) || 5; 
+
   days.forEach(day => {
     formHTML += `
       <div class="section day" data-day="${day}">
         <h2>${dayNames[day]}</h2>
         <div class="pairs">`;
-    for (let pairNum = 1; pairNum <= 5; pairNum++) {
-      formHTML += generatePairHTML(day, pairNum);
+    
+    // Цикл тепер динамічний
+    for (let pairNum = 1; pairNum <= lessonCount; pairNum++) {
+      // Отримуємо час за замовчуванням з полів
+      const defaultTimeInput = document.getElementById(`default-time-${pairNum}`);
+      const defaultTime = defaultTimeInput?.value || '00:00 – 00:00';
+      // Передаємо час у функцію
+      formHTML += generatePairHTML(day, pairNum, defaultTime); 
     }
     formHTML += '</div></div>';
   });
-  // Перевірка існування контейнера перед вставкою
+  
   if (scheduleFormContainer) {
       scheduleFormContainer.innerHTML = formHTML;
       setupAllPairRadios();
@@ -243,17 +251,57 @@ function getISOWeek(date) {
   return 1 + Math.round(((d.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
 }
 
-// --- ЗБИРАННЯ ДАНИХ З ФОРМИ ---
+// --- (НОВА) Нова функція для генерації полів часу ---
+function updateDefaultTimeInputs() {
+    if (!lessonCountInput || !defaultTimesContainer) return;
+
+    const count = parseInt(lessonCountInput.value, 10) || 0;
+    const currentTimes = [];
+    
+    // 1. Зберігаємо поточні значення, щоб не стирати їх
+    for (let i = 1; i <= 10; i++) { // Читаємо до 10 (max)
+        const input = document.getElementById(`default-time-${i}`);
+        if (input) currentTimes[i-1] = input.value;
+    }
+
+    defaultTimesContainer.innerHTML = ''; // Очищуємо контейнер
+
+    // 2. Генеруємо нові поля вводу
+    for (let i = 1; i <= count; i++) {
+        const savedValue = currentTimes[i-1] || ''; // Відновлюємо значення
+        defaultTimesContainer.innerHTML += `
+            <div>
+                <label for="default-time-${i}">${i} пара:</label>
+                <input type="text" id="default-time-${i}" placeholder="00:00 – 00:00" value="${savedValue}">
+            </div>
+        `;
+    }
+}
+
+// --- ЗБИРАННЯ ДАНИХ З ФОРМИ (ОНОВЛЕНО) ---
 function buildScheduleObject() {
     const schedule = {};
+    const lessonCount = parseInt(lessonCountInput?.value, 10) || 5;
+
+    // 1. Зберігаємо час за замовчуванням
+    schedule.defaultTimes = [];
+    for (let i = 1; i <= lessonCount; i++) {
+        const timeInput = document.getElementById(`default-time-${i}`);
+        schedule.defaultTimes.push(timeInput?.value || '00:00 – 00:00');
+    }
+    
+    // 2. Зберігаємо загальну інформацію
     schedule.group = document.getElementById('group')?.value || 'Моя група';
     schedule.semester = document.getElementById('semester')?.value || 'Поточний семестр';
     schedule.startDate = calculateStartDate();
     schedule.schedule = {};
 
+    // 3. Збираємо дані по днях
     days.forEach(day => {
         schedule.schedule[day] = { name: dayNames[day], lessons: [] };
-        for (let pairNum = 1; pairNum <= 5; pairNum++) {
+        
+        // Використовуємо динамічний цикл
+        for (let pairNum = 1; pairNum <= lessonCount; pairNum++) {
             const baseId = `${day}-${pairNum}`;
             const pairDiv = scheduleFormContainer.querySelector(`.pair[data-day="${day}"][data-pair="${pairNum}"]`);
             if (!pairDiv) continue;
@@ -261,8 +309,9 @@ function buildScheduleObject() {
             if (!modeRadio) continue;
             const mode = modeRadio.value;
 
+            // Отримуємо час (за замовчуванням або кастомний)
             const timeToggle = document.getElementById(`${baseId}-time-toggle`);
-            let timeValue = times[pairNum - 1] || '00:00 - 00:00';
+            let timeValue = schedule.defaultTimes[pairNum - 1] || '00:00 - 00:00'; // Беремо з масиву
             if (timeToggle?.checked) {
                 const customTimeInput = document.getElementById(`${baseId}-time-custom`);
                 if (customTimeInput?.value.trim()) timeValue = customTimeInput.value.trim();
@@ -270,7 +319,7 @@ function buildScheduleObject() {
 
             const lesson = {
                 number: pairNum, time: timeValue, subject: "", type: "",
-                teacher: "", room: "", weeks: "all", subgroups: []
+                teacher: "", room: "", link: "", weeks: "all", subgroups: []
             };
 
             if (mode === 'empty') {
@@ -280,6 +329,7 @@ function buildScheduleObject() {
                 lesson.type = lessonTypes[document.getElementById(`${baseId}-type`)?.value] || '';
                 lesson.teacher = document.getElementById(`${baseId}-teacher`)?.value || '';
                 lesson.room = document.getElementById(`${baseId}-room`)?.value || '';
+                lesson.link = document.getElementById(`${baseId}-link`)?.value || '';
                 if (!lesson.subject) lesson.type = 'empty';
             } else if (mode === 'numden') {
                 lesson.type = 'mixed';
@@ -292,7 +342,8 @@ function buildScheduleObject() {
                                 group: "all", weeks: weekType, subject: weekSubject,
                                 type: lessonTypes[document.getElementById(`${baseId}-${weekType}-type`)?.value] || '',
                                 teacher: document.getElementById(`${baseId}-${weekType}-teacher`)?.value || '',
-                                room: document.getElementById(`${baseId}-${weekType}-room`)?.value || ''
+                                room: document.getElementById(`${baseId}-${weekType}-room`)?.value || '',
+                                link: document.getElementById(`${baseId}-${weekType}-link`)?.value || ''
                             });
                          }
                      }
@@ -311,7 +362,8 @@ function buildScheduleObject() {
                                 group: `sub${subNum}`, weeks: "all", subject: subSubject,
                                 type: lessonTypes[document.getElementById(`${baseId}-sub${subNum}-type`)?.value] || '',
                                 teacher: document.getElementById(`${baseId}-sub${subNum}-teacher`)?.value || '',
-                                room: document.getElementById(`${baseId}-sub${subNum}-room`)?.value || ''
+                                room: document.getElementById(`${baseId}-sub${subNum}-room`)?.value || '',
+                                link: document.getElementById(`${baseId}-sub${subNum}-link`)?.value || ''
                              });
                           }
                      } else if (subMode === 'numden') {
@@ -324,7 +376,8 @@ function buildScheduleObject() {
                                         group: `sub${subNum}`, weeks: weekType, subject: weekSubject,
                                         type: lessonTypes[document.getElementById(`${baseId}-sub${subNum}-${weekType}-type`)?.value] || '',
                                         teacher: document.getElementById(`${baseId}-sub${subNum}-${weekType}-teacher`)?.value || '',
-                                        room: document.getElementById(`${baseId}-sub${subNum}-${weekType}-room`)?.value || ''
+                                        room: document.getElementById(`${baseId}-sub${subNum}-${weekType}-room`)?.value || '',
+                                        link: document.getElementById(`${baseId}-sub${subNum}-${weekType}-link`)?.value || ''
                                     });
                                  }
                              }
@@ -336,7 +389,7 @@ function buildScheduleObject() {
 
              if (!lesson.subject && lesson.subgroups.length === 0) lesson.type = 'empty';
              if (lesson.type === 'empty') {
-                 lesson.subject = ""; lesson.teacher = ""; lesson.room = "";
+                 lesson.subject = ""; lesson.teacher = ""; lesson.room = ""; lesson.link = "";
                  lesson.weeks = "all"; lesson.subgroups = [];
              }
 
@@ -348,29 +401,71 @@ function buildScheduleObject() {
 }
 
 
-// --- ЗАПОВНЕННЯ ФОРМИ З JSON ---
+// --- ЗАПОВНЕННЯ ФОРМИ З JSON (ОНОВЛЕНО) ---
 function populateForms(schedule) {
     const groupEl = document.getElementById('group'); if (groupEl) groupEl.value = schedule.group || '';
     const semesterEl = document.getElementById('semester'); if (semesterEl) semesterEl.value = schedule.semester || '';
 
+    // 1. Встановлюємо кількість пар та час за замовчуванням
+    // (Визначаємо, скільки пар, за довжиною масиву defaultTimes або за довжиною пар у пн)
+    let lessonCount = 5; // За замовчуванням
+    if (schedule.defaultTimes && schedule.defaultTimes.length > 0) {
+        lessonCount = schedule.defaultTimes.length;
+    } else if (schedule.schedule?.monday?.lessons?.length > 0) {
+        // Fallback для старих JSON, де не було defaultTimes
+        lessonCount = schedule.schedule.monday.lessons.length;
+    }
+    
+    if (lessonCountInput) lessonCountInput.value = lessonCount;
+
+    // 2. Оновлюємо та заповнюємо поля часу
+    updateDefaultTimeInputs(); 
+    if (schedule.defaultTimes) {
+        for (let i = 0; i < lessonCount; i++) {
+            const timeInput = document.getElementById(`default-time-${i + 1}`);
+            if (timeInput) timeInput.value = schedule.defaultTimes[i] || '';
+        }
+    } else {
+        // Fallback для старих JSON: витягуємо час з першої пари
+        for (let i = 0; i < lessonCount; i++) {
+            const timeInput = document.getElementById(`default-time-${i + 1}`);
+            if (timeInput && schedule.schedule?.monday?.lessons?.[i]) {
+                timeInput.value = schedule.schedule.monday.lessons[i].time || '';
+            }
+        }
+    }
+
+    // 3. Генеруємо структуру форми на основі нової кількості пар
+    generateForm();
+
+    // 4. Заповнюємо згенеровану форму даними
     days.forEach(day => {
         const dayData = schedule.schedule[day];
-        if (!dayData || !dayData.lessons) return;
+        if (!dayData || !Array.isArray(dayData.lessons)) return;
 
-        for (let pairNum = 1; pairNum <= 5; pairNum++) {
+        // Використовуємо динамічний цикл
+        for (let pairNum = 1; pairNum <= lessonCount; pairNum++) {
             const lesson = dayData.lessons.find(l => l.number === pairNum);
             const baseId = `${day}-${pairNum}`;
             const pairDiv = scheduleFormContainer.querySelector(`.pair[data-day="${day}"][data-pair="${pairNum}"]`);
-            if (!lesson || !pairDiv) continue;
-
+            if (!pairDiv) continue; // Може бути, якщо пара не існує
+            
+            // Скидаємо поля (бо generateForm їх щойно створила)
             pairDiv.querySelectorAll('input[type="radio"]').forEach(radio => radio.checked = (radio.value === 'empty'));
             pairDiv.querySelectorAll('input[type="text"], select').forEach(input => {
                  if (input.tagName === 'SELECT') input.value = ""; else input.value = "";
             });
 
+            if (!lesson) continue; // Якщо даних для цієї пари немає, пропускаємо
+
+            // Обробка часу (кастомний чи ні)
             const timeToggle = document.getElementById(`${baseId}-time-toggle`);
-            const defaultTime = times[pairNum - 1] || '';
+            // Визначаємо час за замовчуванням
+            const defaultTimeInput = document.getElementById(`default-time-${pairNum}`);
+            const defaultTime = defaultTimeInput?.value || '';
+            
             const customTimeInput = document.getElementById(`${baseId}-time-custom`);
+            
             if (timeToggle && customTimeInput) {
                 if (lesson.time && lesson.time !== defaultTime) {
                     timeToggle.checked = true;
@@ -381,6 +476,7 @@ function populateForms(schedule) {
                 }
             }
 
+            // Визначаємо головний режим
             let mainMode = 'empty';
             if (lesson.type !== 'empty') {
                  const isMainNumDen = lesson.subgroups.length > 0 && lesson.subgroups.every(sg => sg.group === 'all');
@@ -393,11 +489,13 @@ function populateForms(schedule) {
              const mainRadio = pairDiv.querySelector(`input[name="mode-${baseId}"][value="${mainMode}"]`);
              if (mainRadio) mainRadio.checked = true;
 
+            // Заповнюємо деталі (включаючи посилання)
             if (mainMode === 'none') {
                 const subjEl = document.getElementById(`${baseId}-subject`); if (subjEl) subjEl.value = lesson.subject || '';
                 const typeEl = document.getElementById(`${baseId}-type`); if (typeEl) typeEl.value = lessonTypesReverse[lesson.type] || '';
                 const teachEl = document.getElementById(`${baseId}-teacher`); if (teachEl) teachEl.value = lesson.teacher || '';
                 const roomEl = document.getElementById(`${baseId}-room`); if (roomEl) roomEl.value = lesson.room || '';
+                const linkEl = document.getElementById(`${baseId}-link`); if (linkEl) linkEl.value = lesson.link || '';
             } else if (mainMode === 'numden') {
                 lesson.subgroups.forEach(sg => {
                     const weekType = sg.weeks;
@@ -407,6 +505,7 @@ function populateForms(schedule) {
                     const typeEl = document.getElementById(`${baseId}-${weekType}-type`); if (typeEl) typeEl.value = lessonTypesReverse[sg.type] || '';
                     const teachEl = document.getElementById(`${baseId}-${weekType}-teacher`); if (teachEl) teachEl.value = sg.teacher || '';
                     const roomEl = document.getElementById(`${baseId}-${weekType}-room`); if (roomEl) roomEl.value = sg.room || '';
+                    const linkEl = document.getElementById(`${baseId}-${weekType}-link`); if (linkEl) linkEl.value = sg.link || '';
                 });
                 ['num', 'den'].forEach(wt => {
                     if (!lesson.subgroups.some(sg => sg.weeks === wt)) {
@@ -428,6 +527,7 @@ function populateForms(schedule) {
                              const typeEl = document.getElementById(`${baseId}-sub${subNum}-type`); if (typeEl) typeEl.value = lessonTypesReverse[alwaysData.type] || '';
                              const teachEl = document.getElementById(`${baseId}-sub${subNum}-teacher`); if (teachEl) teachEl.value = alwaysData.teacher || '';
                              const roomEl = document.getElementById(`${baseId}-sub${subNum}-room`); if (roomEl) roomEl.value = alwaysData.room || '';
+                             const linkEl = document.getElementById(`${baseId}-sub${subNum}-link`); if (linkEl) linkEl.value = alwaysData.link || '';
                          } else if (numData || denData) {
                              subMode = 'numden';
                              if (numData) {
@@ -436,6 +536,7 @@ function populateForms(schedule) {
                                  const typeEl = document.getElementById(`${baseId}-sub${subNum}-num-type`); if (typeEl) typeEl.value = lessonTypesReverse[numData.type] || '';
                                  const teachEl = document.getElementById(`${baseId}-sub${subNum}-num-teacher`); if (teachEl) teachEl.value = numData.teacher || '';
                                  const roomEl = document.getElementById(`${baseId}-sub${subNum}-num-room`); if (roomEl) roomEl.value = numData.room || '';
+                                 const linkEl = document.getElementById(`${baseId}-sub${subNum}-num-link`); if (linkEl) linkEl.value = numData.link || '';
                              } else {
                                   const emptyRadio = pairDiv.querySelector(`input[name="mode-${baseId}-sub${subNum}-num"][value="empty"]`); if (emptyRadio) emptyRadio.checked = true;
                              }
@@ -445,6 +546,7 @@ function populateForms(schedule) {
                                  const typeEl = document.getElementById(`${baseId}-sub${subNum}-den-type`); if (typeEl) typeEl.value = lessonTypesReverse[denData.type] || '';
                                  const teachEl = document.getElementById(`${baseId}-sub${subNum}-den-teacher`); if (teachEl) teachEl.value = denData.teacher || '';
                                  const roomEl = document.getElementById(`${baseId}-sub${subNum}-den-room`); if (roomEl) roomEl.value = denData.room || '';
+                                 const linkEl = document.getElementById(`${baseId}-sub${subNum}-den-link`); if (linkEl) linkEl.value = denData.link || '';
                              } else {
                                   const emptyRadio = pairDiv.querySelector(`input[name="mode-${baseId}-sub${subNum}-den"][value="empty"]`); if (emptyRadio) emptyRadio.checked = true;
                              }
@@ -456,14 +558,16 @@ function populateForms(schedule) {
             }
         }
     });
+    
+    // 5. Оновлюємо слухачі радіокнопок
      setupAllPairRadios();
      setupTimeToggles();
 }
 
 
-// --- ІНІЦІАЛІЗАЦІЯ ---
+// --- ІНІЦІАЛІЗАЦІЯ (ОНОВЛЕНО) ---
 document.addEventListener('DOMContentLoaded', () => {
-    // Ініціалізуємо змінні елементів тут, всередині DOMContentLoaded
+    // Ініціалізуємо змінні елементів
     saveBtn = document.getElementById('saveBtn');
     loadStorageBtn = document.getElementById('loadStorageBtn');
     loadFileBtn = document.getElementById('loadFileBtn');
@@ -471,23 +575,23 @@ document.addEventListener('DOMContentLoaded', () => {
     exportJsonBtn = document.getElementById('exportJsonBtn');
     scheduleFormContainer = document.getElementById('scheduleForm');
     statusEl = document.getElementById('status');
-    themeToggle = document.getElementById('themeToggle'); // Знаходимо кнопку теми
+    themeToggle = document.getElementById('themeToggle');
+    
+    // --- НОВІ ЕЛЕМЕНТИ ---
+    lessonCountInput = document.getElementById('lessonCount');
+    defaultTimesContainer = document.getElementById('defaultTimesContainer');
 
-    generateForm(); // Генеруємо форму, це викликає setupTimeToggles та setupAllPairRadios
-
-    // === Логіка для кнопки перемикання теми (перенесено сюди) ===
+    // === Логіка для кнопки перемикання теми ===
     if (themeToggle) {
-        // Перевіряємо збережену тему при завантаженні
         if (localStorage.getItem('theme') === 'dark') {
             document.body.classList.add('dark-mode');
-            themeToggle.textContent = '☀️'; // Світла іконка
+            themeToggle.textContent = '☀️';
         } else {
-            themeToggle.textContent = '🌙'; // Темна іконка
+            themeToggle.textContent = '🌙';
         }
 
         themeToggle.addEventListener('click', () => {
             document.body.classList.toggle('dark-mode');
-            // Зберігаємо вибір теми
             if (document.body.classList.contains('dark-mode')) {
                 localStorage.setItem('theme', 'dark');
                 themeToggle.textContent = '☀️';
@@ -497,6 +601,20 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+    
+    // --- НОВІ СЛУХАЧІ ---
+    // Слухач для зміни кількості пар
+    if (lessonCountInput) {
+        lessonCountInput.addEventListener('change', () => {
+            updateDefaultTimeInputs(); // Оновлюємо поля часу
+            generateForm(); // Оновлюємо всю форму
+        });
+    }
+
+    // 1. Генеруємо поля часу за замовчуванням (для 5 пар)
+    updateDefaultTimeInputs();
+    // 2. Генеруємо форму на основі цих 5 пар
+    generateForm(); 
     // === Кінець логіки теми ===
 
     saveBtn?.addEventListener('click', () => {
@@ -528,7 +646,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         return response.json();
                     })
                     .then(defaultSchedule => {
-                        populateForms(defaultSchedule);
+                        populateForms(defaultSchedule); // Ця функція тепер все перебудує
                         if (statusEl) {
                             statusEl.textContent = 'ℹ️ Завантажено розклад за замовчуванням (збереженого не знайдено).';
                             statusEl.className = 'status info active';
@@ -540,14 +658,16 @@ document.addEventListener('DOMContentLoaded', () => {
                             statusEl.textContent = 'ℹ️ Збереженого розкладу не знайдено. Заповніть поля.';
                             statusEl.className = 'status info active';
                          }
-                         setupAllPairRadios();
-                         setupTimeToggles();
+                         // Навіть якщо помилка, перегенеруємо форму на 5 пар
+                         if(lessonCountInput) lessonCountInput.value = 5;
+                         updateDefaultTimeInputs();
+                         generateForm();
                     });
                 return;
             }
 
             const schedule = JSON.parse(jsonString);
-            populateForms(schedule);
+            populateForms(schedule); // Ця функція тепер все перебудує
 
              if (statusEl) {
                 statusEl.textContent = '✅ Ваш збережений розклад завантажено в редактор.';
@@ -560,8 +680,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 statusEl.textContent = `❌ Помилка завантаження збереженого розкладу: ${error.message || 'Не вдалося прочитати дані'}`;
                 statusEl.className = 'status error active';
             }
-             setupAllPairRadios();
-             setupTimeToggles();
+             // Скидаємо на 5 пар у разі помилки
+             if(lessonCountInput) lessonCountInput.value = 5;
+             updateDefaultTimeInputs();
+             generateForm();
         }
     });
 
@@ -579,7 +701,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const text = e.target?.result;
                 if (typeof text !== 'string') throw new Error('Не вдалося прочитати файл');
                 const schedule = JSON.parse(text);
-                populateForms(schedule);
+                populateForms(schedule); // Ця функція тепер все перебудує
                  if (statusEl) {
                     statusEl.textContent = `✅ Розклад з файлу "${file.name}" завантажено в редактор.`;
                     statusEl.className = 'status success active';
@@ -590,8 +712,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     statusEl.textContent = '❌ Помилка! Файл пошкоджений або це не .json.';
                     statusEl.className = 'status error active';
                  }
-                 setupAllPairRadios();
-                 setupTimeToggles();
+                 if(lessonCountInput) lessonCountInput.value = 5;
+                 updateDefaultTimeInputs();
+                 generateForm();
             }
         };
         reader.onerror = () => {
@@ -600,8 +723,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 statusEl.textContent = '❌ Помилка читання файлу.';
                 statusEl.className = 'status error active';
              }
-             setupAllPairRadios();
-             setupTimeToggles();
+             if(lessonCountInput) lessonCountInput.value = 5;
+             updateDefaultTimeInputs();
+             generateForm();
         };
         reader.readAsText(file);
         event.target.value = null;
@@ -642,7 +766,7 @@ document.addEventListener('DOMContentLoaded', () => {
         loadStorageBtn.click();
     } else {
         // Якщо кнопки load немає, все одно ініціалізуємо
-        setupAllPairRadios();
-        setupTimeToggles();
+        updateDefaultTimeInputs();
+        generateForm();
     }
 }); // Кінець DOMContentLoaded
