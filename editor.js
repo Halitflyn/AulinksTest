@@ -3,18 +3,32 @@ const SCHEDULE_STORAGE_KEY = 'myCustomSchedule';
 
 // Елементи керування (оголошуємо тут, щоб були доступні глобально всередині файлу)
 let saveBtn, loadStorageBtn, loadFileBtn, loadFileInput, exportJsonBtn, scheduleFormContainer, statusEl, themeToggle,
-    lessonCountInput, defaultTimesContainer; // <-- ДОДАНО НОВІ
+    lessonCountInput, defaultTimesContainer, daySelectionContainer; // <-- ДОДАНО НОВІ
 
-// Дані для генерації форми
-const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
-const dayNames = {
+// (НОВІ) Глобальні константи для налаштувань
+const ALL_DAYS = {
   monday: 'Понеділок',
   tuesday: 'Вівторок',
   wednesday: 'Середа',
   thursday: 'Четвер',
-  friday: 'П’ятниця'
+  friday: 'П’ятниця',
+  saturday: 'Субота',
+  sunday: 'Неділя'
 };
-// МАСИВ 'times' - ВИДАЛЕНО
+// (НОВІ) Часи за замовчуванням (за твоїм запитом)
+const DEFAULT_TIMES = [
+  '08:30 – 09:50', // 1
+  '10:05 – 11:25', // 2
+  '11:40 – 13:00', // 3
+  '13:15 – 14:35', // 4
+  '14:50 – 16:10', // 5
+  '16:25 – 17:45', // 6
+  '18:00 – 19:20', // 7
+  '19:30 – 20:50'  // 8
+];
+
+// (ВИДАЛЕНО) Старі масиви days та dayNames
+
 const lessonTypes = {
     'Лекція': 'lecture',
     'Практична': 'practical',
@@ -33,7 +47,6 @@ const lessonTypesReverse = {
 
 // --- Генерація HTML для однієї пари (ОНОВЛЕНО) ---
 function generatePairHTML(day, pairNum, defaultTime) {
-  // const defaultTime = times[pairNum - 1] || '00:00 - 00:00'; // <-- ВИДАЛЕНО
   const baseId = `${day}-${pairNum}`;
 
   const typeOptions = `
@@ -142,12 +155,16 @@ function generatePairHTML(day, pairNum, defaultTime) {
 function generateForm() {
   let formHTML = '';
   // Читаємо кількість пар з нового поля
-  const lessonCount = parseInt(lessonCountInput?.value, 10) || 5; 
+  const lessonCount = parseInt(lessonCountInput?.value, 10) || 8; 
+  
+  // (НОВЕ) Отримуємо обрані дні
+  const selectedDays = getSelectedDays();
 
-  days.forEach(day => {
+  selectedDays.forEach(dayKey => {
+    const dayName = ALL_DAYS[dayKey] || dayKey;
     formHTML += `
-      <div class="section day" data-day="${day}">
-        <h2>${dayNames[day]}</h2>
+      <div class="section day" data-day="${dayKey}">
+        <h2>${dayName}</h2>
         <div class="pairs">`;
     
     // Цикл тепер динамічний
@@ -156,7 +173,7 @@ function generateForm() {
       const defaultTimeInput = document.getElementById(`default-time-${pairNum}`);
       const defaultTime = defaultTimeInput?.value || '00:00 – 00:00';
       // Передаємо час у функцію
-      formHTML += generatePairHTML(day, pairNum, defaultTime); 
+      formHTML += generatePairHTML(dayKey, pairNum, defaultTime); 
     }
     formHTML += '</div></div>';
   });
@@ -259,7 +276,8 @@ function updateDefaultTimeInputs() {
     const currentTimes = [];
     
     // 1. Зберігаємо поточні значення, щоб не стирати їх
-    for (let i = 1; i <= 10; i++) { // Читаємо до 10 (max)
+    const maxInputsToRead = Math.max(count, DEFAULT_TIMES.length, 10);
+    for (let i = 1; i <= maxInputsToRead; i++) {
         const input = document.getElementById(`default-time-${i}`);
         if (input) currentTimes[i-1] = input.value;
     }
@@ -268,7 +286,8 @@ function updateDefaultTimeInputs() {
 
     // 2. Генеруємо нові поля вводу
     for (let i = 1; i <= count; i++) {
-        const savedValue = currentTimes[i-1] || ''; // Відновлюємо значення
+        // Беремо збережене значення, АБО дефолтне, АБО пустий рядок
+        const savedValue = currentTimes[i-1] || DEFAULT_TIMES[i-1] || ''; 
         defaultTimesContainer.innerHTML += `
             <div>
                 <label for="default-time-${i}">${i} пара:</label>
@@ -278,10 +297,44 @@ function updateDefaultTimeInputs() {
     }
 }
 
+// --- (НОВІ) Функції для генерації та отримання днів ---
+function generateDaySelectionCheckboxes() {
+    if (!daySelectionContainer) return;
+    daySelectionContainer.innerHTML = Object.keys(ALL_DAYS).map(dayKey => {
+        const dayName = ALL_DAYS[dayKey];
+        // За замовчуванням Пн-Пт увімкнені
+        const isChecked = (dayKey !== 'saturday' && dayKey !== 'sunday');
+        return `
+            <label>
+                <input type="checkbox" class="day-checkbox" data-day-key="${dayKey}" ${isChecked ? 'checked' : ''}>
+                ${dayName}
+            </label>
+        `;
+    }).join('');
+
+    // Додаємо слухачі, щоб форма перегенерувалась при зміні
+    daySelectionContainer.querySelectorAll('.day-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', generateForm);
+    });
+}
+
+function getSelectedDays() {
+    if (!daySelectionContainer) {
+        // Fallback, якщо щось пішло не так
+        return ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+    }
+    const days = [];
+    daySelectionContainer.querySelectorAll('.day-checkbox:checked').forEach(checkbox => {
+        days.push(checkbox.dataset.dayKey);
+    });
+    return days;
+}
+
+
 // --- ЗБИРАННЯ ДАНИХ З ФОРМИ (ОНОВЛЕНО) ---
 function buildScheduleObject() {
     const schedule = {};
-    const lessonCount = parseInt(lessonCountInput?.value, 10) || 5;
+    const lessonCount = parseInt(lessonCountInput?.value, 10) || 8;
 
     // 1. Зберігаємо час за замовчуванням
     schedule.defaultTimes = [];
@@ -294,16 +347,18 @@ function buildScheduleObject() {
     schedule.group = document.getElementById('group')?.value || 'Моя група';
     schedule.semester = document.getElementById('semester')?.value || 'Поточний семестр';
     schedule.startDate = calculateStartDate();
-    schedule.schedule = {};
+    schedule.schedule = {}; // Створюємо пустий об'єкт розкладу
 
-    // 3. Збираємо дані по днях
-    days.forEach(day => {
-        schedule.schedule[day] = { name: dayNames[day], lessons: [] };
+    // 3. Збираємо дані по днях (ТІЛЬКИ для обраних)
+    const selectedDays = getSelectedDays();
+
+    selectedDays.forEach(dayKey => {
+        schedule.schedule[dayKey] = { name: ALL_DAYS[dayKey], lessons: [] };
         
         // Використовуємо динамічний цикл
         for (let pairNum = 1; pairNum <= lessonCount; pairNum++) {
-            const baseId = `${day}-${pairNum}`;
-            const pairDiv = scheduleFormContainer.querySelector(`.pair[data-day="${day}"][data-pair="${pairNum}"]`);
+            const baseId = `${dayKey}-${pairNum}`;
+            const pairDiv = scheduleFormContainer.querySelector(`.pair[data-day="${dayKey}"][data-pair="${pairNum}"]`);
             if (!pairDiv) continue;
             const modeRadio = pairDiv.querySelector(`input[name="mode-${baseId}"]:checked`);
             if (!modeRadio) continue;
@@ -393,7 +448,15 @@ function buildScheduleObject() {
                  lesson.weeks = "all"; lesson.subgroups = [];
              }
 
-            schedule.schedule[day].lessons.push(lesson);
+            schedule.schedule[dayKey].lessons.push(lesson);
+        }
+    });
+
+    // 4. (НОВЕ) Додаємо пусті об'єкти для днів, які НЕ обрані
+    // Це потрібно, щоб головний сайт (script.js) знав, що ці дні існують, але порожні
+    Object.keys(ALL_DAYS).forEach(dayKey => {
+        if (!schedule.schedule[dayKey]) {
+            schedule.schedule[dayKey] = { name: ALL_DAYS[dayKey], lessons: [] };
         }
     });
 
@@ -407,12 +470,11 @@ function populateForms(schedule) {
     const semesterEl = document.getElementById('semester'); if (semesterEl) semesterEl.value = schedule.semester || '';
 
     // 1. Встановлюємо кількість пар та час за замовчуванням
-    // (Визначаємо, скільки пар, за довжиною масиву defaultTimes або за довжиною пар у пн)
-    let lessonCount = 5; // За замовчуванням
+    let lessonCount = DEFAULT_TIMES.length; // За замовчуванням
     if (schedule.defaultTimes && schedule.defaultTimes.length > 0) {
         lessonCount = schedule.defaultTimes.length;
     } else if (schedule.schedule?.monday?.lessons?.length > 0) {
-        // Fallback для старих JSON, де не було defaultTimes
+        // Fallback для старих JSON
         lessonCount = schedule.schedule.monday.lessons.length;
     }
     
@@ -426,7 +488,7 @@ function populateForms(schedule) {
             if (timeInput) timeInput.value = schedule.defaultTimes[i] || '';
         }
     } else {
-        // Fallback для старих JSON: витягуємо час з першої пари
+        // Fallback для старих JSON: витягуємо час
         for (let i = 0; i < lessonCount; i++) {
             const timeInput = document.getElementById(`default-time-${i + 1}`);
             if (timeInput && schedule.schedule?.monday?.lessons?.[i]) {
@@ -435,22 +497,39 @@ function populateForms(schedule) {
         }
     }
 
-    // 3. Генеруємо структуру форми на основі нової кількості пар
+    // 3. (НОВЕ) Встановлюємо галочки днів
+    const savedDays = Object.keys(schedule.schedule).filter(dayKey => 
+        schedule.schedule[dayKey] && schedule.schedule[dayKey].lessons.length > 0
+    );
+    
+    if (daySelectionContainer) {
+        daySelectionContainer.querySelectorAll('.day-checkbox').forEach(checkbox => {
+            const dayKey = checkbox.dataset.dayKey;
+            // Якщо дні збережені, ставимо галочки за збереженим
+            if (savedDays.length > 0) {
+                 checkbox.checked = savedDays.includes(dayKey);
+            } 
+            // Інакше, залишаємо Пн-Пт за замовчуванням (вже зроблено в generateDaySelectionCheckboxes)
+        });
+    }
+
+    // 4. Генеруємо структуру форми на основі нової кількості пар І днів
     generateForm();
 
-    // 4. Заповнюємо згенеровану форму даними
-    days.forEach(day => {
-        const dayData = schedule.schedule[day];
+    // 5. Заповнюємо згенеровану форму даними
+    const daysToPopulate = getSelectedDays(); // Отримуємо дні, які *зараз* видимі
+
+    daysToPopulate.forEach(dayKey => {
+        const dayData = schedule.schedule[dayKey];
         if (!dayData || !Array.isArray(dayData.lessons)) return;
 
         // Використовуємо динамічний цикл
         for (let pairNum = 1; pairNum <= lessonCount; pairNum++) {
             const lesson = dayData.lessons.find(l => l.number === pairNum);
-            const baseId = `${day}-${pairNum}`;
-            const pairDiv = scheduleFormContainer.querySelector(`.pair[data-day="${day}"][data-pair="${pairNum}"]`);
-            if (!pairDiv) continue; // Може бути, якщо пара не існує
+            const baseId = `${dayKey}-${pairNum}`;
+            const pairDiv = scheduleFormContainer.querySelector(`.pair[data-day="${dayKey}"][data-pair="${pairNum}"]`);
+            if (!pairDiv) continue; 
             
-            // Скидаємо поля (бо generateForm їх щойно створила)
             pairDiv.querySelectorAll('input[type="radio"]').forEach(radio => radio.checked = (radio.value === 'empty'));
             pairDiv.querySelectorAll('input[type="text"], select').forEach(input => {
                  if (input.tagName === 'SELECT') input.value = ""; else input.value = "";
@@ -460,7 +539,6 @@ function populateForms(schedule) {
 
             // Обробка часу (кастомний чи ні)
             const timeToggle = document.getElementById(`${baseId}-time-toggle`);
-            // Визначаємо час за замовчуванням
             const defaultTimeInput = document.getElementById(`default-time-${pairNum}`);
             const defaultTime = defaultTimeInput?.value || '';
             
@@ -559,7 +637,7 @@ function populateForms(schedule) {
         }
     });
     
-    // 5. Оновлюємо слухачі радіокнопок
+    // 6. Оновлюємо слухачі радіокнопок
      setupAllPairRadios();
      setupTimeToggles();
 }
@@ -580,6 +658,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- НОВІ ЕЛЕМЕНТИ ---
     lessonCountInput = document.getElementById('lessonCount');
     defaultTimesContainer = document.getElementById('defaultTimesContainer');
+    daySelectionContainer = document.getElementById('daySelectionContainer'); // (НОВЕ)
 
     // === Логіка для кнопки перемикання теми ===
     if (themeToggle) {
@@ -611,9 +690,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 1. Генеруємо поля часу за замовчуванням (для 5 пар)
+    // 1. (НОВЕ) Генеруємо чекбокси днів
+    generateDaySelectionCheckboxes();
+    // 2. Генеруємо поля часу за замовчуванням (для 8 пар)
     updateDefaultTimeInputs();
-    // 2. Генеруємо форму на основі цих 5 пар
+    // 3. Генеруємо форму на основі цих 8 пар і Пн-Пт
     generateForm(); 
     // === Кінець логіки теми ===
 
@@ -658,8 +739,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             statusEl.textContent = 'ℹ️ Збереженого розкладу не знайдено. Заповніть поля.';
                             statusEl.className = 'status info active';
                          }
-                         // Навіть якщо помилка, перегенеруємо форму на 5 пар
-                         if(lessonCountInput) lessonCountInput.value = 5;
+                         // Навіть якщо помилка, генеруємо все за замовчуванням
+                         if(lessonCountInput) lessonCountInput.value = DEFAULT_TIMES.length;
                          updateDefaultTimeInputs();
                          generateForm();
                     });
@@ -680,8 +761,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 statusEl.textContent = `❌ Помилка завантаження збереженого розкладу: ${error.message || 'Не вдалося прочитати дані'}`;
                 statusEl.className = 'status error active';
             }
-             // Скидаємо на 5 пар у разі помилки
-             if(lessonCountInput) lessonCountInput.value = 5;
+             // Скидаємо на дефолт у разі помилки
+             if(lessonCountInput) lessonCountInput.value = DEFAULT_TIMES.length;
              updateDefaultTimeInputs();
              generateForm();
         }
@@ -712,7 +793,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     statusEl.textContent = '❌ Помилка! Файл пошкоджений або це не .json.';
                     statusEl.className = 'status error active';
                  }
-                 if(lessonCountInput) lessonCountInput.value = 5;
+                 if(lessonCountInput) lessonCountInput.value = DEFAULT_TIMES.length;
                  updateDefaultTimeInputs();
                  generateForm();
             }
@@ -723,7 +804,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 statusEl.textContent = '❌ Помилка читання файлу.';
                 statusEl.className = 'status error active';
              }
-             if(lessonCountInput) lessonCountInput.value = 5;
+             if(lessonCountInput) lessonCountInput.value = DEFAULT_TIMES.length;
              updateDefaultTimeInputs();
              generateForm();
         };
