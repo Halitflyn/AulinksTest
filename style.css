@@ -317,6 +317,21 @@ body.dark-mode .settings-btn:hover {
 .theme-toggle.yellow { background: #ffc107; color: #222; }
 .theme-toggle.purple { background: #9c27b0; }
 
+/* === (НОВІ СТИЛІ) Оновлення кольорів кнопки теми для темного режиму === 
+*/
+body.dark-mode .theme-toggle.green {
+    background: #2e7d32; /* Темно-зелений, як активний день */
+    color: white;
+}
+body.dark-mode .theme-toggle.yellow {
+    background: var(--accent-primary); /* Твій жовтий акцент */
+    color: #1e2023; /* Темний текст (як фон картки) */
+}
+body.dark-mode .theme-toggle.purple {
+    background: var(--accent-primary); /* Твій жовтий акцент */
+    color: #1e2023; /* Темний текст (як фон картки) */
+}
+
 
 /* === Розклад: Дні та Картки === */
 .day {
@@ -343,8 +358,12 @@ body.dark-mode .day h2 {
 .day.today h2 {
   background: #d81b60; /* Рожевий для сьогодні */
 }
+
+/* === (ЗМІНЕНО) Колір для .day.today h2 в темному режимі === 
+*/
 body.dark-mode .day.today h2 {
-  background: #f06292;
+  background: var(--accent-primary); /* ЗМІНЕНО: Твій жовтий акцент */
+  color: #1e2023; /* ЗМІНЕНО: Темний текст (як фон картки) */
 }
 
 .cards {
@@ -400,7 +419,8 @@ body.dark-mode .card.canceled {
 .card.canceled .subgroup,
 .card.canceled .time,
 .card.canceled .teacher-room,
-.card.canceled p[data-main-content] { display: none; } /* Ховаємо вміст */
+.card.canceled p[data-main-content],
+.card.canceled .join-btn { display: none; } /* Ховаємо вміст (ДОДАНО .join-btn) */
 .card.canceled .empty-message {
   display: block; /* Переконатись, що видно */
   color: #1e88e5;
@@ -651,6 +671,42 @@ body.dark-mode #importStatus.error { color: #ff4d4f; }
   .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
   .modal-content { width: 95%; margin: 8% auto; padding: 20px; } /* Модалка вище */
 }
+
+/* === (НОВІ СТИЛІ) Кнопка "Приєднатись" на картці === 
+*/
+.join-btn {
+    display: block; /* Займає всю ширину */
+    text-align: center;
+    text-decoration: none;
+    font-weight: 500; /* Medium */
+    font-size: 14px;
+    color: white;
+    background-color: var(--accent-primary);
+    padding: 8px 10px;
+    border-radius: 6px;
+    margin-top: 10px; /* Відступ від тексту вище */
+    transition: transform 0.2s, background-color 0.2s;
+}
+.join-btn:hover {
+    transform: scale(1.02); /* Легке збільшення */
+    text-decoration: none;
+}
+/* Специфічно для підгруп: кнопка має бути меншою */
+.subgroup .join-btn {
+    padding: 6px 8px;
+    font-size: 13px;
+    margin-top: 8px;
+}
+
+/* Темна тема */
+body.dark-mode .join-btn {
+    background-color: var(--accent-primary); /* Жовтий */
+    color: #222; /* Темний текст */
+}
+body.dark-mode .join-btn:hover {
+    background-color: #f5e86a; /* Трохи світліший жовтий */
+}
+
 
 /* Друк */
 @media print {
