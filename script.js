@@ -647,7 +647,8 @@ if (themeBtn) {
       vibrate();
       clearTimeout(themeAutoHideTimer);
       themeAutoHideTimer = setTimeout(() => {
-        themeBtn.classList.remove('expanded');
+        themeBtn.classList.remove('expanded'); 
+        themeBtn.textContent = '';
         vibrate();
       }, 3000);
     } else {
@@ -657,6 +658,7 @@ if (themeBtn) {
       clearTimeout(themeAutoHideTimer);
       themeAutoHideTimer = setTimeout(() => {
         themeBtn.classList.remove('expanded');
+        themeBtn.textContent = '';
         vibrate();
       }, 2000);
     }
@@ -1137,4 +1139,5 @@ window.addEventListener('load', () => {
     
   }
 });
+
 
