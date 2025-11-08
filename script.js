@@ -182,33 +182,56 @@ async function loadScheduleData() {
     }
 }
 
-/** Генерує верхню навігацію (Пн, Вт, Ср...) */
+/** Генерує верхню навігацію (Пн, Вт, Ср...) (ОНОВЛЕНО) */
 function generateNavigation() {
     const nav = document.getElementById('navigation');
     if (!nav || !scheduleData?.schedule) return;
+    
     const days = Object.keys(scheduleData.schedule);
+    
     nav.innerHTML = days.map(dayKey => {
-        const dayName = scheduleData.schedule[dayKey]?.name || dayKey;
+        const day = scheduleData.schedule[dayKey];
+        
+        // --- (НОВА ПЕРЕВІРКА) ---
+        // Перевіряємо, чи є в дні хоча б одна не-порожня пара
+        const hasLessons = day && day.lessons && day.lessons.some(l => l.type !== 'empty');
+        if (!hasLessons) {
+            return ''; // Якщо пар немає, не створюємо кнопку в навігації
+        }
+        // --- (КІНЕЦЬ ПЕРЕВІРКИ) ---
+
+        const dayName = day.name || dayKey;
         const shortName = getShortDayName(dayName);
-        // Використовуємо data-атрибути замість onclick для чистоти коду
+        
         return `<a href="#" data-day-id="${dayKey}"
                   data-full="${dayName}" data-short="${shortName}">${dayName}</a>`;
     }).join('');
 }
-
 function getShortDayName(fullName) {
     const shortNames = { 'Понеділок': 'ПН', 'Вівторок': 'ВТ', 'Середа': 'СР', 'Четвер': 'ЧТ', 'П\'ятниця': 'ПТ' };
     return shortNames[fullName] || fullName?.substring(0, 2).toUpperCase() || '?';
 }
 
-/** Генерує HTML-секції для кожного дня */
+/** Генерує HTML-секції для кожного дня (ОНОВЛЕНО) */
 function generateSchedule() {
     const container = document.getElementById('schedule-container');
     if (!container || !scheduleData?.schedule) return;
+    
     const days = Object.keys(scheduleData.schedule);
+    
     container.innerHTML = days.map(dayKey => {
         const day = scheduleData.schedule[dayKey];
+
+        // --- (НОВА ПЕРЕВІРКА) ---
+        // Перевіряємо, чи є в дні хоча б одна не-порожня пара
+        const hasLessons = day && day.lessons && day.lessons.some(l => l.type !== 'empty');
+        if (!hasLessons) {
+            return ''; // Якщо пар немає, не створюємо секцію
+        }
+        // --- (КІНЕЦЬ ПЕРЕВІРКИ) ---
+
         if (!day || !Array.isArray(day.lessons)) return '';
+        
         return `
           <section class="day" id="${dayKey}">
             <h2>${day.name || dayKey}</h2>
@@ -219,74 +242,74 @@ function generateSchedule() {
     }).join('');
 }
 
-/** Генерує HTML-картку для однієї пари (ОНОВЛЕНО з посиланнями) */
+/** Генерує HTML-картку для однієї пари (ОНОВЛЕНО з SVG-кнопкою) */
 function generateLessonCard(lesson, dayKey) {
     if (!lesson) return ''; // Вихід, якщо дані пари відсутні
 
-    // Визначаємо, чи є у пари деталі для підгруп
     const hasSubgroups = Array.isArray(lesson.subgroups) && lesson.subgroups.length > 0;
-    // Визначаємо, чи вважається пара "порожньою" (немає основного предмету І немає підгруп)
     const isEmpty = (lesson.type === 'empty' || !lesson.subject) && !hasSubgroups;
 
-    // Базовий CSS клас для картки
     let cardClass = isEmpty ? 'card empty' : `card ${lesson.type || 'unknown'}`;
-    // Додаємо класи для чисельника/знаменника, якщо це не урок з підгрупами
     if (!hasSubgroups && lesson.weeks && (lesson.weeks === 'num' || lesson.weeks === 'den')) {
         cardClass += ` numden ${lesson.weeks}`;
     }
 
-    // Генеруємо унікальний ID для елемента картки уроку
     const lessonId = `lesson-${dayKey}-${lesson.number || '?'}`;
 
-    // --- Генеруємо HTML залежно від типу уроку ---
-
-    // 1. Якщо урок повністю порожній
     if (isEmpty) {
         return `<article class="${cardClass}" id="${lessonId}"><h3>${lesson.number || '?'} пара</h3><p class="empty-message">Немає</p></article>`;
     }
 
-    // Готуємо змінні для основного контенту та HTML підгруп
     let subgroupsHtml = '';
     let mainContent = '';
-    let mainLinkBtn = ''; // --- НОВА ЗМІННА ---
+    let mainLinkBtn = ''; // Змінна для кнопки
 
-    // 2. Якщо урок має деталі для підгруп
+    // (НОВА) Функція для генерації SVG-кнопки
+    const createLinkButton = (link) => {
+        if (!link) return '';
+        // Перевіряємо, чи посилання валідне (починається з http)
+        if (!link.startsWith('http://') && !link.startsWith('https://')) {
+             link = 'https://' + link; // Додаємо https, якщо його немає
+        }
+        return `
+            <a href="${link}" target="_blank" rel="noopener" class="join-svg-btn" title="Приєднатись до пари">
+                <svg class="join-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <circle class="svg-pulse" cx="12" cy="12" r="8"></circle>
+                    <circle class="svg-dot" cx="12" cy="12" r="5"></circle>
+                </svg>
+            </a>
+        `;
+    };
+
     if (hasSubgroups) {
         subgroupsHtml = lesson.subgroups.map(sub => {
-            if (!sub) return ''; // Пропускаємо невалідні дані підгрупи
-            const subClass = getSubgroupClass(sub); // напр., "numden num sub1"
-            const subLabel = getSubgroupLabel(sub); // напр., "Підгрупа 1"
+            if (!sub) return ''; 
+            const subClass = getSubgroupClass(sub);
+            const subLabel = getSubgroupLabel(sub);
             let weekLabel = '';
             if (sub.weeks === 'num') weekLabel = '<span class="week-label num-label"> (Чисельник)</span>';
             else if (sub.weeks === 'den') weekLabel = '<span class="week-label den-label"> (Знаменник)</span>';
 
-            // --- НОВА КНОПКА ПОСИЛАННЯ ДЛЯ ПІДГРУПИ ---
-            const subLinkBtn = sub.link 
-                ? `<a href="${sub.link}" target="_blank" rel="noopener" class="join-btn">Приєднатись</a>` 
-                : '';
+            // Створюємо кнопку для підгрупи
+            const subLinkBtn = createLinkButton(sub.link); 
 
-            // HTML для одного запису підгрупи
             return `
               <div class="subgroup ${subClass}">
                 <p class="subgroup-label">${subLabel}${weekLabel}</p>
                 <p><b>${sub.subject || '?'}</b> (${getTypeLabel(sub.type)})</p>
                 <p class="teacher-room">${sub.teacher || ''}${sub.room ? ', ' + sub.room : ''}</p> 
-                ${subLinkBtn} </div>`; // Використовуємо sub.teacher та sub.room тут
-        }).join(''); // Об'єднуємо всі HTML рядки підгруп разом
+                ${subLinkBtn} </div>`;
+        }).join('');
     
-    // 3. Якщо урок має основний предмет (і немає підгруп)
     } else if (lesson.subject) {
         mainContent = `
           <p data-main-content="true"><b>${lesson.subject}</b> (${getTypeLabel(lesson.type)})</p>
-          <p class="teacher-room">${lesson.teacher || ''}${lesson.room ? ', ' + lesson.room : ''}</p>`; // Використовуємо lesson.room тут
+          <p class="teacher-room">${lesson.teacher || ''}${lesson.room ? ', ' + lesson.room : ''}</p>`;
         
-        // --- НОВА КНОПКА ПОСИЛАННЯ ДЛЯ ОСНОВНОЇ ПАРИ ---
-        mainLinkBtn = lesson.link 
-            ? `<a href="${lesson.link}" target="_blank" rel="noopener" class="join-btn">Приєднатись</a>` 
-            : '';
+        // Створюємо кнопку для основної пари
+        mainLinkBtn = createLinkButton(lesson.link);
     }
 
-    // --- Об'єднуємо всі частини в фінальний HTML картки ---
     return `
       <article class="${cardClass}" id="${lessonId}">
         <h3>
@@ -1139,5 +1162,6 @@ window.addEventListener('load', () => {
     
   }
 });
+
 
 
