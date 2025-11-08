@@ -647,8 +647,7 @@ if (themeBtn) {
       vibrate();
       clearTimeout(themeAutoHideTimer);
       themeAutoHideTimer = setTimeout(() => {
-        themeBtn.classList.remove('expanded', 'green', 'yellow', 'purple');
-        themeBtn.textContent = '';
+        themeBtn.classList.remove('expanded');
         vibrate();
       }, 3000);
     } else {
@@ -657,8 +656,7 @@ if (themeBtn) {
       vibrate();
       clearTimeout(themeAutoHideTimer);
       themeAutoHideTimer = setTimeout(() => {
-        themeBtn.classList.remove('expanded', 'green', 'yellow', 'purple');
-        themeBtn.textContent = '';
+        themeBtn.classList.remove('expanded');
         vibrate();
       }, 2000);
     }
@@ -1045,7 +1043,7 @@ async function initApp() {
     console.log("Initial filter applied.");
 
     highlightToday();
-    scrollToCorrectDay(); // Прокрутка до поточного дня (тепер "розумна")
+    setTimeout(scrollToCorrectDay, 100);
     updateNavText();
     generateReports();
     console.log("UI updated.");
@@ -1139,3 +1137,4 @@ window.addEventListener('load', () => {
     
   }
 });
+
