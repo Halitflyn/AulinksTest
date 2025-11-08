@@ -219,7 +219,7 @@ function generateSchedule() {
     }).join('');
 }
 
-/** Генерує HTML-картку для однієї пари */
+/** Генерує HTML-картку для однієї пари (ОНОВЛЕНО з посиланнями) */
 function generateLessonCard(lesson, dayKey) {
     if (!lesson) return ''; // Вихід, якщо дані пари відсутні
 
@@ -248,6 +248,7 @@ function generateLessonCard(lesson, dayKey) {
     // Готуємо змінні для основного контенту та HTML підгруп
     let subgroupsHtml = '';
     let mainContent = '';
+    let mainLinkBtn = ''; // --- НОВА ЗМІННА ---
 
     // 2. Якщо урок має деталі для підгруп
     if (hasSubgroups) {
@@ -259,13 +260,18 @@ function generateLessonCard(lesson, dayKey) {
             if (sub.weeks === 'num') weekLabel = '<span class="week-label num-label"> (Чисельник)</span>';
             else if (sub.weeks === 'den') weekLabel = '<span class="week-label den-label"> (Знаменник)</span>';
 
+            // --- НОВА КНОПКА ПОСИЛАННЯ ДЛЯ ПІДГРУПИ ---
+            const subLinkBtn = sub.link 
+                ? `<a href="${sub.link}" target="_blank" rel="noopener" class="join-btn">Приєднатись</a>` 
+                : '';
+
             // HTML для одного запису підгрупи
             return `
               <div class="subgroup ${subClass}">
                 <p class="subgroup-label">${subLabel}${weekLabel}</p>
                 <p><b>${sub.subject || '?'}</b> (${getTypeLabel(sub.type)})</p>
                 <p class="teacher-room">${sub.teacher || ''}${sub.room ? ', ' + sub.room : ''}</p> 
-              </div>`; // Використовуємо sub.teacher та sub.room тут
+                ${subLinkBtn} </div>`; // Використовуємо sub.teacher та sub.room тут
         }).join(''); // Об'єднуємо всі HTML рядки підгруп разом
     
     // 3. Якщо урок має основний предмет (і немає підгруп)
@@ -273,10 +279,14 @@ function generateLessonCard(lesson, dayKey) {
         mainContent = `
           <p data-main-content="true"><b>${lesson.subject}</b> (${getTypeLabel(lesson.type)})</p>
           <p class="teacher-room">${lesson.teacher || ''}${lesson.room ? ', ' + lesson.room : ''}</p>`; // Використовуємо lesson.room тут
+        
+        // --- НОВА КНОПКА ПОСИЛАННЯ ДЛЯ ОСНОВНОЇ ПАРИ ---
+        mainLinkBtn = lesson.link 
+            ? `<a href="${lesson.link}" target="_blank" rel="noopener" class="join-btn">Приєднатись</a>` 
+            : '';
     }
 
     // --- Об'єднуємо всі частини в фінальний HTML картки ---
-    // Цей return, ймовірно, є рядком ~256
     return `
       <article class="${cardClass}" id="${lessonId}">
         <h3>
@@ -285,9 +295,10 @@ function generateLessonCard(lesson, dayKey) {
         </h3>
         ${mainContent}
         ${subgroupsHtml}
-        <p class="time">${lesson.time || '??:?? - ??:??'}</p>
+        ${mainLinkBtn} <p class="time">${lesson.time || '??:?? - ??:??'}</p>
       </article>`;
 }
+
 
 function getSubgroupClass(sub) { return (sub?.weeks ? `numden ${sub.weeks}` : '') + (sub?.group ? ` ${sub.group}`: ''); }
 function getSubgroupLabel(sub) { if (sub?.group === 'sub1') return 'Підгрупа 1'; if (sub?.group === 'sub2') return 'Підгрупа 2'; return ''; }
@@ -322,6 +333,7 @@ function filterSchedule() {
         const teacherRoomEl = card.querySelector('.teacher-room');
         const subgroups = card.querySelectorAll('.subgroup');
         const h3El = card.querySelector('h3');
+        const joinBtn = card.querySelector('.join-btn'); // Знаходимо кнопку "Приєднатись"
 
         // 1. Обробка скасованих пар
         const isCanceled = canceledLessonIds.has(card.id);
@@ -333,6 +345,7 @@ function filterSchedule() {
             if (timeEl) timeEl.style.display = 'none';
             if (mainContentEl) mainContentEl.style.display = 'none';
             if (teacherRoomEl) teacherRoomEl.style.display = 'none';
+            if (joinBtn) joinBtn.style.display = 'none'; // Ховаємо кнопку "Приєднатись"
             subgroups.forEach(sub => sub.style.display = 'none');
             card.style.display = 'flex';
             card.classList.remove('empty');
@@ -344,6 +357,7 @@ function filterSchedule() {
         if (timeEl) timeEl.style.display = 'block';
         if (mainContentEl) mainContentEl.style.display = 'block';
         if (teacherRoomEl) teacherRoomEl.style.display = 'block';
+        if (joinBtn) joinBtn.style.display = 'block'; // Показуємо кнопку "Приєднатись"
 
         let hasVisibleContent = false;
         
@@ -355,7 +369,11 @@ function filterSchedule() {
                 if (weekType !== 'all' && weekType !== currentType) mainVisible = false;
             }
             if (mainVisible) hasVisibleContent = true;
-            else { mainContentEl.style.display = 'none'; if (teacherRoomEl) teacherRoomEl.style.display = 'none'; }
+            else { 
+                mainContentEl.style.display = 'none'; 
+                if (teacherRoomEl) teacherRoomEl.style.display = 'none';
+                if (joinBtn) joinBtn.style.display = 'none'; // Ховаємо кнопку, якщо контент невидимий
+            }
         }
 
         // 4. Фільтрація підгруп
@@ -410,23 +428,55 @@ function filterSchedule() {
 
 // =======================================
 // === ЛОГІКА ПРОКРУТКИ ДО ДНЯ ===
-// (ВИПРАВЛЕНО: Функції винесені з filterSchedule)
+// (ОНОВЛЕНА ЛОГІКА)
 // =======================================
 
-/** Допоміжна функція: Перевіряє, чи є пари в цей день */
-function dayHasClasses(dayKey) {
-  if (!scheduleData || !scheduleData.schedule || !scheduleData.schedule[dayKey]) {
-    return false; // Такого дня немає (наприклад, 'sunday')
-  }
-  const lessons = scheduleData.schedule[dayKey].lessons;
-  if (!lessons || lessons.length === 0) {
-    return false;
-  }
-  // Поверне true, якщо ХОЧА Б ОДНА пара не є 'empty'
-  return lessons.some(lesson => lesson.type !== 'empty');
+/** Прокручує сторінку до секції дня */
+function scrollToDay(dayId) { 
+    const el = document.getElementById(dayId); 
+    if(el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); 
+    return false; 
 }
 
-/** Головна функція: Прокрутка до потрібного дня при завантаженні */
+/** (НОВА) Знаходить час закінчення ОСТАННЬОЇ *видимої* пари дня */
+function getLastVisibleLessonEndTime(dayKey) {
+    const daySection = document.getElementById(dayKey);
+    if (!daySection) return 0; // Повертаємо 0, якщо секції дня немає
+
+    // Знаходимо всі картки, які не порожні І не скасовані
+    const visibleCards = daySection.querySelectorAll('.card:not(.empty):not(.canceled)');
+    let maxEndTime = 0; // Тут зберігаємо найпізніший час
+
+    visibleCards.forEach(card => {
+        // Додатково перевіряємо, що картка не прихована фільтрами
+        if (card.style.display === 'none') return; 
+
+        const timeP = card.querySelector('.time');
+        if (!timeP?.textContent) return; // Немає елемента часу
+
+        // Отримуємо час у форматі "13:15 – 14:35"
+        const timeMatch = timeP.textContent.match(/(\d{2}):(\d{2})\s*–\s*(\d{2}):(\d{2})/);
+        if (!timeMatch) return; // Не вдалося розпізнати час
+
+        // timeMatch = ["13:15 – 14:35", "13", "15", "14", "35"]
+        const endHour = parseInt(timeMatch[3], 10);
+        const endMin = parseInt(timeMatch[4], 10);
+
+        if (isNaN(endHour) || isNaN(endMin)) return; // Помилка розпізнавання чисел
+
+        const endTimeInMinutes = endHour * 60 + endMin;
+        
+        // Якщо цей час пізніший за той, що ми зберегли, оновлюємо
+        if (endTimeInMinutes > maxEndTime) {
+            maxEndTime = endTimeInMinutes;
+        }
+    });
+
+    // Поверне 0 (якщо пар немає) або час закінчення останньої пари (у хвилинах)
+    return maxEndTime; 
+}
+
+/** Головна функція: Прокрутка до потрібного дня при завантаженні (ОНОВЛЕНО) */
 function scrollToCorrectDay() {
   const dayKeys = [
     'sunday',    // 0
@@ -438,48 +488,40 @@ function scrollToCorrectDay() {
     'saturday'   // 6
   ];
   
-  const todayIndex = new Date().getDay();
-  let targetKey = dayKeys[todayIndex]; 
+  const today = new Date();
+  const todayIndex = today.getDay(); // 0 (Нд) - 6 (Сб)
+  const currentMinutes = today.getHours() * 60 + today.getMinutes(); // Поточний час у хвилинах
+  const todayKey = dayKeys[todayIndex]; // Наприклад, 'wednesday'
 
-  // Правило 1: Виняток для П'ятниці
-  if (targetKey === 'friday') {
-    console.log('Сьогодні п\'ятниця, відкриваємо п\'ятницю.');
-    scrollToDay('friday');
-    return;
+  // 1. Перевіряємо СЬОГОДНІ
+  // Отримуємо час закінчення останньої пари (або 0, якщо пар немає)
+  const todayLastLessonEnd = getLastVisibleLessonEndTime(todayKey);
+
+  // Якщо сьогодні є пари (todayLastLessonEnd > 0) 
+  // І вони ще НЕ закінчились (поточний час <= часу кінця)
+  if (todayLastLessonEnd > 0 && currentMinutes <= todayLastLessonEnd) {
+    console.log('Сьогодні ще є пари, відкриваємо:', todayKey);
+    scrollToDay(todayKey); // Прокручуємо до сьогодні
+    return; // Виходимо
   }
 
-  // Правило 2: Перевіряємо 'сьогодні'
-  if (dayHasClasses(targetKey)) {
-    console.log('Сьогодні є пари, відкриваємо:', targetKey);
-    scrollToDay(targetKey);
-    return;
-  }
+  // 2. СЬОГОДНІ ПАР НЕМАЄ, або ВОНИ ВЖЕ ЗАКІНЧИЛИСЬ.
+  // Шукаємо наступний день з парами, починаючи з завтра (i = 1).
+  console.log('Сьогодні пари закінчились або їх немає. Шукаємо наступний день...');
 
-  // Правило 3: 'Сьогодні' пар немає (вихідний). Шукаємо наступний день.
-  console.log('Сьогодні пар немає, шукаємо наступний день...');
-  let nextDayIndex = (todayIndex + 1) % 7; 
-
-  for (let i = 0; i < 7; i++) {
+  for (let i = 1; i <= 7; i++) { // Перевіряємо весь тиждень
+    const nextDayIndex = (todayIndex + i) % 7; // (3+1)%7=4 ('thursday'), (3+2)%7=5 ('friday')...
     const nextDayKey = dayKeys[nextDayIndex];
-
-    // Якщо наступний день - це П'ятниця
-    if (nextDayKey === 'friday') {
-      console.log('Дійшли до п\'ятниці, зупиняємось на ній.');
-      scrollToDay('friday');
-      return;
-    }
-
-    // Якщо знайшли день з парами (і це НЕ п'ятниця)
-    if (dayHasClasses(nextDayKey)) {
-      console.log('Знайдено наступний день з парами:', nextDayKey);
-      scrollToDay(nextDayKey);
-      return;
-    }
     
-    nextDayIndex = (nextDayIndex + 1) % 7; // Йдемо далі по колу
+    // Перевіряємо, чи є в цей "наступний" день хоч якісь видимі пари
+    if (getLastVisibleLessonEndTime(nextDayKey) > 0) {
+      console.log('Знайдено наступний день з парами:', nextDayKey);
+      scrollToDay(nextDayKey); // Прокручуємо до нього
+      return; // Виходимо
+    }
   }
   
-  // Fallback: якщо весь тиждень порожній
+  // 3. Fallback: якщо весь тиждень порожній (малоймовірно, але можливо)
   console.log('Весь тиждень порожній. Відкриваємо понеділок.');
   scrollToDay('monday');
 }
@@ -502,9 +544,14 @@ function updateWeekInfo() {
     if (showNextWeek) date.setDate(date.getDate() + 7);
 
     if (showNextWeek) {
-        infoSpan.style.color = getCssVar(document.body.classList.contains('dark-mode') ? '--accent-secondary' : '--accent-dark');
+        // Використовуємо getComputedStyle для отримання значення CSS-змінної
+        const bodyStyles = getComputedStyle(document.body);
+        const accentColor = document.body.classList.contains('dark-mode') ? 
+            bodyStyles.getPropertyValue('--accent-dark') : // Це 'accent-dark' для світлої
+            bodyStyles.getPropertyValue('--accent-secondary'); // Це 'accent-secondary' для темної
+        infoSpan.style.color = accentColor || ''; // Застосовуємо колір
     } else {
-        infoSpan.style.color = '';
+        infoSpan.style.color = ''; // Скидаємо колір
     }
 
     const type = getCurrentType();
@@ -516,13 +563,6 @@ function updateWeekInfo() {
 
     infoSpan.innerHTML = `${prefix}${typeName} <span class="week-date">(${startDateStr} – ${endDateStr})</span>`;
   }
-}
-
-/** Прокручує сторінку до секції дня */
-function scrollToDay(dayId) { 
-    const el = document.getElementById(dayId); 
-    if(el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); 
-    return false; 
 }
 
 /** Оновлює текст навігації (ПН/Понеділок) залежно від ширини екрану */
@@ -737,7 +777,26 @@ function generateReports() {
     const stats = calculateStatistics();
     const totalLessonsEl = document.getElementById('totalLessons');
     const subjectsBreakdown = document.getElementById('subjectsBreakdown');
+    
+    // Оновлюємо кількість пар (можемо взяти з defaultTimes, якщо вони є)
+    let lessonCount = 5; // За замовчуванням
+    if (scheduleData.defaultTimes && scheduleData.defaultTimes.length > 0) {
+        lessonCount = scheduleData.defaultTimes.length;
+    } else if (scheduleData.schedule?.monday?.lessons?.length > 0) {
+        lessonCount = scheduleData.schedule.monday.lessons.length;
+    }
+    
     if (totalLessonsEl) totalLessonsEl.textContent = stats.totalLessons || 0;
+    
+    // Оновлюємо картку статистики (якщо вона є)
+    const lessonsPerDayEl = document.getElementById('lessonsPerDay');
+    if (lessonsPerDayEl) {
+        lessonsPerDayEl.textContent = lessonCount;
+    } else {
+        // Якщо картки немає, можемо додати її (але це вимагатиме змін в index.html)
+        // Поки що просто оновимо існуючу
+    }
+
     if (subjectsBreakdown) {
         subjectsBreakdown.innerHTML = Array.from(stats.subjectTypes?.entries() || [])
             .map(([subject, types]) => `
@@ -747,6 +806,7 @@ function generateReports() {
               </div>`).join('');
     }
 }
+
 
 function calculateStatistics() {
     const stats = { subjects: new Set(), teachers: new Set(), subjectTypes: new Map(), totalLessons: 0, busyDays: 0 };
@@ -968,7 +1028,7 @@ async function initApp() {
     // 5. Генеруємо UI
     generateNavigation();
     console.log("Navigation generated.");
-    generateSchedule();
+    generateSchedule(); // Ця функція тепер використовує дані з scheduleData
     console.log("Schedule generated.");
 
     // 6. Налаштовуємо всі обробники подій
@@ -981,11 +1041,11 @@ async function initApp() {
     console.log("Modals initialized.");
 
     // 8. Перший запуск фільтрації та UI оновлень
-    filterSchedule();
+    filterSchedule(); // ВАЖЛИВО: filterSchedule має йти ПІСЛЯ generateSchedule
     console.log("Initial filter applied.");
 
     highlightToday();
-    scrollToCorrectDay(); // Прокрутка до поточного дня
+    scrollToCorrectDay(); // Прокрутка до поточного дня (тепер "розумна")
     updateNavText();
     generateReports();
     console.log("UI updated.");
