@@ -194,7 +194,7 @@ body.dark-mode .load-btn:hover, body.dark-mode .load-file-btn:hover, body.dark-m
 
 
 /* === Поля вводу === */
-input[type="text"], input[type="date"], select {
+input[type="text"], input[type="date"], input[type="number"], select {
     width: 100%;
     padding: 10px 14px; /* Збалансований падінг */
     background: var(--input-bg);
@@ -205,7 +205,7 @@ input[type="text"], input[type="date"], select {
     color: var(--text);
     transition: border-color var(--transition-speed), box-shadow var(--transition-speed), background-color var(--transition-speed);
 }
-input[type="text"]:focus, input[type="date"]:focus, select:focus {
+input[type="text"]:focus, input[type="date"]:focus, input[type="number"]:focus, select:focus {
     border-color: var(--accent);
     background-color: var(--card);
     box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.15); /* М'якша тінь фокусу */
@@ -289,8 +289,89 @@ body.dark-mode .subgroup {
 
 
 /* === Статус та Інші Дрібниці === */
-.status { /* ... переконайтесь, що стилі для .status є ... */ }
-#themeToggle { /* ... переконайтесь, що стилі для кнопки теми є ... */ }
+/* ... (Тут можуть бути твої існуючі стилі для .status) ... */
+.status {
+    padding: 10px 15px;
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    font-weight: 500;
+    margin-top: 15px;
+    display: none; /* Ховаємо за замовчуванням */
+    opacity: 0;
+    transition: opacity 0.3s, transform 0.3s;
+    transform: translateY(-10px);
+}
+.status.active {
+    display: block;
+    opacity: 1;
+    transform: translateY(0);
+}
+.status.success {
+    background: #dcfce7; /* Green 100 */
+    color: #166534; /* Green 800 */
+    border: 1px solid #bbf7d0; /* Green 200 */
+}
+.status.error {
+    background: #fee2e2; /* Red 100 */
+    color: #991b1b; /* Red 800 */
+    border: 1px solid #fecaca; /* Red 200 */
+}
+.status.info {
+    background: #e0e7ff; /* Indigo 100 */
+    color: #3730a3; /* Indigo 800 */
+    border: 1px solid #c7d2fe; /* Indigo 200 */
+}
+body.dark-mode .status.success {
+    background: #14532d;
+    color: #bbf7d0;
+    border-color: #166534;
+}
+body.dark-mode .status.error {
+    background: #7f1d1d;
+    color: #fecaca;
+    border-color: #991b1b;
+}
+body.dark-mode .status.info {
+    background: #312e81;
+    color: #c7d2fe;
+    border-color: #3730a3;
+}
+
+
+/* === (НОВІ СТИЛІ) Стилі для нових полів === */
+
+/* Спільний клас для сіток у налаштуваннях */
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px 20px;
+}
+
+/* Стиль для нової секції "Налаштування пар" */
+.default-times-info {
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    padding: 25px 30px;
+    margin-bottom: 30px;
+}
+.default-times-info legend {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    padding: 0 10px;
+    margin-left: -10px; /* Компенсація для padding */
+}
+
+/* Стиль для полів часу, що генеруються */
+#defaultTimesContainer div {
+    display: flex;
+    flex-direction: column;
+}
+
 
 /* Медіа-запити для мобільного (приклад) */
 @media (max-width: 768px) {
@@ -301,16 +382,27 @@ body.dark-mode .subgroup {
     h1 { font-size: 20px; }
     .schedule-form-container .day h2 { font-size: 18px; }
     .pair h4 { font-size: 15px; }
-    .controls { gap: 8px; }
+    .controls { 
+        gap: 8px; 
+        flex-wrap: wrap; /* Дозволяємо перенос кнопок */
+    }
     .save-btn, .load-btn, .load-file-btn, .export-btn, #themeToggle, .nav-link {
         padding: 8px 12px;
         font-size: 13px;
+        flex-grow: 1; /* Кнопки можуть розтягуватись */
+        flex-basis: 100px; /* Базова ширина */
     }
-    input[type="text"], input[type="date"], select {
+    input[type="text"], input[type="date"], input[type="number"], select {
         padding: 10px 12px;
         font-size: 14px;
     }
     .option-group label { font-size: 13px; margin-right: 10px; }
-    fieldset.general-info, .schedule-form-container .section.day { padding: 15px 20px; }
+    fieldset.general-info, .schedule-form-container .section.day, .default-times-info { padding: 15px 20px; }
     .pair { padding: 15px; }
+    
+    /* Адаптивність для сіток */
+    .form-grid {
+        grid-template-columns: 1fr; /* Одна колонка на мобільних */
+        gap: 15px;
+    }
 }
