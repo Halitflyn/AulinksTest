@@ -57,16 +57,24 @@
         </fieldset>
 
         <fieldset class="default-times-info">
-            <legend>Налаштування пар</legend>
-            <div class="form-grid">
+            <legend>Налаштування Днів та Часу</legend>
+            
+            <div class="day-selection">
+                <label style="text-transform: uppercase; font-size: 13px; color: var(--muted); margin-bottom: 10px; display: block;">Робочі дні:</label>
+                <div id="daySelectionContainer" class="day-selection-grid">
+                    </div>
+            </div>
+
+            <div class="form-grid" style="margin-top: 20px; border-top: 1px dashed var(--border); padding-top: 20px;">
                 <div>
                     <label for="lessonCount">Кількість пар на день:</label>
-                    <input type="number" id="lessonCount" value="5" min="1" max="10" style="width: 80px;">
+                    <input type="number" id="lessonCount" value="8" min="1" max="10" style="width: 80px;">
                 </div>
             </div>
             <div id="defaultTimesContainer" class="form-grid" style="margin-top: 20px; border-top: 1px dashed var(--border); padding-top: 20px;">
                 </div>
         </fieldset>
+
         <div id="scheduleForm" class="schedule-form-container">
             {/* Сюди JS згенерує повну форму */}
         </div>
