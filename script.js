@@ -208,7 +208,7 @@ function generateNavigation() {
     }).join('');
 }
 function getShortDayName(fullName) {
-    const shortNames = { 'Понеділок': 'ПН', 'Вівторок': 'ВТ', 'Середа': 'СР', 'Четвер': 'ЧТ', 'П\'ятниця': 'ПТ' };
+    const shortNames = { 'Понеділок': 'ПН', 'Вівторок': 'ВТ', 'Середа': 'СР', 'Четвер': 'ЧТ', 'П’ятниця': 'ПТ' };
     return shortNames[fullName] || fullName?.substring(0, 2).toUpperCase() || '?';
 }
 
@@ -1162,6 +1162,7 @@ window.addEventListener('load', () => {
     
   }
 });
+
 
 
 
