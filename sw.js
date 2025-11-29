@@ -1,16 +1,19 @@
 /* --- Service Worker --- */
 
-// Назва нашого кешу. Зміни v1 на v2, v3 і т.д., коли захочеш повністю оновити кеш
-const CACHE_NAME = 'schedule-cache-v2.03';
+// Назва нашого кешу. Зміни v1 на v2, v3 і т.д., коли треба повністю оновити кеш
+const CACHE_NAME = 'schedule-cache-v2.024';
 
 // Список файлів, які треба завантажити в кеш "наперед"
 // Це "оболонка" твого додатку
 const FILES_TO_CACHE = [
     './', // Головна сторінка (index.html)
     'index.html',
-    'style.css', // !!! ВАЖЛИВО: Якщо твій CSS називається style.css, зміни це тут
+    'style.css',
     'script.js',
     'editor.html', // Додаємо редактор, щоб він теж працював офлайн
+    'editor.css',
+    'editor.js',
+    'image/Donat.jpg', // Додаємо картинку донату в кеш
     'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap' // Шрифти
 ];
 
@@ -48,7 +51,7 @@ self.addEventListener('activate', (event) => {
 // 3. Етап "Перехоплення запитів" (Fetch)
 // Спрацьовує КОЖЕН раз, коли сайт намагається щось завантажити (CSS, JS, JSON, картинки).
 self.addEventListener('fetch', (event) => {
-    
+
     // === СТРАТЕГІЯ ДЛЯ РОЗКЛАДУ (schedule.json) ===
     // "Network First" (Спочатку Мережа)
     // Це те, що ти просив:
@@ -87,7 +90,7 @@ self.addEventListener('fetch', (event) => {
                 // console.log('[SW] Файл знайдено в кеші:', event.request.url);
                 return response;
             }
-            
+
             // Не знайдено в кеші, йдемо в мережу
             // console.log('[SW] Файл не знайдено в кеші, вантажимо з мережі:', event.request.url);
             return fetch(event.request);
@@ -97,9 +100,9 @@ self.addEventListener('fetch', (event) => {
 // 4. Етап "Повідомлення" (Message)
 // Слухаємо команди з головного скрипту (script.js)
 self.addEventListener('message', (event) => {
-  // Якщо команда - 'SKIP_WAITING', то ми негайно активуємось
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    console.log('[SW] Отримано команду SKIP_WAITING. Активуємось!');
-    self.skipWaiting();
-  }
+    // Якщо команда - 'SKIP_WAITING', то ми негайно активуємось
+    if (event.data && event.data.type === 'SKIP_WAITING') {
+        console.log('[SW] Отримано команду SKIP_WAITING. Активуємось!');
+        self.skipWaiting();
+    }
 });
