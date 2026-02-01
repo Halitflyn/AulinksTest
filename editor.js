@@ -8,10 +8,10 @@ let appState = {
     config: { weekType: 'numden', currentWeek: 'num', count: 5, times: [] },
     subjects: [], 
     gridData: {}, 
-    // Drag/Menu state
+    // Drag state
     draggedSubject: null, dragStartPos: {x:0, y:0}, activeSector: null, ghost: null,
     radialMenu: null, radialLabels: null,
-    activeCell: null // For Step 3 menu
+    activeCell: null
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -19,10 +19,15 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btnClassicEdit').onclick = () => showScreen('classicEditor');
     document.getElementById('btnVisualEdit').onclick = () => { showScreen('visualWizard'); initWizard(); };
     
-    // Step 2
+    // Step 2 (Bind Listeners)
     document.getElementById('addDetailRowBtn').onclick = () => addDetailRow();
     document.getElementById('addSmartSubjectBtn').onclick = addSmartSubject;
     
+    // Listen to Checkbox changes to update UI
+    ['smartHasLec', 'smartHasPrac', 'smartHasLab'].forEach(id => {
+        document.getElementById(id).addEventListener('change', updateBindCheckboxesVisibility);
+    });
+
     // Final
     document.getElementById('finishVisualBtn').onclick = saveVisualSchedule;
     document.getElementById('saveTimeBtn').onclick = applyCustomTime;
@@ -56,18 +61,15 @@ function wizardNext(step) {
         for(let i=1; i<=appState.config.count; i++) {
             appState.config.times.push(document.getElementById(`wizTime_${i}`).value);
         }
-        // Init Grid
         DAYS.forEach(day => {
             if (appState.gridData[day].length === 0) {
                 appState.gridData[day] = Array(appState.config.count).fill(null).map(() => ({ type: 'single', content: {} }));
             }
         });
     }
-    if (step === 3) {
-        renderStructureGrid(); // Show grid for splitting
-    }
+    if (step === 3) renderStructureGrid();
     if (step === 4) {
-        renderFillGrid(); // Show grid for filling
+        renderFillGrid();
         renderSidebarPuzzles();
     }
 }
@@ -80,7 +82,35 @@ function renderWizardTimeSlots() {
     }
 }
 
-// === КРОК 2: ПРЕДМЕТИ (З Прив'язкою) ===
+// === КРОК 2: ПРЕДМЕТИ ===
+
+function updateBindCheckboxesVisibility() {
+    const l = document.getElementById('smartHasLec').checked;
+    const p = document.getElementById('smartHasPrac').checked;
+    const lb = document.getElementById('smartHasLab').checked;
+    
+    // Рахуємо скільки типів вибрано
+    const count = (l?1:0) + (p?1:0) + (lb?1:0);
+    
+    // Якщо вибрано більше 1 типу, показуємо блок галочок. Інакше - ховаємо.
+    const showBlock = (count > 1);
+
+    document.querySelectorAll('.type-bind-checks').forEach(block => {
+        if(showBlock) {
+            block.classList.remove('hidden');
+            // Всередині блоку показуємо тільки актуальні букви
+            const wL = block.querySelector('.chk-wrap-l');
+            const wP = block.querySelector('.chk-wrap-p');
+            const wLb = block.querySelector('.chk-wrap-lb');
+            if(wL) wL.style.display = l ? 'flex' : 'none';
+            if(wP) wP.style.display = p ? 'flex' : 'none';
+            if(wLb) wLb.style.display = lb ? 'flex' : 'none';
+        } else {
+            block.classList.add('hidden');
+        }
+    });
+}
+
 function addDetailRow(data = {}) {
     const container = document.getElementById('smartDetailsList');
     const div = document.createElement('div');
@@ -88,13 +118,17 @@ function addDetailRow(data = {}) {
     div.innerHTML = `
         <input type="text" class="inp-teacher" placeholder="Викладач" value="${data.teacher || ''}">
         <input type="text" class="inp-room" placeholder="Аудиторія" value="${data.room || ''}">
-        <div class="type-bind-checks">
-            <label><input type="checkbox" class="chk-l" ${data.bind?.l ? 'checked' : ''}>L</label>
-            <label><input type="checkbox" class="chk-p" ${data.bind?.p ? 'checked' : ''}>P</label>
-            <label><input type="checkbox" class="chk-lb" ${data.bind?.lb ? 'checked' : ''}>Lb</label>
+        
+        <div class="type-bind-checks hidden">
+            <div class="chk-wrap chk-wrap-l"><label><input type="checkbox" class="chk-l" ${data.bind?.l ? 'checked' : ''}>L</label></div>
+            <div class="chk-wrap chk-wrap-p"><label><input type="checkbox" class="chk-p" ${data.bind?.p ? 'checked' : ''}>P</label></div>
+            <div class="chk-wrap chk-wrap-lb"><label><input type="checkbox" class="chk-lb" ${data.bind?.lb ? 'checked' : ''}>Lb</label></div>
         </div>
+
+        <button class="remove-row-btn" onclick="this.parentElement.remove()">×</button>
     `;
     container.appendChild(div);
+    updateBindCheckboxesVisibility(); // Оновити видимість одразу
 }
 
 function addSmartSubject() {
@@ -106,24 +140,43 @@ function addSmartSubject() {
         prac: document.getElementById('smartHasPrac').checked,
         lab: document.getElementById('smartHasLab').checked
     };
+    
+    if(!types.lec && !types.prac && !types.lab) return alert('Оберіть хоча б один тип');
 
     const details = [];
     document.querySelectorAll('#smartDetailsList .detail-row').forEach(row => {
         const t = row.querySelector('.inp-teacher').value.trim();
         const r = row.querySelector('.inp-room').value.trim();
-        const bind = {
+        // Read binding checkboxes (even if hidden)
+        let bind = {
             l: row.querySelector('.chk-l').checked,
             p: row.querySelector('.chk-p').checked,
             lb: row.querySelector('.chk-lb').checked
         };
+        
+        // --- ЛОГІКА "РОЗУМНОГО ПРИЗНАЧЕННЯ" ---
+        // Якщо блок галочок прихований (бо тип всього 1), або користувач нічого не вибрав,
+        // ми вважаємо, що цей викладач підходить до ВСІХ обраних типів.
+        const areChecksHidden = row.querySelector('.type-bind-checks').classList.contains('hidden');
+        const nothingChecked = (!bind.l && !bind.p && !bind.lb);
+        
+        if (areChecksHidden || nothingChecked) {
+            if(types.lec) bind.l = true;
+            if(types.prac) bind.p = true;
+            if(types.lab) bind.lb = true;
+        }
+
         if(t || r) details.push({ teacher: t, room: r, bind });
     });
-    if(details.length === 0) details.push({teacher:'', room:'', bind:{l:0,p:0,lb:0}});
+    
+    if(details.length === 0) {
+        // Якщо нічого не ввів, створюємо пустий, який підходить під все
+        details.push({teacher:'', room:'', bind:{l:types.lec, p:types.prac, lb:types.lab}});
+    }
 
     const newSubj = { id: Date.now(), name, types, details };
     
-    // Check if updating existing
-    const existingIdx = appState.subjects.findIndex(s => s.name === name); // Simple check by name or ID if storing ID in UI
+    // Save/Update
     if (appState.editingId) {
         const idx = appState.subjects.findIndex(s => s.id === appState.editingId);
         if(idx > -1) appState.subjects[idx] = newSubj;
@@ -139,10 +192,11 @@ function addSmartSubject() {
     document.getElementById('smartHasPrac').checked = false;
     document.getElementById('smartHasLab').checked = false;
     document.getElementById('smartDetailsList').innerHTML = '';
-    addDetailRow(); // Empty row
+    addDetailRow(); 
     document.getElementById('addSmartSubjectBtn').innerText = '+ Додати предмет';
     
     renderSmartList();
+    updateBindCheckboxesVisibility();
 }
 
 function renderSmartList() {
@@ -157,7 +211,7 @@ function renderSmartList() {
                 ${s.types.lab ? '<span class="badge lab">Лаб</span>' : ''}
             </div>
             <div style="font-size:11px; color:#666; margin-top:4px;">
-                Подвійний клік для редагування
+                ${s.details.length} варіант(ів)
             </div>
         </div>
     `).join('');
@@ -167,7 +221,7 @@ function editSmartSubject(id) {
     const s = appState.subjects.find(x => x.id === id);
     if(!s) return;
     
-    appState.editingId = id; // Marker
+    appState.editingId = id;
     document.getElementById('smartSubjectName').value = s.name;
     document.getElementById('smartHasLec').checked = s.types.lec;
     document.getElementById('smartHasPrac').checked = s.types.prac;
@@ -178,10 +232,7 @@ function editSmartSubject(id) {
     s.details.forEach(d => addDetailRow(d));
     
     document.getElementById('addSmartSubjectBtn').innerText = '💾 Зберегти зміни';
-    
-    // Remove from list visually so user knows they are editing it
-    // appState.subjects = appState.subjects.filter(x => x.id !== id);
-    // renderSmartList();
+    updateBindCheckboxesVisibility();
 }
 
 function removeSmartSubject(id) {
@@ -189,7 +240,7 @@ function removeSmartSubject(id) {
     renderSmartList();
 }
 
-// === КРОК 3: НАЛАШТУВАННЯ СІТКИ (STRUCTURE) ===
+// === КРОК 3: STRUCTURE ===
 function renderStructureGrid() {
     const container = document.getElementById('structureGrid');
     container.innerHTML = '';
@@ -208,12 +259,9 @@ function renderStructureGrid() {
 
             const slot = document.createElement('div');
             slot.className = 'grid-slot clickable-slot';
-            
-            // Logic to interact
             slot.onmousedown = (e) => startStructureMenu(e, day, idx, slot);
             slot.ontouchstart = (e) => startStructureMenu(e, day, idx, slot);
 
-            // Display current structure
             const timeVal = lesson.customTime || appState.config.times[idx] || '';
             let contentHTML = `<div class="inner-time">${timeVal}</div>`;
             
@@ -237,11 +285,10 @@ function startStructureMenu(e, day, idx, el) {
     
     appState.activeCell = { day, idx };
     
-    // Options: Left (Time), Top (NumDen), Right (Subgroups)
     const options = [
-        { label: '⏰ Час', color: '#f59e0b', angle: 270, action: 'time' },   // Left
-        { label: '📅 Чис/Знам', color: '#10b981', angle: 0, action: 'numden' }, // Top
-        { label: '👥 Підгрупи', color: '#3b82f6', angle: 90, action: 'subgroups' } // Right
+        { label: '⏰ Час', angle: 270, action: 'time' },   
+        { label: '📅 Чис/Знам', angle: 0, action: 'numden' }, 
+        { label: '👥 Підгрупи', angle: 90, action: 'subgroups' }
     ];
     
     showRadialMenu(clientX, clientY, options, (action) => {
@@ -250,7 +297,7 @@ function startStructureMenu(e, day, idx, el) {
     });
 }
 
-// === КРОК 4: НАПОВНЕННЯ (FILL) ===
+// === КРОК 4: FILL ===
 function renderFillGrid() {
     const container = document.getElementById('visualGridFill');
     container.innerHTML = '';
@@ -273,15 +320,9 @@ function renderFillGrid() {
             const timeVal = lesson.customTime || appState.config.times[idx] || '';
             let contentHTML = `<div class="inner-time">${timeVal}</div>`;
             
-            if (lesson.type === 'single') {
-                contentHTML += renderFillCell(lesson.content, day, idx, 'main');
-            } else if (lesson.type === 'subgroups') {
-                contentHTML += `<div class="sub-row">${renderFillCell(lesson.content.sub1||{}, day, idx, 'sub1', 'Група 1')}</div>
-                                <div class="sub-row">${renderFillCell(lesson.content.sub2||{}, day, idx, 'sub2', 'Група 2')}</div>`;
-            } else if (lesson.type === 'numden') {
-                contentHTML += `<div class="sub-row">${renderFillCell(lesson.content.num||{}, day, idx, 'num', 'Чисельник')}</div>
-                                <div class="sub-row">${renderFillCell(lesson.content.den||{}, day, idx, 'den', 'Знаменник')}</div>`;
-            }
+            if (lesson.type === 'single') contentHTML += renderFillCell(lesson.content, day, idx, 'main');
+            else if (lesson.type === 'subgroups') contentHTML += `<div class="sub-row">${renderFillCell(lesson.content.sub1||{}, day, idx, 'sub1', 'Група 1')}</div><div class="sub-row">${renderFillCell(lesson.content.sub2||{}, day, idx, 'sub2', 'Група 2')}</div>`;
+            else if (lesson.type === 'numden') contentHTML += `<div class="sub-row">${renderFillCell(lesson.content.num||{}, day, idx, 'num', 'Чисельник')}</div><div class="sub-row">${renderFillCell(lesson.content.den||{}, day, idx, 'den', 'Знаменник')}</div>`;
             
             slot.innerHTML = contentHTML;
             row.appendChild(slot);
@@ -293,8 +334,7 @@ function renderFillGrid() {
 }
 
 function renderFillCell(data, day, idx, key, label) {
-    let style = '';
-    let typeLabel = '';
+    let style = ''; let typeLabel = '';
     if(data.type === 'Лекція') { style = 'background:var(--lec-bg); color:var(--lec-txt);'; typeLabel = 'Лек'; }
     if(data.type === 'Практична') { style = 'background:var(--prac-bg); color:var(--prac-txt);'; typeLabel = 'Прак'; }
     if(data.type === 'Лабораторна') { style = 'background:var(--lab-bg); color:var(--lab-txt);'; typeLabel = 'Лаб'; }
@@ -302,7 +342,6 @@ function renderFillCell(data, day, idx, key, label) {
     let inner = '';
     if(data.subject) inner = `<b>${data.subject}</b><br><small>${typeLabel}</small><br><small>${data.room || ''}</small>`;
     else if(label) inner = `<span style="opacity:0.5">${label}</span>`;
-    
     return `<div class="sub-cell" style="${style}" data-day="${day}" data-idx="${idx}" data-key="${key}">${inner}</div>`;
 }
 
@@ -326,53 +365,24 @@ function createRadialMenuDOM() {
     appState.radialMenu = menu; appState.radialLabels = labels;
 }
 
-// Generic Radial Menu Function
 function showRadialMenu(x, y, options, callback) {
     const menu = appState.radialMenu;
     const labels = appState.radialLabels;
     
-    // Build Gradient
-    // Options: { label, color, angle (0=top, 90=right...) }
-    // Simple 3-slice logic
-    let gradient = [];
-    
-    // Сортуємо опції для градієнта (не ідеально, але для 3-х працює)
-    // Conic gradient start from 0deg (Top) clockwise.
-    // 0deg = Top. 90 = Right. 180 = Bottom. 270 = Left.
-    
-    // Logic for 3 items (Step 3): Top, Right, Left
-    // Top (NumDen): -60 to 60 (300 to 60)
-    // Right (Sub): 60 to 180
-    // Left (Time): 180 to 300
-    
-    if(options.length === 3) {
-        // Hardcoded optimal gradient for Top/Right/Left layout
-        // Slice 1 (Top/Green): 300deg to 60deg
-        // Slice 2 (Right/Blue): 60deg to 180deg
-        // Slice 3 (Left/Orange): 180deg to 300deg
-        menu.style.background = `conic-gradient(
-            #10b981 300deg 360deg, 
-            #10b981 0deg 60deg,
-            #3b82f6 60deg 180deg,
-            #f59e0b 180deg 300deg
-        )`;
-    } else {
-        // Fallback or generic builder
-        menu.style.background = 'conic-gradient(#ccc 0deg 360deg)';
-    }
+    // 3 slices gradient
+    menu.style.background = `conic-gradient(#10b981 300deg 360deg, #10b981 0deg 60deg, #3b82f6 60deg 180deg, #f59e0b 180deg 300deg)`;
+    if(options.length !== 3) menu.style.background = 'rgba(255,255,255,0.9)'; // Fallback
 
     labels.innerHTML = '';
     options.forEach(opt => {
         const lbl = document.createElement('div');
         lbl.className = 'r-label';
         lbl.innerText = opt.label;
-        // Position based on angle
         const rad = (opt.angle - 90) * Math.PI / 180;
-        const dist = 70;
+        const dist = 75;
         const lx = 100 + dist * Math.cos(rad);
         const ly = 100 + dist * Math.sin(rad);
-        lbl.style.left = lx + 'px';
-        lbl.style.top = ly + 'px';
+        lbl.style.left = lx + 'px'; lbl.style.top = ly + 'px';
         labels.appendChild(lbl);
     });
 
@@ -380,7 +390,6 @@ function showRadialMenu(x, y, options, callback) {
     labels.style.left = x + 'px'; labels.style.top = y + 'px';
     menu.style.display = 'block'; labels.style.display = 'block';
 
-    // Interaction Overlay (Invisible layer to catch move/up)
     const overlay = document.createElement('div');
     overlay.style.position = 'fixed'; overlay.style.top = 0; overlay.style.left = 0; overlay.style.width = '100%'; overlay.style.height = '100%'; overlay.style.zIndex = 9998;
     document.body.appendChild(overlay);
@@ -393,17 +402,14 @@ function showRadialMenu(x, y, options, callback) {
         
         if (dist > 20) {
             let angle = Math.atan2(dy, dx) * 180 / Math.PI;
-            angle += 90; if(angle < 0) angle += 360; // 0 = Top, 90 = Right...
+            angle += 90; if(angle < 0) angle += 360; 
             
-            // Highlight based on angle
-            // Simple logic for 3 sectors
             let selected = null;
             if (angle > 300 || angle <= 60) selected = options.find(o => o.angle === 0);
             else if (angle > 60 && angle <= 180) selected = options.find(o => o.angle === 90);
             else if (angle > 180 && angle <= 300) selected = options.find(o => o.angle === 270);
             
             if(selected) {
-                // Visual feedback (simple opacity change or border)
                 menu.style.opacity = 1;
                 appState.menuSelection = selected.action;
             }
@@ -411,10 +417,8 @@ function showRadialMenu(x, y, options, callback) {
     };
 
     const onEnd = () => {
-        menu.style.display = 'none'; labels.style.display = 'none';
-        overlay.remove();
-        document.removeEventListener('touchmove', onMove);
-        document.removeEventListener('mousemove', onMove);
+        menu.style.display = 'none'; labels.style.display = 'none'; overlay.remove();
+        document.removeEventListener('touchmove', onMove); document.removeEventListener('mousemove', onMove);
         if(appState.menuSelection) callback(appState.menuSelection);
         appState.menuSelection = null;
     };
@@ -425,7 +429,7 @@ function showRadialMenu(x, y, options, callback) {
     document.addEventListener('mouseup', onEnd, {once:true});
 }
 
-// === DRAG & DROP WITH RADIAL (STEP 4) ===
+// === DRAG & DROP LOGIC ===
 function setupTouchDrag(element, subject) {
     element.addEventListener('touchstart', start, {passive:false});
     element.addEventListener('mousedown', start);
@@ -436,42 +440,43 @@ function setupTouchDrag(element, subject) {
         appState.dragStartPos = {x:cx, y:cy};
         appState.draggedSubject = subject;
         
-        // Define options for this subject
-        const opts = [];
-        if(subject.types.lec) opts.push({ label: 'Лекція', angle: 270, action: 'Лекція' }); // Left
-        if(subject.types.prac) opts.push({ label: 'Практика', angle: 90, action: 'Практична' }); // Right
-        if(subject.types.lab) opts.push({ label: 'Лабораторна', angle: 180, action: 'Лабораторна' }); // Bottom
-        
-        // Show Menu
-        showRadialMenu(cx, cy, opts, (type) => {
-            // Callback receives type when dropped.
-            // But we need to know WHERE it was dropped.
-            // This architecture is tricky. We need to track the "drop target" during move.
-        });
-        
-        // Custom Drag Logic integrated with Radial
-        // We override the generic showRadialMenu behavior slightly for Drag
-        
+        // Show Ghost
         const ghost = element.cloneNode(true);
         ghost.style.position = 'fixed'; ghost.style.zIndex = 10001; ghost.style.width = '150px';
         document.body.appendChild(ghost);
         appState.ghost = ghost;
 
+        // Radial Feedback (Visual only for now, logic is in move)
+        const menu = appState.radialMenu;
+        const labels = appState.radialLabels;
+        // Build visuals based on available types
+        let parts = [];
+        labels.innerHTML = '';
+        
+        // Simple logic for visuals: 3 slices if 3 types
+        if(subject.types.lec && subject.types.prac && subject.types.lab) {
+             menu.style.background = `conic-gradient(#9ca3af 0deg 120deg, #1f2937 120deg 240deg, #ffffff 240deg 360deg)`;
+             // Add labels positions... (Simplified for code brevity)
+        } else {
+             menu.style.background = 'rgba(255,255,255,0.9)'; // Basic
+        }
+        
+        if (Object.values(subject.types).filter(Boolean).length > 1) {
+             menu.style.left = cx+'px'; menu.style.top = cy+'px';
+             menu.style.display = 'block';
+        }
+
         const onMove = (ev) => {
             ev.preventDefault();
             const mx = ev.touches ? ev.touches[0].clientX : ev.clientX;
             const my = ev.touches ? ev.touches[0].clientY : ev.clientY;
-            
             ghost.style.left = mx + 'px'; ghost.style.top = my + 'px';
             
-            // Calculate Type Selection locally
             const dx = mx - cx; const dy = my - cy;
             const dist = Math.sqrt(dx*dx + dy*dy);
             
             let selectedType = null;
             if(dist > 20) {
-                 // Simple Angle Logic
-                 // Left (< -30 x), Right (> 30 x), Down (> 30 y)
                  if (Math.abs(dx) > Math.abs(dy)) {
                      if(dx < 0 && subject.types.lec) selectedType = 'Лекція';
                      if(dx > 0 && subject.types.prac) selectedType = 'Практична';
@@ -479,29 +484,27 @@ function setupTouchDrag(element, subject) {
                      if(dy > 0 && subject.types.lab) selectedType = 'Лабораторна';
                  }
             }
-            
+            // Fallback if only 1 type
+            if (!selectedType) {
+                 if(subject.types.lec && !subject.types.prac && !subject.types.lab) selectedType = 'Лекція';
+                 if(!subject.types.lec && subject.types.prac && !subject.types.lab) selectedType = 'Практична';
+                 if(!subject.types.lec && !subject.types.prac && subject.types.lab) selectedType = 'Лабораторна';
+            }
+
             if(selectedType) {
-                ghost.style.background = (selectedType==='Лекція')?'white':(selectedType==='Практична'?'gray':'black');
+                ghost.style.background = (selectedType==='Лекція')?'white':(selectedType==='Практична'?'#9ca3af':'#1f2937');
                 ghost.style.color = (selectedType==='Лекція')?'black':'white';
                 ghost.innerText = `${subject.name}\n${selectedType}`;
                 appState.activeSector = selectedType;
-            } else {
-                appState.activeSector = null; // No selection
-            }
+            } else { appState.activeSector = null; }
         }
 
         const onEnd = (ev) => {
-            document.removeEventListener('touchmove', onMove);
-            document.removeEventListener('mousemove', onMove);
-            document.removeEventListener('touchend', onEnd);
-            document.removeEventListener('mouseup', onEnd);
+            document.removeEventListener('touchmove', onMove); document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('touchend', onEnd); document.removeEventListener('mouseup', onEnd);
             ghost.remove();
-            
-            // Hide menu
-            appState.radialMenu.style.display = 'none';
-            appState.radialLabels.style.display = 'none';
+            menu.style.display = 'none'; labels.style.display = 'none';
 
-            // Find drop target
             const mx = ev.changedTouches ? ev.changedTouches[0].clientX : ev.clientX;
             const my = ev.changedTouches ? ev.changedTouches[0].clientY : ev.clientY;
             const target = document.elementFromPoint(mx, my);
@@ -526,23 +529,22 @@ function handleDropLogic(targetEl, subject, type) {
 
     // Filter details by type binding
     let validDetails = subject.details.filter(d => {
-        // If bind is empty (old data) or bind is all false -> allow
-        if(!d.bind || (!d.bind.l && !d.bind.p && !d.bind.lb)) return true;
-        // Check binding
-        if(type === 'Лекція' && d.bind.l) return true;
-        if(type === 'Практична' && d.bind.p) return true;
-        if(type === 'Лабораторна' && d.bind.lb) return true;
+        if(d.bind.l && type === 'Лекція') return true;
+        if(d.bind.p && type === 'Практична') return true;
+        if(d.bind.lb && type === 'Лабораторна') return true;
+        // If bind all false -> universal
+        if(!d.bind.l && !d.bind.p && !d.bind.lb) return true;
         return false;
     });
 
-    if(validDetails.length === 0) validDetails = subject.details; // Fallback to all if none match
+    if(validDetails.length === 0) validDetails = subject.details; // Fallback
 
     if (validDetails.length > 1) {
         showRoomChoiceModal(validDetails, (choice) => {
             applyDataToGrid(day, idx, key, subject.name, type, choice.room, choice.teacher);
         });
     } else {
-        const choice = validDetails[0];
+        const choice = validDetails[0] || {room:'', teacher:''};
         applyDataToGrid(day, idx, key, subject.name, type, choice.room, choice.teacher);
     }
 }
@@ -578,15 +580,26 @@ function splitSlot(day, idx, type) {
     renderStructureGrid();
 }
 
+function openTimeModal(day, idx) {
+    appState.editTimeTarget = {day, idx};
+    const val = appState.gridData[day][idx].customTime || DEFAULT_TIMES[idx] || '';
+    document.getElementById('customTimeInput').value = val;
+    document.getElementById('timeModal').style.display = 'flex';
+}
+
+function applyCustomTime() {
+    if(appState.editTimeTarget) {
+        appState.gridData[appState.editTimeTarget.day][appState.editTimeTarget.idx].customTime = document.getElementById('customTimeInput').value;
+    }
+    document.getElementById('timeModal').style.display = 'none';
+    renderStructureGrid();
+}
+
 function saveVisualSchedule() {
     const finalSchedule = {
         group: "My Group", semester: "1", startDate: new Date().toISOString(),
         schedule: {}
     };
-    
-    // Save week type preference logic is tricky without altering global logic, 
-    // but assuming standard logic:
-    // If user chose "Denominator" as current, we shift startDate back 1 week.
     if(appState.config.currentWeek === 'den') {
          const d = new Date(); d.setDate(d.getDate() - 7);
          finalSchedule.startDate = d.toISOString();
