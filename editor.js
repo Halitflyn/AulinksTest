@@ -228,8 +228,7 @@ function renderNodeHTML(node, day, idx, pathStr, mode) {
         return inner;
     } 
     
-    // .split-v (Вертикально) для Чис/Знам
-    // .split-h (Горизонтально) для Підгруп
+    // Classes for split (Corrected: split-v = Column, split-h = Row)
     let containerClass = (node.type === 'numden') ? 'split-v' : 'split-h';
     let keys = (node.type === 'numden') ? ['num', 'den'] : ['sub1', 'sub2'];
     let labels = (node.type === 'numden') ? ['Чис', 'Знам'] : ['Гр. 1', 'Гр. 2'];
@@ -239,7 +238,7 @@ function renderNodeHTML(node, day, idx, pathStr, mode) {
         if(!node.content[k]) node.content[k] = { type: 'single', content: {} };
         html += `<div style="flex:1; display:flex; position:relative; border:1px solid var(--border); margin:-1px;">`;
         if (mode === 'structure') {
-             html += `<div style="position:absolute; top:0; left:0; font-size:9px; color:#aaa; padding:1px; pointer-events:none;">${labels[i]}</div>`;
+             html += `<div style="position:absolute; top:0; left:0; font-size:9px; color:#aaa; padding:1px; pointer-events:none; z-index:1;">${labels[i]}</div>`;
         }
         html += renderNodeHTML(node.content[k], day, idx, [...pathStr, k], mode);
         html += `</div>`;
@@ -292,6 +291,7 @@ window.handleCellClick = function(e, day, idx, path) {
     
     appState.activePath = { day, idx, path };
     
+    // Check constraints
     const hasNumDen = path.includes('num') || path.includes('den');
     const hasSub = path.includes('sub1') || path.includes('sub2');
     
@@ -313,10 +313,9 @@ function applyStructureChange(action) {
     if (action === 'time') { openTimeModal(day, idx); return; }
 
     if (action === 'clear') {
-        // === ВИПРАВЛЕНО: Скидаємо ВЕСЬ СЛОТ (корінь) ===
+        // === FIX: RESET ROOT SLOT ===
         appState.gridData[day][idx] = { type: 'single', content: {} };
     } else {
-        // Ділимо поточний вузол
         let node = getNodeByPath(day, idx, path);
         node.type = action;
         node.content = {}; 
@@ -356,12 +355,11 @@ function setupTouchDrag(element, subject) {
         
         const ghost = element.cloneNode(true);
         ghost.style.position = 'fixed'; ghost.style.zIndex = 10001; ghost.style.width = '150px';
-        ghost.style.pointerEvents = 'none'; // CRITICAL for elementFromPoint
+        ghost.style.pointerEvents = 'none'; // Critical
         document.body.appendChild(ghost);
         appState.ghost = ghost;
 
         const menu = appState.radialMenu;
-        
         let hasMultiple = ((subject.types.lec?1:0) + (subject.types.prac?1:0) + (subject.types.lab?1:0)) > 1;
         if(hasMultiple) {
              menu.style.background = `conic-gradient(#9ca3af 0deg 120deg, #1f2937 120deg 240deg, #ffffff 240deg 360deg)`;
@@ -398,19 +396,20 @@ function setupTouchDrag(element, subject) {
                 ghost.style.color = (selectedType==='Лекція')?'black':'white';
                 ghost.innerText = `${subject.name}\n${selectedType}`;
                 appState.activeSector = selectedType;
-            } else { appState.activeSector = null; }
+            } else { appState.activeSector = null; ghost.style.background='var(--bg)'; ghost.style.color='var(--text)'; }
         }
 
         const onEnd = (ev) => {
             document.removeEventListener('touchmove', onMove); document.removeEventListener('mousemove', onMove);
             document.removeEventListener('touchend', onEnd); document.removeEventListener('mouseup', onEnd);
             
-            // === ВИПРАВЛЕНО: Ховаємо все перед перевіркою ===
+            // === FORCE HIDE GHOST TO DETECT UNDERLYING ELEMENT ===
             ghost.style.display = 'none';
             menu.style.display = 'none';
 
             const mx = ev.changedTouches ? ev.changedTouches[0].clientX : ev.clientX;
             const my = ev.changedTouches ? ev.changedTouches[0].clientY : ev.clientY;
+            
             const target = document.elementFromPoint(mx, my);
             const subCell = target?.closest('.sub-cell');
 
@@ -486,7 +485,7 @@ function showRadialMenu(x, y, options, callback) {
     const menu = appState.radialMenu;
     const labels = appState.radialLabels;
     
-    // BUILD DYNAMIC GRADIENT
+    // Build Dynamic Gradient
     let parts = [];
     options.forEach(opt => {
         if(opt.color) {
@@ -545,11 +544,14 @@ function showRadialMenu(x, y, options, callback) {
 
 function openTimeModal(day, idx) {
     appState.editTimeTarget = {day, idx};
-    document.getElementById('customTimeInput').value = appState.gridData[day][idx].customTime || DEFAULT_TIMES[idx] || '';
+    const val = appState.gridData[day][idx].customTime || DEFAULT_TIMES[idx] || '';
+    document.getElementById('customTimeInput').value = val;
     document.getElementById('timeModal').style.display = 'flex';
 }
 function applyCustomTime() {
-    appState.gridData[appState.editTimeTarget.day][appState.editTimeTarget.idx].customTime = document.getElementById('customTimeInput').value;
+    if(appState.editTimeTarget) {
+        appState.gridData[appState.editTimeTarget.day][appState.editTimeTarget.idx].customTime = document.getElementById('customTimeInput').value;
+    }
     document.getElementById('timeModal').style.display = 'none';
     if(appState.step===3) renderStructureGrid(); else renderFillGrid();
 }
