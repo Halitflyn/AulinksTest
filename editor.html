@@ -57,7 +57,7 @@
                         </select>
                     </label>
                     <label>Пар на день:
-                        <input type="number" id="wizLessonCount" value="5" min="1" max="10">
+                        <input type="number" id="wizLessonCount" value="5" min="1" max="8">
                     </label>
                 </div>
                 <div id="wizTimeSlots" class="time-slots-grid"></div>
@@ -77,7 +77,7 @@
                         <input type="text" id="smartSubjectName" placeholder="Назва (напр. Фізика)">
                         
                         <div class="type-toggles">
-                            <span>Є типи:</span>
+                            <span>Типи:</span>
                             <label><input type="checkbox" id="smartHasLec"> Лек</label>
                             <label><input type="checkbox" id="smartHasPrac"> Прак</label>
                             <label><input type="checkbox" id="smartHasLab"> Лаб</label>
@@ -88,11 +88,11 @@
                             </div>
                         <button id="addDetailRowBtn" class="small-btn dashed">+ Дод. аудиторію</button>
 
-                        <button id="addSmartSubjectBtn" class="add-main-btn">+ Додати / Оновити предмет</button>
+                        <button id="addSmartSubjectBtn" class="add-main-btn">+ Додати предмет</button>
                     </div>
 
                     <div class="smart-list-container">
-                        <h4 style="margin-top: 0;">Ваші предмети (Подвійний клік для зміни):</h4>
+                        <h4 style="margin-top: 0;">Ваші предмети:</h4>
                         <div id="smartSubjectList" class="items-list"></div>
                     </div>
                 </div>
@@ -101,7 +101,7 @@
             <div id="step3" class="wizard-step full-width-col">
                 <div class="step-header-slim">
                     <button class="prev-btn icon-btn" onclick="wizardNext(2)">⬅ Назад</button>
-                    <h3>Крок 3: Налаштуйте клітинки (Натисніть на клітинку)</h3>
+                    <h3>Крок 3: Налаштуйте структуру (Натисніть на клітинку)</h3>
                     <button class="next-btn" onclick="wizardNext(4)">Далі (Наповнення) ➡</button>
                 </div>
                 <div class="structure-editor-container">
@@ -117,7 +117,7 @@
                         <div id="puzzleContainer" class="puzzle-container"></div>
                         <div class="sidebar-buttons">
                             <button class="prev-btn" onclick="wizardNext(3)">⬅ Назад</button>
-                            <button id="finishVisualBtn" class="save-btn big">💾 Зберегти</button>
+                            <button id="finishVisualBtn" class="save-btn big">💾 Зберегти розклад</button>
                         </div>
                     </div>
 
