@@ -2,40 +2,38 @@
 const SCHEDULE_STORAGE_KEY = 'myCustomSchedule';
 const DEFAULT_TIMES = ['08:30 – 09:50', '10:05 – 11:25', '11:40 – 13:00', '13:15 – 14:35', '14:50 – 16:10', '16:25 – 17:45', '18:00 – 19:20', '19:30 – 20:50'];
 const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+const DAYS_UA = { monday: 'Понеділок', tuesday: 'Вівторок', wednesday: 'Середа', thursday: 'Четвер', friday: 'П’ятниця' };
 
-// === СТАН ===
+// === СТАН ПРОГРАМИ ===
 let appState = {
-    mode: null, // 'classic' або 'visual'
     step: 1,
     config: { weekType: 'numden', count: 5, times: [] },
-    db: { subjects: [], rooms: [] }, // База предметів і аудиторій
-    gridData: {}, // Структура розкладу
-    currentDay: 'monday'
+    subjects: [], // Смарт-карти: { id, name, types: {lec, prac, lab}, details: [{teacher, room}] }
+    gridData: {}, // { monday: [ {type, content} ] }
+    
+    // Drag State
+    draggedSubject: null,
+    dragStartPos: { x: 0, y: 0 },
+    activeSector: null, // 'lec', 'prac', 'lab'
+    ghost: null,
+    radialMenu: null
 };
 
-// === ІНІЦІАЛІЗАЦІЯ ===
 document.addEventListener('DOMContentLoaded', () => {
-    // Навігація між режимами
+    // Навігація
     document.getElementById('btnClassicEdit').onclick = () => showScreen('classicEditor');
     document.getElementById('btnVisualEdit').onclick = () => { showScreen('visualWizard'); initWizard(); };
     
-    // Ініціалізація компонентів
-    document.getElementById('addSubjectBtn').onclick = addSubjectToDb;
-    document.getElementById('addRoomBtn').onclick = addRoomToDb;
+    // Смарт-карти (Крок 2)
+    document.getElementById('addDetailRowBtn').onclick = addDetailRow;
+    document.getElementById('addSmartSubjectBtn').onclick = addSmartSubject;
     
-    document.querySelectorAll('.day-tab').forEach(btn => {
-        btn.onclick = (e) => switchDayTab(e.target.dataset.day);
-    });
-
-    document.querySelectorAll('.puz-tab').forEach(btn => {
-        btn.onclick = (e) => switchPuzzleTab(e.target.dataset.type);
-    });
-
-    document.getElementById('saveTimeBtn').onclick = applyCustomTime;
+    // Збереження
     document.getElementById('finishVisualBtn').onclick = saveVisualSchedule;
+    document.getElementById('saveTimeBtn').onclick = applyCustomTime;
 
-    // Авто-генерація часів у Кроці 1
-    renderWizardTimeSlots();
+    // Створюємо радіальне меню в DOM
+    createRadialMenuDOM();
 });
 
 function showScreen(id) {
@@ -44,7 +42,13 @@ function showScreen(id) {
     document.getElementById(id).style.display = 'block';
 }
 
-// === ЛОГІКА WIZARD (КРОКИ) ===
+// === WIZARD LOGIC ===
+function initWizard() {
+    renderWizardTimeSlots();
+    appState.gridData = {};
+    DAYS.forEach(d => appState.gridData[d] = []);
+}
+
 function wizardNext(step) {
     document.querySelectorAll('.wizard-step').forEach(el => el.classList.remove('active'));
     document.getElementById(`step${step}`).classList.add('active');
@@ -58,10 +62,16 @@ function wizardNext(step) {
         for(let i=1; i<=appState.config.count; i++) {
             appState.config.times.push(document.getElementById(`wizTime_${i}`).value);
         }
+        // Ініціалізуємо сітку даними
+        DAYS.forEach(day => {
+            if (appState.gridData[day].length === 0) {
+                appState.gridData[day] = Array(appState.config.count).fill(null).map(() => ({ type: 'single', content: {} }));
+            }
+        });
     }
     if (step === 3) {
-        renderVisualGrid();
-        renderPuzzles('subjects');
+        renderFullSchedule();
+        renderSidebarPuzzles();
     }
 }
 
@@ -73,220 +83,400 @@ function renderWizardTimeSlots() {
     }
 }
 
-// === КРОК 2: БАЗА ДАНИХ ===
-function addSubjectToDb() {
-    const name = document.getElementById('newSubjectName').value.trim();
-    if(!name) return;
-    const types = {
-        lec: document.getElementById('hasLec').checked,
-        prac: document.getElementById('hasPrac').checked,
-        lab: document.getElementById('hasLab').checked
-    };
-    appState.db.subjects.push({ id: Date.now(), name, types });
-    document.getElementById('newSubjectName').value = '';
-    renderDbList();
-}
-
-function addRoomToDb() {
-    const name = document.getElementById('newRoomName').value.trim();
-    if(!name) return;
-    appState.db.rooms.push({ id: Date.now(), name });
-    document.getElementById('newRoomName').value = '';
-    renderDbList();
-}
-
-function renderDbList() {
-    const sList = document.getElementById('subjectList');
-    sList.innerHTML = appState.db.subjects.map(s => 
-        `<div class="db-item">${s.name} <span onclick="removeItem('subjects', ${s.id})">×</span></div>`
-    ).join('');
-
-    const rList = document.getElementById('roomList');
-    rList.innerHTML = appState.db.rooms.map(r => 
-        `<div class="db-item">${r.name} <span onclick="removeItem('rooms', ${r.id})">×</span></div>`
-    ).join('');
-}
-
-function removeItem(type, id) {
-    appState.db[type] = appState.db[type].filter(x => x.id !== id);
-    renderDbList();
-}
-
-// === КРОК 3: ВІЗУАЛЬНИЙ РЕДАКТОР ===
-
-// 1. Рендеринг Сітки
-function renderVisualGrid() {
-    const container = document.getElementById('visualGrid');
-    container.innerHTML = '';
-    
-    // Якщо для цього дня ще немає даних, створюємо пусті
-    if (!appState.gridData[appState.currentDay]) {
-        appState.gridData[appState.currentDay] = Array(appState.config.count).fill(null).map(() => ({ type: 'single', content: {} }));
-    }
-
-    const lessons = appState.gridData[appState.currentDay];
-
-    lessons.forEach((lesson, index) => {
-        const slot = document.createElement('div');
-        slot.className = `grid-slot ${lesson.content.subject ? 'filled' : ''}`;
-        slot.dataset.index = index;
-        
-        // Header (Час + Кнопка меню, якщо треба)
-        const time = appState.config.times[index] || '';
-        slot.innerHTML = `<div class="grid-slot-header"><span>${index+1}. ${lesson.customTime || time}</span></div>`;
-
-        // Content Area
-        const contentDiv = document.createElement('div');
-        contentDiv.className = 'slot-content';
-        
-        // Генерація під-слотів (залежно від структури: звичайна, підгрупи, чисельник)
-        if (lesson.type === 'single') {
-            contentDiv.appendChild(createSubSlot(lesson.content, 'main'));
-        } else if (lesson.type === 'subgroups') {
-            contentDiv.appendChild(createSubSlot(lesson.content.sub1 || {}, 'sub1', 'Група 1'));
-            contentDiv.appendChild(createSubSlot(lesson.content.sub2 || {}, 'sub2', 'Група 2'));
-        } else if (lesson.type === 'numden') {
-            contentDiv.appendChild(createSubSlot(lesson.content.num || {}, 'num', 'Чисельник'));
-            contentDiv.appendChild(createSubSlot(lesson.content.den || {}, 'den', 'Знаменник'));
-        }
-
-        slot.appendChild(contentDiv);
-        
-        // === ЖЕСТИ ДЛЯ СЛОТА (Спліт/Час) ===
-        setupSlotGestures(slot, index);
-
-        container.appendChild(slot);
-    });
-}
-
-function createSubSlot(data, key, label) {
+// === КРОК 2: СМАРТ КАРТИ ===
+function addDetailRow() {
+    const container = document.getElementById('smartDetailsList');
     const div = document.createElement('div');
-    div.className = 'sub-slot';
-    div.dataset.key = key; // sub1, sub2, num, den, main
-    
-    if (data.subject) {
-        div.innerHTML = `<div><b>${data.subject}</b><br><small>${data.type || ''}</small><br><small>${data.room || ''}</small></div>`;
-        div.style.backgroundColor = getSubjectColor(data.type);
-    } else {
-        if(label) div.innerHTML = `<span style="color:#aaa">${label}</span>`;
-    }
-
-    // Дозволяємо Drop
-    div.ondragover = e => e.preventDefault();
-    div.ondrop = e => handleDrop(e, div);
-    
-    // Для мобільних (Touch Drop)
-    // Це складніше, реалізуємо через touchend на елементі, що перетягується
-    
-    return div;
+    div.className = 'detail-row';
+    div.innerHTML = `<input type="text" class="inp-teacher" placeholder="Викладач"><input type="text" class="inp-room" placeholder="Аудиторія">`;
+    container.appendChild(div);
 }
 
-function getSubjectColor(type) {
-    if(type === 'Лекція') return 'var(--lec-color)';
-    if(type === 'Практична') return 'var(--prac-color)';
-    if(type === 'Лабораторна') return 'var(--lab-color)';
-    return 'transparent';
+function addSmartSubject() {
+    const name = document.getElementById('smartSubjectName').value.trim();
+    if(!name) return alert('Введіть назву предмета');
+    
+    const types = {
+        lec: document.getElementById('smartHasLec').checked,
+        prac: document.getElementById('smartHasPrac').checked,
+        lab: document.getElementById('smartHasLab').checked
+    };
+    if(!types.lec && !types.prac && !types.lab) return alert('Оберіть хоча б один тип (Лек/Прак/Лаб)');
+
+    const details = [];
+    document.querySelectorAll('#smartDetailsList .detail-row').forEach(row => {
+        const t = row.querySelector('.inp-teacher').value.trim();
+        const r = row.querySelector('.inp-room').value.trim();
+        if(t || r) details.push({ teacher: t, room: r });
+    });
+    if(details.length === 0) details.push({teacher: '', room: ''}); // Default empty
+
+    appState.subjects.push({ id: Date.now(), name, types, details });
+    
+    // Очищення форми
+    document.getElementById('smartSubjectName').value = '';
+    document.getElementById('smartDetailsList').innerHTML = `<div class="detail-row"><input type="text" class="inp-teacher" placeholder="Викладач"><input type="text" class="inp-room" placeholder="Аудиторія"></div>`;
+    renderSmartList();
 }
 
-// 2. Рендеринг Пазлів (Sidebar)
-function renderPuzzles(mode) {
+function renderSmartList() {
+    const list = document.getElementById('smartSubjectList');
+    list.innerHTML = appState.subjects.map(s => `
+        <div class="smart-item">
+            <span class="del-item-btn" onclick="removeSmartSubject(${s.id})">×</span>
+            <h5>${s.name}</h5>
+            <div class="badges">
+                ${s.types.lec ? '<span class="badge lec">Лек</span>' : ''}
+                ${s.types.prac ? '<span class="badge prac">Прак</span>' : ''}
+                ${s.types.lab ? '<span class="badge lab">Лаб</span>' : ''}
+            </div>
+            <div style="font-size:11px; color:#666; margin-top:4px;">
+                ${s.details.length} варіант(ів) аудиторій
+            </div>
+        </div>
+    `).join('');
+}
+
+function removeSmartSubject(id) {
+    appState.subjects = appState.subjects.filter(s => s.id !== id);
+    renderSmartList();
+}
+
+// === КРОК 3: ІНТЕРФЕЙС ===
+function renderSidebarPuzzles() {
     const container = document.getElementById('puzzleContainer');
     container.innerHTML = '';
-    
-    const items = mode === 'subjects' ? appState.db.subjects : appState.db.rooms;
-    
-    items.forEach(item => {
-        const div = document.createElement('div');
-        div.className = 'puzzle-piece';
-        div.textContent = item.name;
-        div.draggable = true;
-        div.dataset.id = item.id;
-        div.dataset.name = item.name;
-        div.dataset.mode = mode; // subjects or rooms
+    appState.subjects.forEach(s => {
+        const el = document.createElement('div');
+        el.className = 'puzzle-piece';
+        el.innerText = s.name;
+        // Прив'язуємо дані до елемента
+        el.dataset.id = s.id;
+        setupTouchDrag(el, s); // Ініціалізуємо Drag
+        container.appendChild(el);
+    });
+}
+
+function renderFullSchedule() {
+    const container = document.getElementById('visualGrid');
+    container.innerHTML = '';
+
+    DAYS.forEach(day => {
+        const dayBlock = document.createElement('div');
+        dayBlock.className = 'day-block';
+        dayBlock.innerHTML = `<div class="day-header">${DAYS_UA[day]}</div>`;
         
-        // Інформація про типи для жестів
-        if(mode === 'subjects') {
-            div.dataset.hasLec = item.types.lec;
-            div.dataset.hasPrac = item.types.prac;
-            div.dataset.hasLab = item.types.lab;
+        const slotsContainer = document.createElement('div');
+        slotsContainer.className = 'day-slots';
+
+        appState.gridData[day].forEach((lesson, idx) => {
+            const slot = document.createElement('div');
+            slot.className = `grid-slot ${lesson.content.subject ? 'filled' : ''}`;
+            
+            // Час (збоку)
+            const timeVal = lesson.customTime || appState.config.times[idx] || '';
+            
+            // Внутрішня структура
+            let contentHTML = '';
+            if (lesson.type === 'single') {
+                contentHTML = renderSubCell(lesson.content, day, idx, 'main');
+            } else if (lesson.type === 'subgroups') {
+                contentHTML = `
+                    <div class="sub-row">${renderSubCell(lesson.content.sub1 || {}, day, idx, 'sub1', 'Група 1')}</div>
+                    <div class="sub-row">${renderSubCell(lesson.content.sub2 || {}, day, idx, 'sub2', 'Група 2')}</div>`;
+            } else if (lesson.type === 'numden') {
+                 contentHTML = `
+                    <div class="sub-row">${renderSubCell(lesson.content.num || {}, day, idx, 'num', 'Чисельник')}</div>
+                    <div class="sub-row">${renderSubCell(lesson.content.den || {}, day, idx, 'den', 'Знаменник')}</div>`;
+            }
+
+            slot.innerHTML = `
+                <div class="slot-time" onclick="openTimeModal('${day}', ${idx})">${timeVal}</div>
+                <div class="slot-content">${contentHTML}</div>
+            `;
+            
+            // Жести для самого слота (Спліт)
+            setupSlotGestures(slot, day, idx);
+
+            slotsContainer.appendChild(slot);
+        });
+
+        dayBlock.appendChild(slotsContainer);
+        container.appendChild(dayBlock);
+    });
+}
+
+function renderSubCell(data, day, idx, subKey, label) {
+    // Кольори для фону
+    let style = '';
+    let typeLabel = '';
+    if(data.type === 'Лекція') { style = 'background:var(--lec-bg); color:var(--lec-txt);'; typeLabel = 'Лек'; }
+    if(data.type === 'Практична') { style = 'background:var(--prac-bg); color:var(--prac-txt);'; typeLabel = 'Прак'; }
+    if(data.type === 'Лабораторна') { style = 'background:var(--lab-bg); color:var(--lab-txt);'; typeLabel = 'Лаб'; }
+
+    let inner = '';
+    if(data.subject) {
+        inner = `<b>${data.subject}</b><br><small>${typeLabel}</small><br><small>${data.room || ''}</small>`;
+    } else if (label) {
+        inner = `<span style="opacity:0.5">${label}</span>`;
+    }
+
+    // data-target атрибути для drop
+    return `<div class="sub-cell" style="${style}" data-day="${day}" data-idx="${idx}" data-key="${subKey}">${inner}</div>`;
+}
+
+// === РАДІАЛЬНЕ МЕНЮ & DRAG LOGIC ===
+
+function createRadialMenuDOM() {
+    const menu = document.createElement('div');
+    menu.id = 'radialMenu';
+    menu.className = 'radial-menu';
+    document.body.appendChild(menu);
+    appState.radialMenu = menu;
+}
+
+function updateRadialMenuVisuals(subject) {
+    const menu = appState.radialMenu;
+    const types = subject.types;
+    let sectors = [];
+
+    // Логіка секторів: 
+    // Лекція (Біла) - Ліво (135deg - 225deg)
+    // Практика (Сіра) - Право (-45deg - 45deg)
+    // Лаба (Чорна) - Низ (45deg - 135deg)
+    
+    // CSS Conic Gradient будується від 0deg (верх) за годинниковою.
+    // Право = 90deg, Низ = 180deg, Ліво = 270deg.
+    
+    // Спрощена логіка для градієнта (візуально)
+    // Якщо є всі 3: 
+    //   Lec (Left): 210deg - 330deg
+    //   Prac (Right): 30deg - 150deg
+    //   Lab (Bottom): 150deg - 210deg ... це складно для conic-gradient без розривів.
+    
+    // Використаємо простий підхід:
+    // Білий (Lec), Сірий (Prac), Чорний (Lab)
+    
+    let gradientParts = [];
+    
+    // Якщо всі 3 є:
+    if(types.lec && types.prac && types.lab) {
+        // Три сектора по 120 градусів
+        // Lab (Bottom): 120deg - 240deg (Black)
+        // Lec (Left/TopLeft): 240deg - 360deg (White)
+        // Prac (Right/TopRight): 0deg - 120deg (Gray)
+        gradientParts.push('#9ca3af 0deg 120deg'); // Prac
+        gradientParts.push('#1f2937 120deg 240deg'); // Lab
+        gradientParts.push('#ffffff 240deg 360deg'); // Lec
+    } 
+    else if (types.lec && types.prac) {
+        // Ліво-Право (50/50)
+        gradientParts.push('#9ca3af 0deg 180deg'); // Prac (Right)
+        gradientParts.push('#ffffff 180deg 360deg'); // Lec (Left)
+    }
+    else {
+        // Fallback
+        gradientParts.push('#ccc 0deg 360deg');
+    }
+
+    menu.style.background = `conic-gradient(${gradientParts.join(', ')})`;
+    
+    // Додаємо підписи (абсолютно позиціоновані)
+    menu.innerHTML = ''; // Clear old
+    if(types.lec) addLabel(menu, 'Лекція', 'left');
+    if(types.prac) addLabel(menu, 'Практика', 'right');
+    if(types.lab) addLabel(menu, 'Лабораторна', 'bottom');
+}
+
+function addLabel(parent, text, pos) {
+    const el = document.createElement('div');
+    el.className = 'radial-label';
+    el.innerText = text;
+    if(pos === 'left') { el.style.left = '10px'; el.style.top = '50%'; }
+    if(pos === 'right') { el.style.right = '10px'; el.style.top = '50%'; }
+    if(pos === 'bottom') { el.style.bottom = '10px'; el.style.left = '50%'; el.style.transform = 'translateX(-50%)'; }
+    parent.appendChild(el);
+}
+
+function setupTouchDrag(element, subject) {
+    element.addEventListener('touchstart', startDrag, {passive: false});
+    element.addEventListener('mousedown', startDrag); // Для PC
+
+    function startDrag(e) {
+        // e.preventDefault(); // Заважає скролу, якщо просто торкнулись
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+        appState.dragStartPos = { x: clientX, y: clientY };
+        appState.draggedSubject = subject;
+        appState.activeSector = null;
+
+        // Показуємо меню
+        const menu = appState.radialMenu;
+        updateRadialMenuVisuals(subject);
+        
+        // Якщо тільки 1 тип — меню не показуємо, зразу вибираємо тип
+        const typeKeys = Object.keys(subject.types).filter(k => subject.types[k]);
+        if(typeKeys.length === 1) {
+            appState.activeSector = getTypeName(typeKeys[0]); // 'Лекція'
+        } else {
+            menu.style.display = 'block';
+            menu.style.left = clientX + 'px';
+            menu.style.top = clientY + 'px';
         }
 
-        // Desktop Drag
-        div.ondragstart = e => {
-            e.dataTransfer.setData('text/plain', JSON.stringify({
-                id: item.id, name: item.name, mode: mode,
-                types: item.types // передаємо типи
-            }));
-            appState.draggedItem = div; // зберігаємо посилання
-        };
+        // Ghost Element
+        const ghost = element.cloneNode(true);
+        ghost.style.position = 'fixed';
+        ghost.style.width = '150px';
+        ghost.style.zIndex = 10000;
+        ghost.style.opacity = 0.8;
+        ghost.style.pointerEvents = 'none';
+        document.body.appendChild(ghost);
+        appState.ghost = ghost;
 
-        // Mobile Drag (Touch)
-        setupTouchDrag(div);
-
-        container.appendChild(div);
-    });
-    
-    // Підказка
-    document.getElementById('sidebarHint').innerText = mode === 'subjects' 
-        ? "Тягни предмет: ⬆ Лекція | ↙ Практика | ↘ Лаба"
-        : "Перетягніть аудиторію на предмет";
-}
-
-// 3. Обробка Drop (Падіння пазла)
-function handleDrop(e, targetSlot) {
-    e.preventDefault();
-    let data;
-    try {
-        data = JSON.parse(e.dataTransfer.getData('text/plain'));
-    } catch(err) {
-        // Якщо це Touch Drop, дані беремо з глобальної змінної
-        data = appState.touchDragData;
+        document.addEventListener('touchmove', onMove, {passive: false});
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('touchend', onEnd);
+        document.addEventListener('mouseup', onEnd);
     }
 
-    if (!data) return;
+    function onMove(e) {
+        e.preventDefault();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
 
-    // Знаходимо індекс пари та ключ під-слота
-    const gridSlot = targetSlot.closest('.grid-slot');
-    const index = parseInt(gridSlot.dataset.index);
-    const subKey = targetSlot.dataset.key; // main, sub1, num...
+        // Рухаємо Ghost
+        if(appState.ghost) {
+            appState.ghost.style.left = clientX + 'px';
+            appState.ghost.style.top = clientY + 'px';
+        }
 
-    const lessonObj = appState.gridData[appState.currentDay][index];
-    
-    // Визначаємо куди писати
-    let targetObj;
-    if (lessonObj.type === 'single') targetObj = lessonObj.content;
-    else targetObj = lessonObj.content[subKey];
+        // Рахуємо кут для секторів
+        const dx = clientX - appState.dragStartPos.x;
+        const dy = clientY - appState.dragStartPos.y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
 
-    if (!targetObj) lessonObj.content[subKey] = {}; // ініціалізація якщо пусто
+        // Якщо вийшли за межі центру (15px)
+        if (dist > 20 && appState.radialMenu.style.display !== 'none') {
+            const angle = Math.atan2(dy, dx) * 180 / Math.PI; // -180 to 180
+            
+            // Визначаємо сектор
+            // Left: > 135 || < -135
+            // Right: > -45 && < 45
+            // Bottom: > 45 && < 135
+            
+            let type = null;
+            const t = appState.draggedSubject.types;
 
-    if (data.mode === 'subjects') {
-        // Записуємо предмет
-        // Враховуємо "Жест" (який тип було обрано під час перетягування)
-        let selectedType = appState.draggedType || 'Лекція'; // За замовчуванням
+            if (angle > 45 && angle < 135) { // Down
+                if(t.lab) type = 'Лабораторна';
+            } else if (angle > -45 && angle <= 45) { // Right
+                if(t.prac) type = 'Практична';
+            } else { // Left (includes top range fallback)
+                if(t.lec) type = 'Лекція';
+            }
+            
+            appState.activeSector = type;
+
+            // Візуальний фідбек на Ghost
+            if (type) {
+                appState.ghost.style.background = type === 'Лекція' ? 'white' : (type === 'Практична' ? 'gray' : '#333');
+                appState.ghost.style.color = type === 'Лекція' ? 'black' : 'white';
+                appState.ghost.innerText = `${appState.draggedSubject.name}\n(${type})`;
+                // Підсвітка активної зони кола
+                appState.radialMenu.style.borderColor = 'var(--highlight)';
+            }
+        }
+    }
+
+    function onEnd(e) {
+        document.removeEventListener('touchmove', onMove);
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('touchend', onEnd);
+        document.removeEventListener('mouseup', onEnd);
         
-        // Якщо немає такого типу у предмета, беремо перший доступний
-        // (спрощення логіки)
+        // Ховаємо меню і ghost
+        appState.radialMenu.style.display = 'none';
+        appState.radialMenu.style.borderColor = 'transparent';
+        if(appState.ghost) appState.ghost.remove();
+
+        // Шукаємо, куди впало
+        const clientX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
+        const clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
         
-        targetObj.subject = data.name;
-        targetObj.type = selectedType;
+        const target = document.elementFromPoint(clientX, clientY);
+        const subCell = target?.closest('.sub-cell');
+
+        if (subCell && appState.activeSector) {
+            handleDropLogic(subCell, appState.draggedSubject, appState.activeSector);
+        }
+    }
+}
+
+function getTypeName(key) {
+    if(key === 'lec') return 'Лекція';
+    if(key === 'prac') return 'Практична';
+    if(key === 'lab') return 'Лабораторна';
+    return 'Лекція';
+}
+
+function handleDropLogic(targetEl, subject, type) {
+    const day = targetEl.dataset.day;
+    const idx = parseInt(targetEl.dataset.idx);
+    const key = targetEl.dataset.key; // main, sub1, num...
+
+    const details = subject.details;
+    let selectedDetail = details[0];
+
+    // Якщо більше 1 варіанту — питаємо
+    if (details.length > 1) {
+        showRoomChoiceModal(details, (choice) => {
+            applyDataToGrid(day, idx, key, subject.name, type, choice.room, choice.teacher);
+        });
     } else {
-        // Записуємо аудиторію
-        targetObj.room = data.name;
+        applyDataToGrid(day, idx, key, subject.name, type, selectedDetail.room, selectedDetail.teacher);
     }
-
-    renderVisualGrid(); // Оновити вид
 }
 
-// === ЖЕСТИ (TOUCH LOGIC) ===
-
-// A. Жести на сітці (Split / Time)
-function setupSlotGestures(element, index) {
-    let startX, startY, startTime;
+function showRoomChoiceModal(details, callback) {
+    const modal = document.getElementById('roomChoiceModal');
+    const list = document.getElementById('roomChoicesList');
+    list.innerHTML = '';
     
+    details.forEach((d, i) => {
+        const btn = document.createElement('div');
+        btn.className = 'room-btn';
+        btn.innerHTML = `<b>${d.teacher || 'Без викладача'}</b> <br> ${d.room || 'Без ауд.'}`;
+        btn.onclick = () => {
+            modal.style.display = 'none';
+            callback(d);
+        };
+        list.appendChild(btn);
+    });
+    modal.style.display = 'flex';
+}
+
+function applyDataToGrid(day, idx, key, subjName, type, room, teacher) {
+    const lesson = appState.gridData[day][idx];
+    let target = (lesson.type === 'single') ? lesson.content : lesson.content[key];
+    
+    if(!target) { lesson.content[key] = {}; target = lesson.content[key]; } // init if missing
+
+    target.subject = subjName;
+    target.type = type;
+    target.room = room;
+    target.teacher = teacher;
+    
+    renderFullSchedule();
+}
+
+// === ЖЕСТИ ДЛЯ СЛОТІВ ===
+function setupSlotGestures(element, day, index) {
+    let startX, startY;
     element.addEventListener('touchstart', e => {
         startX = e.touches[0].clientX;
         startY = e.touches[0].clientY;
-        startTime = Date.now();
     }, {passive: true});
 
     element.addEventListener('touchend', e => {
@@ -294,167 +484,52 @@ function setupSlotGestures(element, index) {
         const endY = e.changedTouches[0].clientY;
         const diffX = endX - startX;
         const diffY = endY - startY;
-        const duration = Date.now() - startTime;
 
-        if (duration > 150) { // Ігноруємо випадкові кліки
-            // Логіка жестів
-            if (Math.abs(diffX) > 50 && Math.abs(diffY) < 30) {
-                // Горизонтальний свайп
-                if (diffX > 0) splitSlot(index, 'subgroups'); // Вправо -> Підгрупи
-                else openTimeModal(index); // Вліво -> Час
-            } else if (Math.abs(diffY) > 50 && Math.abs(diffX) < 30) {
-                // Вертикальний свайп
-                if (diffY > 0) splitSlot(index, 'numden'); // Вниз -> Числ/Знам
-            }
+        if (Math.abs(diffX) > 50 && Math.abs(diffY) < 30) {
+            if (diffX > 0) splitSlot(day, index, 'subgroups');
+        } else if (Math.abs(diffY) > 50 && Math.abs(diffX) < 30) {
+            if (diffY > 0) splitSlot(day, index, 'numden');
         }
     });
-    
-    // Для Desktop (Context Menu simulation)
-    element.oncontextmenu = (e) => {
-        e.preventDefault();
-        // Можна додати просте меню, якщо треба
-        if(confirm("Розділити на підгрупи?")) splitSlot(index, 'subgroups');
-    };
 }
 
-function splitSlot(index, type) {
-    const lesson = appState.gridData[appState.currentDay][index];
+function splitSlot(day, index, type) {
+    const lesson = appState.gridData[day][index];
+    if(lesson.type === type) return; // вже є
     lesson.type = type;
-    lesson.content = {}; // Очищаємо контент при зміні структури
-    renderVisualGrid();
+    lesson.content = {}; 
+    renderFullSchedule();
 }
 
-let editingTimeIndex = null;
-function openTimeModal(index) {
-    editingTimeIndex = index;
-    const lesson = appState.gridData[appState.currentDay][index];
-    document.getElementById('customTimeInput').value = lesson.customTime || '';
+let editTimeTarget = null;
+function openTimeModal(day, idx) {
+    editTimeTarget = {day, idx};
+    const val = appState.gridData[day][idx].customTime || DEFAULT_TIMES[idx] || '';
+    document.getElementById('customTimeInput').value = val;
     document.getElementById('timeModal').style.display = 'flex';
 }
 
 function applyCustomTime() {
-    const val = document.getElementById('customTimeInput').value;
-    if (editingTimeIndex !== null) {
-        appState.gridData[appState.currentDay][editingTimeIndex].customTime = val;
+    if(editTimeTarget) {
+        appState.gridData[editTimeTarget.day][editTimeTarget.idx].customTime = document.getElementById('customTimeInput').value;
     }
     document.getElementById('timeModal').style.display = 'none';
-    renderVisualGrid();
+    renderFullSchedule();
 }
 
-// B. Жести на Пазлах (Вибір типу предмету)
-function setupTouchDrag(element) {
-    let startX, startY;
-    
-    element.addEventListener('touchstart', e => {
-        startX = e.touches[0].clientX;
-        startY = e.touches[0].clientY;
-        
-        // Готуємо дані для дропу
-        appState.touchDragData = {
-            id: element.dataset.id,
-            name: element.dataset.name,
-            mode: element.dataset.mode
-        };
-        appState.draggedItem = element;
-        
-        // Створюємо "привид" для візуалізації
-        const ghost = element.cloneNode(true);
-        ghost.id = 'dragGhost';
-        ghost.style.position = 'fixed';
-        ghost.style.opacity = '0.8';
-        ghost.style.zIndex = '9999';
-        ghost.style.pointerEvents = 'none';
-        document.body.appendChild(ghost);
-        appState.ghost = ghost;
-        
-    }, {passive: false});
-
-    element.addEventListener('touchmove', e => {
-        e.preventDefault(); // Щоб не скролило екран
-        const touch = e.touches[0];
-        
-        // Рухаємо привид
-        if(appState.ghost) {
-            appState.ghost.style.left = touch.clientX + 'px';
-            appState.ghost.style.top = touch.clientY + 'px';
-            
-            // ЛОГІКА ЗМІНИ ТИПУ ВІД НАПРЯМКУ
-            // Вектор від початку
-            const dx = touch.clientX - startX;
-            const dy = touch.clientY - startY;
-            
-            // Поріг чутливості
-            if (Math.abs(dy) > 30) {
-                if (dy < 0) { // ВГОРУ -> Лекція
-                    appState.draggedType = 'Лекція';
-                    appState.ghost.style.backgroundColor = 'var(--lec-color)';
-                    appState.ghost.style.borderColor = 'var(--lec-border)';
-                } else { // ВНИЗ
-                    if (dx < 0) { // ВНИЗ-ВЛІВО -> Практика
-                        appState.draggedType = 'Практична';
-                        appState.ghost.style.backgroundColor = 'var(--prac-color)';
-                        appState.ghost.style.borderColor = 'var(--prac-border)';
-                    } else { // ВНИЗ-ВПРАВО -> Лабораторна
-                        appState.draggedType = 'Лабораторна';
-                        appState.ghost.style.backgroundColor = 'var(--lab-color)';
-                        appState.ghost.style.borderColor = 'var(--lab-border)';
-                    }
-                }
-                appState.ghost.innerText = `${appState.touchDragData.name}\n(${appState.draggedType})`;
-            }
-        }
-    }, {passive: false});
-
-    element.addEventListener('touchend', e => {
-        // Видаляємо привид
-        if(appState.ghost) appState.ghost.remove();
-        
-        // Визначаємо елемент під пальцем
-        const touch = e.changedTouches[0];
-        const target = document.elementFromPoint(touch.clientX, touch.clientY);
-        
-        // Шукаємо, чи це sub-slot
-        const slot = target.closest('.sub-slot');
-        if (slot) {
-            handleDrop({ preventDefault: () => {} }, slot);
-        }
-        
-        appState.touchDragData = null;
-        appState.draggedType = null;
-    });
-}
-
-// === ЗБЕРЕЖЕННЯ ===
-function switchDayTab(day) {
-    document.querySelectorAll('.day-tab').forEach(b => b.classList.remove('active'));
-    document.querySelector(`.day-tab[data-day="${day}"]`).classList.add('active');
-    appState.currentDay = day;
-    renderVisualGrid();
-}
-
-function switchPuzzleTab(type) {
-    document.querySelectorAll('.puz-tab').forEach(b => b.classList.remove('active'));
-    document.querySelector(`.puz-tab[data-type="${type}"]`).classList.add('active');
-    renderPuzzles(type);
-}
-
+// === FINAL SAVE ===
 function saveVisualSchedule() {
-    // Конвертація внутрішнього формату gridData у формат сайту (schedule.json)
     const finalSchedule = {
         group: "My Group", 
         semester: "1", 
-        startDate: new Date().toISOString(), // Треба додати вибір дати, якщо критично
+        startDate: new Date().toISOString(),
         schedule: {}
     };
 
-    // Проходимо по всіх днях
     DAYS.forEach(day => {
-        const dayLessons = appState.gridData[day];
-        if (!dayLessons) return;
-
         finalSchedule.schedule[day] = {
-            name: ALL_DAYS[day],
-            lessons: dayLessons.map((l, idx) => {
+            name: DAYS_UA[day],
+            lessons: appState.gridData[day].map((l, idx) => {
                 const base = { 
                     number: idx + 1, 
                     time: l.customTime || appState.config.times[idx] || '' 
@@ -467,7 +542,6 @@ function saveVisualSchedule() {
                     return { ...base, type: 'empty' };
                 } 
                 
-                // Конвертація sub/numden в формат schedule.json
                 const subgroups = [];
                 if (l.type === 'subgroups') {
                     if (l.content.sub1?.subject) subgroups.push({ ...l.content.sub1, group: 'sub1', weeks: 'all' });
