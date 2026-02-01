@@ -195,7 +195,7 @@ function removeSmartSubject(id) {
     renderSmartList();
 }
 
-// === GRID RENDERING ===
+// === GRID SYSTEM (NODE PATH) ===
 function getNodeByPath(day, idx, path) {
     let node = appState.gridData[day][idx];
     for (let key of path) {
@@ -213,7 +213,8 @@ function renderNodeHTML(node, day, idx, pathStr, mode) {
         if (mode === 'structure') {
             inner = `<div class="sub-cell-wrapper"><div class="sub-cell clickable-slot" onclick='handleCellClick(event, "${day}", ${idx}, ${pathJSON})'></div></div>`;
         } else {
-            // FILL MODE
+            // FILL MODE - data attributes for drop
+            // IMPORTANT: use single quotes for attribute value to handle JSON double quotes
             inner = `<div class="sub-cell-wrapper"><div class="sub-cell clickable-slot" data-path='${pathJSON}' data-day="${day}" data-idx="${idx}">`;
             if (node.content.subject) {
                 let typeLabel = node.content.type === 'Лекція' ? 'Лек' : (node.content.type === 'Практична' ? 'Прак' : 'Лаб');
@@ -223,14 +224,13 @@ function renderNodeHTML(node, day, idx, pathStr, mode) {
                 if(node.content.type==='Лабораторна') style='background:var(--lab-bg);color:var(--lab-txt)';
                 inner = `<div class="sub-cell" style="${style}"><b>${node.content.subject}</b><br><small>${typeLabel}</small><br><small>${node.content.room||''}</small></div>`;
             } else {
-                inner = `<div class="sub-cell" style="opacity:0.5; font-size:10px">Пусто</div>`;
+                inner = `<div class="sub-cell" style="opacity:0.5; font-size:10px; color:var(--text)">Пусто</div>`;
             }
             inner += `</div></div>`;
         }
         return inner;
     } 
     
-    // .split-v = Num/Den (Vertical), .split-h = Subgroups (Horizontal)
     let containerClass = (node.type === 'numden') ? 'split-v' : 'split-h';
     let keys = (node.type === 'numden') ? ['num', 'den'] : ['sub1', 'sub2'];
     let labels = (node.type === 'numden') ? ['Чис', 'Знам'] : ['Гр. 1', 'Гр. 2'];
@@ -285,7 +285,7 @@ function renderGridGeneric(containerId, mode) {
 function renderStructureGrid() { renderGridGeneric('structureGrid', 'structure'); }
 function renderFillGrid() { renderGridGeneric('visualGridFill', 'fill'); }
 
-// === STEP 3: STRUCTURE EDIT ===
+// === STRUCTURE MENU ===
 window.handleCellClick = function(e, day, idx, path) {
     e.stopPropagation();
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -299,7 +299,6 @@ window.handleCellClick = function(e, day, idx, path) {
     const options = [];
     options.push({ label: '⏰ Час', angle: 270, action: 'time', color: '#f59e0b' });
     options.push({ label: '🗑 Очистити', angle: 180, action: 'clear', color: '#ef4444' });
-    
     if (!hasNumDen) options.push({ label: '⬆ Чис/Знам', angle: 0, action: 'numden', color: '#10b981' });
     if (!hasSub) options.push({ label: '➡ Підгрупи', angle: 90, action: 'subgroups', color: '#3b82f6' });
     
@@ -312,8 +311,11 @@ function applyStructureChange(action) {
     if (action === 'time') { openTimeModal(day, idx); return; }
 
     if (action === 'clear') {
-        // === FIX: RESET ROOT SLOT ===
-        appState.gridData[day][idx] = { type: 'single', content: {} };
+        // Clear logic: Reset the WHOLE slot if at root, or current node if deep
+        // Requirement was "clear the card". Let's reset the Node to single empty.
+        let node = getNodeByPath(day, idx, path);
+        node.type = 'single';
+        node.content = {};
     } else {
         let node = getNodeByPath(day, idx, path);
         node.type = action;
@@ -329,7 +331,7 @@ function applyStructureChange(action) {
     renderStructureGrid();
 }
 
-// === STEP 4: DRAG & DROP (100% FIXED) ===
+// === DRAG & DROP (FIXED) ===
 function renderSidebarPuzzles() {
     const container = document.getElementById('puzzleContainer');
     container.innerHTML = '';
@@ -347,22 +349,25 @@ function setupTouchDrag(element, subject) {
     element.addEventListener('mousedown', start);
 
     function start(e) {
-        // Prevent default scrolling only if necessary
-        // e.preventDefault(); 
+        // e.preventDefault(); // Optional: prevent scroll on mobile
         const cx = e.touches ? e.touches[0].clientX : e.clientX;
         const cy = e.touches ? e.touches[0].clientY : e.clientY;
         appState.dragStartPos = {x:cx, y:cy};
         appState.draggedSubject = subject;
         
+        // GHOST
         const ghost = element.cloneNode(true);
-        ghost.className = 'puzzle-piece ghost-drag'; // Uses CSS pointer-events:none
+        ghost.className = 'puzzle-piece ghost-drag'; 
+        // Ensure ghost has pointer-events: none in CSS!
         ghost.style.left = cx + 'px';
         ghost.style.top = cy + 'px';
         document.body.appendChild(ghost);
         appState.ghost = ghost;
 
+        // MENU
         const menu = appState.radialMenu;
         let hasMultiple = ((subject.types.lec?1:0) + (subject.types.prac?1:0) + (subject.types.lab?1:0)) > 1;
+        
         if(hasMultiple) {
              menu.style.background = `conic-gradient(#9ca3af 0deg 120deg, #1f2937 120deg 240deg, #ffffff 240deg 360deg)`;
              menu.style.left = cx+'px'; menu.style.top = cy+'px';
@@ -375,14 +380,18 @@ function setupTouchDrag(element, subject) {
             const my = ev.touches ? ev.touches[0].clientY : ev.clientY;
             ghost.style.left = mx + 'px'; ghost.style.top = my + 'px';
             
-            // HIDE GHOST TEMPORARILY TO FIND ELEMENT UNDERNEATH
-            ghost.style.display = 'none';
+            // 1. Hide Ghost temporarily to find element underneath
+            ghost.style.visibility = 'hidden'; 
+            menu.style.visibility = 'hidden';
+            
             const target = document.elementFromPoint(mx, my);
-            ghost.style.display = 'block';
+            
+            ghost.style.visibility = 'visible';
+            if(hasMultiple) menu.style.visibility = 'visible';
 
             const subCell = target?.closest('.sub-cell');
             
-            // Highlight Logic
+            // Highlight
             if (appState.lastHoveredCell && appState.lastHoveredCell !== subCell) {
                 appState.lastHoveredCell.classList.remove('drag-over');
             }
@@ -391,6 +400,7 @@ function setupTouchDrag(element, subject) {
                 appState.lastHoveredCell = subCell;
             }
 
+            // Radial Type Selection
             const dx = mx - cx; const dy = my - cy;
             const dist = Math.sqrt(dx*dx + dy*dy);
             
@@ -428,23 +438,28 @@ function setupTouchDrag(element, subject) {
             
             if (appState.lastHoveredCell) appState.lastHoveredCell.classList.remove('drag-over');
             
-            ghost.remove(); 
+            ghost.style.display = 'none'; // Ensure hidden before check
             menu.style.display = 'none';
 
             const mx = ev.changedTouches ? ev.changedTouches[0].clientX : ev.clientX;
             const my = ev.changedTouches ? ev.changedTouches[0].clientY : ev.clientY;
             
-            // Find target (ghost is already removed)
             const target = document.elementFromPoint(mx, my);
             const subCell = target?.closest('.sub-cell');
 
             if(subCell && appState.activeSector) {
                 const day = subCell.dataset.day;
                 const idx = parseInt(subCell.dataset.idx);
+                // Safe Parse
                 let path = [];
-                try { path = JSON.parse(subCell.dataset.path || '[]'); } catch(e){}
+                try {
+                    // Replace single quotes back to double if needed, but JSON.parse should handle standard arrays
+                    path = JSON.parse(subCell.dataset.path || '[]');
+                } catch(e) { console.error('Path parse error', e); }
+                
                 handleDropLogic(day, idx, path, subject, appState.activeSector);
             }
+            ghost.remove();
         };
 
         document.addEventListener('touchmove', onMove, {passive:false});
