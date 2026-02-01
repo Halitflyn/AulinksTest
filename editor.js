@@ -8,21 +8,29 @@ let appState = {
     config: { weekType: 'numden', currentWeek: 'num', count: 5, times: [] },
     subjects: [], 
     gridData: {}, 
+    // Drag state
     draggedSubject: null, dragStartPos: {x:0, y:0}, activeSector: null, ghost: null,
     radialMenu: null, radialLabels: null,
-    activePath: null // Path to the clicked cell for structure editing
+    activePath: null, // Шлях до активної клітинки
+    editTimeTarget: null
 };
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Nav
     document.getElementById('btnClassicEdit').onclick = () => showScreen('classicEditor');
     document.getElementById('btnVisualEdit').onclick = () => { showScreen('visualWizard'); initWizard(); };
+    
+    // Step 2
     document.getElementById('addDetailRowBtn').onclick = () => addDetailRow();
     document.getElementById('addSmartSubjectBtn').onclick = addSmartSubject;
     ['smartHasLec', 'smartHasPrac', 'smartHasLab'].forEach(id => {
         document.getElementById(id).addEventListener('change', updateBindCheckboxesVisibility);
     });
+
+    // Final
     document.getElementById('finishVisualBtn').onclick = saveVisualSchedule;
     document.getElementById('saveTimeBtn').onclick = applyCustomTime;
+
     createRadialMenuDOM();
 });
 
@@ -53,7 +61,6 @@ function wizardNext(step) {
         }
         DAYS.forEach(day => {
             if (appState.gridData[day].length === 0) {
-                // Initial Structure: Array of Root Nodes
                 appState.gridData[day] = Array(appState.config.count).fill(null).map(() => ({ type: 'single', content: {} }));
             }
         });
@@ -73,7 +80,7 @@ function renderWizardTimeSlots() {
     }
 }
 
-// === STEP 2 (Subjects) ===
+// === КРОК 2: ПРЕДМЕТИ ===
 function updateBindCheckboxesVisibility() {
     const l = document.getElementById('smartHasLec').checked;
     const p = document.getElementById('smartHasPrac').checked;
@@ -185,9 +192,6 @@ function editSmartSubject(id) {
     s.details.forEach(d => addDetailRow(d));
     document.getElementById('addSmartSubjectBtn').innerText = '💾 Зберегти зміни';
     updateBindCheckboxesVisibility();
-    // Remove from list visually
-    appState.subjects = appState.subjects.filter(x => x.id !== id);
-    renderSmartList();
 }
 
 function removeSmartSubject(id) {
@@ -195,7 +199,7 @@ function removeSmartSubject(id) {
     renderSmartList();
 }
 
-// === RECURSIVE GRID RENDERING (Structure & Fill) ===
+// === GRID SYSTEM & STRUCTURE LOGIC ===
 
 function getNodeByPath(day, idx, path) {
     let node = appState.gridData[day][idx];
@@ -206,15 +210,15 @@ function getNodeByPath(day, idx, path) {
     return node;
 }
 
-// Generates HTML for a node (recursive)
 function renderNodeHTML(node, day, idx, pathStr, mode) {
     if (node.type === 'single') {
         const pathJSON = JSON.stringify(pathStr);
         let inner = '';
         if (mode === 'structure') {
+            // Клік по комірці викликає меню структури (handleCellClick)
             inner = `<div class="sub-cell-wrapper"><div class="sub-cell clickable-slot" onclick='handleCellClick(event, "${day}", ${idx}, ${pathJSON})'></div></div>`;
         } else {
-            // FILL MODE
+            // Клік по комірці в режимі наповнення - це потенційно очищення або інше, але зараз драг-дроп головний
             inner = `<div class="sub-cell-wrapper"><div class="sub-cell clickable-slot" data-path='${pathJSON}' data-day="${day}" data-idx="${idx}">`;
             if (node.content.subject) {
                 let typeLabel = node.content.type === 'Лекція' ? 'Лек' : (node.content.type === 'Практична' ? 'Прак' : 'Лаб');
@@ -232,22 +236,17 @@ function renderNodeHTML(node, day, idx, pathStr, mode) {
         return inner;
     } 
     
-    // Recursive container
     let containerClass = (node.type === 'numden') ? 'split-v' : 'split-h';
     let keys = (node.type === 'numden') ? ['num', 'den'] : ['sub1', 'sub2'];
     let labels = (node.type === 'numden') ? ['Чис', 'Знам'] : ['Гр. 1', 'Гр. 2'];
     
     let html = `<div class="${containerClass}">`;
     keys.forEach((k, i) => {
-        // Ensure child exists
         if(!node.content[k]) node.content[k] = { type: 'single', content: {} };
-        
         html += `<div style="flex:1; display:flex; position:relative; border:1px solid var(--border); margin:-1px;">`;
-        // Label for container
         if (mode === 'structure') {
-             html += `<div style="position:absolute; top:0; left:0; font-size:9px; color:#aaa; padding:1px;">${labels[i]}</div>`;
+             html += `<div style="position:absolute; top:0; left:0; font-size:9px; color:#aaa; padding:1px; pointer-events:none;">${labels[i]}</div>`;
         }
-        // Recurse
         html += renderNodeHTML(node.content[k], day, idx, [...pathStr, k], mode);
         html += `</div>`;
     });
@@ -270,14 +269,13 @@ function renderGridGeneric(containerId, mode) {
             const row = document.createElement('div');
             row.className = 'grid-row';
             
-            // Fixed Time & Number Columns
             const timeVal = lesson.customTime || appState.config.times[idx] || '';
+            // Час тепер в окремій колонці
             row.innerHTML = `
                 <div class="row-number">${idx+1}</div>
                 <div class="row-time" onclick="openTimeModal('${day}', ${idx})">${timeVal}</div>
             `;
 
-            // Slot Tree
             const slot = document.createElement('div');
             slot.className = 'grid-slot';
             slot.innerHTML = renderNodeHTML(lesson, day, idx, [], mode);
@@ -288,14 +286,12 @@ function renderGridGeneric(containerId, mode) {
         dayBlock.appendChild(slotsContainer);
         container.appendChild(dayBlock);
     });
-    
-    if (mode === 'fill') setupFillListeners();
 }
 
 function renderStructureGrid() { renderGridGeneric('structureGrid', 'structure'); }
 function renderFillGrid() { renderGridGeneric('visualGridFill', 'fill'); }
 
-// === STRUCTURE ACTIONS ===
+// === ЛОГІКА МЕНЮ СТРУКТУРИ (ВИПРАВЛЕНО) ===
 window.handleCellClick = function(e, day, idx, path) {
     e.stopPropagation();
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -303,11 +299,27 @@ window.handleCellClick = function(e, day, idx, path) {
     
     appState.activePath = { day, idx, path };
     
-    const options = [
-        { label: '🗑 Очистити', angle: 270, action: 'clear', color: '#ef4444' }, // Left
-        { label: '⬆ Чис/Знам', angle: 0, action: 'numden', color: '#10b981' },   // Top
-        { label: '➡ Підгрупи', angle: 90, action: 'subgroups', color: '#3b82f6' } // Right
-    ];
+    // Перевіряємо, що вже є в шляху, щоб не пропонувати це знову
+    const hasNumDen = path.includes('num') || path.includes('den');
+    const hasSub = path.includes('sub1') || path.includes('sub2');
+    
+    const options = [];
+    
+    // Час - завжди зліва (270)
+    options.push({ label: '⏰ Час', angle: 270, action: 'time', color: '#f59e0b' });
+    
+    // Очистити - завжди внизу (180)
+    options.push({ label: '🗑 Очистити', angle: 180, action: 'clear', color: '#ef4444' });
+    
+    // Якщо ще немає Чис/Знам - додаємо вгору (0)
+    if (!hasNumDen) {
+        options.push({ label: '⬆ Чис/Знам', angle: 0, action: 'numden', color: '#10b981' });
+    }
+    
+    // Якщо ще немає Підгруп - додаємо вправо (90)
+    if (!hasSub) {
+        options.push({ label: '➡ Підгрупи', angle: 90, action: 'subgroups', color: '#3b82f6' });
+    }
     
     showRadialMenu(clientX, clientY, options, (action) => {
         applyStructureChange(action);
@@ -316,16 +328,20 @@ window.handleCellClick = function(e, day, idx, path) {
 
 function applyStructureChange(action) {
     const { day, idx, path } = appState.activePath;
+    
+    if (action === 'time') {
+        openTimeModal(day, idx);
+        return;
+    }
+
     let node = getNodeByPath(day, idx, path);
     
     if (action === 'clear') {
-        // Reset this node to single empty
         node.type = 'single';
         node.content = {};
     } else {
-        // Split
         node.type = action;
-        node.content = {}; // Reset content when splitting structure
+        node.content = {}; 
         if (action === 'numden') {
             node.content.num = { type: 'single', content: {} };
             node.content.den = { type: 'single', content: {} };
@@ -338,12 +354,6 @@ function applyStructureChange(action) {
 }
 
 // === FILL & DRAG ACTIONS ===
-function setupFillListeners() {
-    // Add touch listeners to .sub-cell elements in Fill Grid
-    // Since innerHTML is re-rendered, we need to re-bind or use delegation.
-    // The visual rendering puts data attributes, so setupTouchDrag handles drop target finding via elementFromPoint.
-}
-
 function renderSidebarPuzzles() {
     const container = document.getElementById('puzzleContainer');
     container.innerHTML = '';
@@ -363,6 +373,7 @@ function setupTouchDrag(element, subject) {
     function start(e) {
         const cx = e.touches ? e.touches[0].clientX : e.clientX;
         const cy = e.touches ? e.touches[0].clientY : e.clientY;
+        appState.dragStartPos = {x:cx, y:cy};
         appState.draggedSubject = subject;
         
         const ghost = element.cloneNode(true);
@@ -370,15 +381,22 @@ function setupTouchDrag(element, subject) {
         document.body.appendChild(ghost);
         appState.ghost = ghost;
 
-        const menu = appState.radialMenu;
-        menu.style.background = `conic-gradient(#9ca3af 0deg 120deg, #1f2937 120deg 240deg, #ffffff 240deg 360deg)`;
-        menu.style.left = cx+'px'; menu.style.top = cy+'px';
-        menu.style.display = 'block';
+        // Початкове меню для драгу
+        const opts = [];
+        if(subject.types.lec) opts.push({ label: 'Лекція', angle: 270, color: '#ffffff' }); // L
+        if(subject.types.prac) opts.push({ label: 'Практика', angle: 90, color: '#9ca3af' }); // R
+        if(subject.types.lab) opts.push({ label: 'Лабораторна', angle: 180, color: '#1f2937' }); // B
+        
+        // Показати меню тільки якщо є вибір
+        if (opts.length > 1) {
+            showRadialMenu(cx, cy, opts, null); // callback null бо драг обробляється в onMove
+        }
 
         const onMove = (ev) => {
             ev.preventDefault();
             const mx = ev.touches ? ev.touches[0].clientX : ev.clientX;
             const my = ev.touches ? ev.touches[0].clientY : ev.clientY;
+            
             ghost.style.left = mx + 'px'; ghost.style.top = my + 'px';
             
             const dx = mx - cx; const dy = my - cy;
@@ -393,27 +411,40 @@ function setupTouchDrag(element, subject) {
                      if(dy > 0 && subject.types.lab) selectedType = 'Лабораторна';
                  }
             }
-            if (!selectedType && !subject.types.lec && subject.types.prac && !subject.types.lab) selectedType = 'Практична';
-            if (!selectedType && subject.types.lec && !subject.types.prac && !subject.types.lab) selectedType = 'Лекція';
+            // Fallback for single type
+            if (!selectedType) {
+                 const t = subject.types;
+                 if(t.lec && !t.prac && !t.lab) selectedType = 'Лекція';
+                 else if(!t.lec && t.prac && !t.lab) selectedType = 'Практична';
+                 else if(!t.lec && !t.prac && t.lab) selectedType = 'Лабораторна';
+            }
 
             if(selectedType) {
                 ghost.style.background = (selectedType==='Лекція')?'white':(selectedType==='Практична'?'#9ca3af':'#1f2937');
                 ghost.style.color = (selectedType==='Лекція')?'black':'white';
                 ghost.innerText = `${subject.name}\n${selectedType}`;
                 appState.activeSector = selectedType;
-            } else { appState.activeSector = null; }
+                
+                // Highlight sector in menu (Optional visual feedback)
+                // appState.radialMenu.style.opacity = 1;
+            } else { 
+                appState.activeSector = null; 
+            }
         }
 
         const onEnd = (ev) => {
             document.removeEventListener('touchmove', onMove); document.removeEventListener('mousemove', onMove);
             document.removeEventListener('touchend', onEnd); document.removeEventListener('mouseup', onEnd);
             ghost.remove();
-            menu.style.display = 'none';
+            
+            // Hide menu
+            appState.radialMenu.style.display = 'none';
+            appState.radialLabels.style.display = 'none';
 
             const mx = ev.changedTouches ? ev.changedTouches[0].clientX : ev.clientX;
             const my = ev.changedTouches ? ev.changedTouches[0].clientY : ev.clientY;
             const target = document.elementFromPoint(mx, my);
-            const subCell = target?.closest('.sub-cell'); // The div inside sub-cell-wrapper
+            const subCell = target?.closest('.sub-cell');
 
             if(subCell && appState.activeSector) {
                 const day = subCell.dataset.day;
@@ -485,15 +516,51 @@ function createRadialMenuDOM() {
 function showRadialMenu(x, y, options, callback) {
     const menu = appState.radialMenu;
     const labels = appState.radialLabels;
-    // ... (Simple implementation)
-    // For Step 3 (Clear/NumDen/Sub)
-    menu.style.background = `conic-gradient(#10b981 300deg 360deg, #10b981 0deg 60deg, #3b82f6 60deg 180deg, #ef4444 180deg 300deg)`;
     
+    // BUILD DYNAMIC GRADIENT FOR SECTORS
+    // Start angles: Top=0, Right=90, Bottom=180, Left=270.
+    // Slices are +/- 45 deg from center.
+    // 0 deg slice: 315 to 45
+    // 90 deg slice: 45 to 135
+    // 180 deg slice: 135 to 225
+    // 270 deg slice: 225 to 315
+    
+    let parts = [];
+    
+    // Helper to add slice
+    const addSlice = (centerAngle, color) => {
+        let start = centerAngle - 45;
+        let end = centerAngle + 45;
+        if (start < 0) start += 360; // 315
+        // CSS conic-gradient logic:
+        if (start > end) { // Wraps around 0 (e.g. 315 to 45)
+             parts.push(`${color} ${start}deg 360deg`);
+             parts.push(`${color} 0deg ${end}deg`);
+        } else {
+             parts.push(`${color} ${start}deg ${end}deg`);
+        }
+    };
+
+    options.forEach(opt => {
+        if(opt.color) addSlice(opt.angle, opt.color);
+    });
+    
+    // Background style
+    if (parts.length > 0) {
+        menu.style.background = `conic-gradient(${parts.join(', ')})`;
+    } else {
+        menu.style.background = 'rgba(255,255,255,0.9)';
+    }
+
     labels.innerHTML = '';
     options.forEach(opt => {
-        const lbl = document.createElement('div'); lbl.className = 'r-label'; lbl.innerText = opt.label;
+        const lbl = document.createElement('div');
+        lbl.className = 'r-label';
+        lbl.innerText = opt.label;
         const rad = (opt.angle - 90) * Math.PI / 180;
-        const lx = 90 + 70 * Math.cos(rad); const ly = 90 + 70 * Math.sin(rad);
+        const dist = 75;
+        const lx = 100 + dist * Math.cos(rad);
+        const ly = 100 + dist * Math.sin(rad);
         lbl.style.left = lx + 'px'; lbl.style.top = ly + 'px';
         labels.appendChild(lbl);
     });
@@ -520,8 +587,20 @@ function showRadialMenu(x, y, options, callback) {
             let angle = Math.atan2(dy, dx) * 180 / Math.PI + 90;
             if(angle < 0) angle += 360;
             
-            let selected = options.find(o => Math.abs(o.angle - angle) < 60 || Math.abs(o.angle - angle) > 300);
-            if(selected) { menu.style.opacity = 1; appState.menuSelection = selected.action; }
+            // Find closest option
+            // (Check if angle is within +/- 45 deg of option.angle)
+            let selected = options.find(o => {
+                let diff = Math.abs(o.angle - angle);
+                if (diff > 180) diff = 360 - diff;
+                return diff <= 45;
+            });
+            
+            if(selected) {
+                menu.style.opacity = 1;
+                appState.menuSelection = selected.action;
+            } else {
+                appState.menuSelection = null;
+            }
         }
     }
 
@@ -531,16 +610,19 @@ function showRadialMenu(x, y, options, callback) {
 
 function openTimeModal(day, idx) {
     appState.editTimeTarget = {day, idx};
-    document.getElementById('customTimeInput').value = appState.gridData[day][idx].customTime || DEFAULT_TIMES[idx] || '';
+    const val = appState.gridData[day][idx].customTime || DEFAULT_TIMES[idx] || '';
+    document.getElementById('customTimeInput').value = val;
     document.getElementById('timeModal').style.display = 'flex';
 }
 function applyCustomTime() {
-    appState.gridData[appState.editTimeTarget.day][appState.editTimeTarget.idx].customTime = document.getElementById('customTimeInput').value;
+    if(appState.editTimeTarget) {
+        appState.gridData[appState.editTimeTarget.day][appState.editTimeTarget.idx].customTime = document.getElementById('customTimeInput').value;
+    }
     document.getElementById('timeModal').style.display = 'none';
-    renderStructureGrid();
+    if(appState.step === 3) renderStructureGrid();
+    else renderFillGrid();
 }
 
-// === EXPORT (FLATTENING RECURSIVE GRID TO SCHEDULE.JSON) ===
 function saveVisualSchedule() {
     const finalSchedule = {
         group: "My Group", semester: "1", startDate: new Date().toISOString(),
@@ -567,14 +649,7 @@ function flattenNode(node, base) {
         return { ...base, type: 'empty' };
     }
     
-    // Complex flattening for nested structures
-    // This is a simplified flattener that handles 1 level of nesting as per current standard
-    // If you need deep nesting support in the viewer, the viewer script needs updates too.
-    // Here we map Level 1 nesting to standard format.
-    
     let subgroups = [];
-    
-    // Helper to extract leaf nodes
     const extract = (n, weeks, group) => {
         if(n.type === 'single') {
             if(n.content.subject) subgroups.push({ ...n.content, weeks, group });
