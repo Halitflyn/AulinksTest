@@ -44,10 +44,16 @@
             <div id="step1" class="wizard-step active">
                 <h3>Крок 1: Налаштування сітки</h3>
                 <div class="form-grid">
-                    <label>Тип тижня:
+                    <label>Тип тижня (в університеті):
                         <select id="wizWeekType">
                             <option value="numden">Чисельник / Знаменник</option>
                             <option value="none">Без поділу</option>
+                        </select>
+                    </label>
+                    <label>Який ЗАРАЗ тиждень?
+                        <select id="wizCurrentWeek">
+                            <option value="num">Чисельник</option>
+                            <option value="den">Знаменник</option>
                         </select>
                     </label>
                     <label>Пар на день:
@@ -55,14 +61,14 @@
                     </label>
                 </div>
                 <div id="wizTimeSlots" class="time-slots-grid"></div>
-                <button class="next-btn" onclick="wizardNext(2)">Далі ➡</button>
+                <button class="next-btn" onclick="wizardNext(2)">Далі (Предмети) ➡</button>
             </div>
 
             <div id="step2" class="wizard-step">
                 <div class="step-header">
                     <button class="prev-btn icon-btn" onclick="wizardNext(1)">⬅</button>
                     <h3>Крок 2: Створіть "Пазли" (Предмети)</h3>
-                    <button class="next-btn" onclick="wizardNext(3)">Створити сітку ➡</button>
+                    <button class="next-btn" onclick="wizardNext(3)">Далі (Структура) ➡</button>
                 </div>
                 
                 <div class="db-creator-smart">
@@ -71,46 +77,52 @@
                         <input type="text" id="smartSubjectName" placeholder="Назва (напр. Фізика)">
                         
                         <div class="type-toggles">
-                            <span>Типи:</span>
-                            <label><input type="checkbox" id="smartHasLec"> Лек (Білий)</label>
-                            <label><input type="checkbox" id="smartHasPrac"> Прак (Сірий)</label>
-                            <label><input type="checkbox" id="smartHasLab"> Лаб (Чорний)</label>
+                            <span>Є типи:</span>
+                            <label><input type="checkbox" id="smartHasLec"> Лек</label>
+                            <label><input type="checkbox" id="smartHasPrac"> Прак</label>
+                            <label><input type="checkbox" id="smartHasLab"> Лаб</label>
                         </div>
 
+                        <div class="teacher-room-label">Аудиторії та Викладачі:</div>
                         <div class="teacher-room-list" id="smartDetailsList">
-                            <div class="detail-row">
-                                <input type="text" class="inp-teacher" placeholder="Викладач">
-                                <input type="text" class="inp-room" placeholder="Аудиторія">
                             </div>
-                        </div>
-                        <button id="addDetailRowBtn" class="small-btn" style="margin-bottom: 10px;">+ Дод. аудиторію/викладача</button>
+                        <button id="addDetailRowBtn" class="small-btn dashed">+ Дод. аудиторію</button>
 
-                        <button id="addSmartSubjectBtn" class="add-main-btn">+ Додати предмет</button>
+                        <button id="addSmartSubjectBtn" class="add-main-btn">+ Додати / Оновити предмет</button>
                     </div>
 
                     <div class="smart-list-container">
-                        <h4 style="margin-top: 0;">Ваші предмети:</h4>
+                        <h4 style="margin-top: 0;">Ваші предмети (Подвійний клік для зміни):</h4>
                         <div id="smartSubjectList" class="items-list"></div>
                     </div>
                 </div>
             </div>
 
-            <div id="step3" class="wizard-step full-width">
+            <div id="step3" class="wizard-step full-width-col">
+                <div class="step-header-slim">
+                    <button class="prev-btn icon-btn" onclick="wizardNext(2)">⬅ Назад</button>
+                    <h3>Крок 3: Налаштуйте клітинки (Натисніть на клітинку)</h3>
+                    <button class="next-btn" onclick="wizardNext(4)">Далі (Наповнення) ➡</button>
+                </div>
+                <div class="structure-editor-container">
+                    <div id="structureGrid" class="visual-feed"></div>
+                </div>
+            </div>
+
+            <div id="step4" class="wizard-step full-width">
                 <div class="workspace-layout">
                     
                     <div class="puzzle-sidebar">
                         <h3>🧩 Предмети</h3>
-                        <div id="puzzleContainer" class="puzzle-container">
-                            </div>
+                        <div id="puzzleContainer" class="puzzle-container"></div>
                         <div class="sidebar-buttons">
-                            <button class="prev-btn" onclick="wizardNext(2)">⬅ Назад</button>
+                            <button class="prev-btn" onclick="wizardNext(3)">⬅ Назад</button>
                             <button id="finishVisualBtn" class="save-btn big">💾 Зберегти</button>
                         </div>
                     </div>
 
                     <div class="schedule-scroll-container">
-                        <div id="visualGrid" class="visual-feed">
-                            </div>
+                        <div id="visualGridFill" class="visual-feed"></div>
                     </div>
 
                 </div>
@@ -133,7 +145,7 @@
 
     <div id="roomChoiceModal" class="modal">
         <div class="modal-content">
-            <h3>Оберіть викладача/аудиторію</h3>
+            <h3>Оберіть варіант</h3>
             <div id="roomChoicesList" class="room-choices-grid"></div>
             <button onclick="document.getElementById('roomChoiceModal').style.display='none'" style="margin-top:10px;">Скасувати</button>
         </div>
