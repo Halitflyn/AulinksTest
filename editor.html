@@ -3,83 +3,143 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Редактор розкладу</title>
-
+    <title>Конструктор розкладу</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./editor.css">
 </head>
 <body>
 
     <header>
-        <h1>
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16" style="margin-right: 10px; vertical-align: -4px;">
-                <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.813z"/>
-                <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"/>
-            </svg>
-            Редактор розкладу
-        </h1>
+        <h1>🧩 Конструктор</h1>
         <div>
             <button id="themeToggle" title="Змінити тему">🌗</button>
-            <a href="./index.html" class="nav-link" style="margin-left: 10px;">Повернутися</a>
+            <a href="./index.html" class="nav-link">Вихід</a>
         </div>
     </header>
 
     <main class="editor-container">
-        <div class="controls">
-            <button id="saveBtn" class="save-btn">Зберегти</button>
-            <button id="loadStorageBtn" class="load-btn">Завантажити</button>
-            <input type="file" id="loadFileInput" accept=".json" style="display: none;">
-            <button id="loadFileBtn" class="load-file-btn">З файлу</button>
-            <button id="exportJsonBtn" class="export-btn">Експорт</button>
+        
+        <div id="startScreen" class="screen active">
+            <h2>Як ви хочете редагувати?</h2>
+            <div class="mode-buttons">
+                <button id="btnClassicEdit" class="big-btn secondary">📝 Класичний список</button>
+                <button id="btnVisualEdit" class="big-btn primary">✨ Створити з нуля (Візуально)</button>
+            </div>
+            <div class="controls" style="justify-content: center; margin-top: 20px;">
+                 <input type="file" id="loadFileInput" accept=".json" style="display: none;">
+                 <button id="loadFileBtn" class="load-file-btn">Завантажити файл</button>
+            </div>
         </div>
-        <p id="status" class="status"></p>
 
-        <fieldset class="general-info">
-            <legend>Загальна інформація</legend>
-            <div class="form-grid">
-                <div>
-                    <label for="group">Назва групи:</label>
-                    <input type="text" id="group" placeholder="ІВ-12">
-                </div>
-                <div>
-                    <label for="semester">Семестр:</label>
-                    <input type="text" id="semester" placeholder="1 семестр 2024-2025">
-                </div>
-                <div class="today-week-type">
-                    <label>Який **сьогодні** тиждень?</label>
-                    <div>
-                        <label><input type="radio" name="todayWeekType" value="num" checked> Чисельник</label>
-                        <label><input type="radio" name="todayWeekType" value="den"> Знаменник</label>
-                    </div>
-                    <small>(Це потрібно для правильного розрахунку)</small>
-                </div>
+        <div id="classicEditor" class="screen" style="display: none;">
+            <div class="controls">
+                <button id="backToStartBtn" class="load-btn">⬅ Назад</button>
+                <button id="saveBtn" class="save-btn">Зберегти</button>
             </div>
-        </fieldset>
+            <div id="classicFormContainer"></div>
+        </div>
 
-        <fieldset class="default-times-info">
-            <legend>Налаштування Днів та Часу</legend>
+        <div id="visualWizard" class="screen" style="display: none;">
             
-            <div class="day-selection">
-                <label style="text-transform: uppercase; font-size: 13px; color: var(--muted); margin-bottom: 10px; display: block;">Робочі дні:</label>
-                <div id="daySelectionContainer" class="day-selection-grid">
+            <div id="step1" class="wizard-step active">
+                <h3>Крок 1: Налаштування сітки</h3>
+                <div class="form-grid">
+                    <label>Тип тижня:
+                        <select id="wizWeekType">
+                            <option value="numden">Чисельник / Знаменник</option>
+                            <option value="none">Без поділу</option>
+                        </select>
+                    </label>
+                    <label>Пар на день:
+                        <input type="number" id="wizLessonCount" value="5" min="1" max="10">
+                    </label>
+                </div>
+                <div id="wizTimeSlots" class="time-slots-grid">
                     </div>
+                <button class="next-btn" onclick="wizardNext(2)">Далі ➡</button>
             </div>
 
-            <div class="form-grid" style="margin-top: 20px; border-top: 1px dashed var(--border); padding-top: 20px;">
-                <div>
-                    <label for="lessonCount">Кількість пар на день:</label>
-                    <input type="number" id="lessonCount" value="8" min="1" max="10" style="width: 80px;">
+            <div id="step2" class="wizard-step">
+                <h3>Крок 2: Створіть "Пазли"</h3>
+                
+                <div class="db-creator">
+                    <div class="db-column">
+                        <h4>Предмети</h4>
+                        <div class="input-row">
+                            <input type="text" id="newSubjectName" placeholder="Назва предмету">
+                            <div class="type-toggles">
+                                <label><input type="checkbox" id="hasLec"> Лек</label>
+                                <label><input type="checkbox" id="hasPrac"> Прак</label>
+                                <label><input type="checkbox" id="hasLab"> Лаб</label>
+                            </div>
+                            <button id="addSubjectBtn">+</button>
+                        </div>
+                        <div id="subjectList" class="items-list"></div>
+                    </div>
+
+                    <div class="db-column">
+                        <h4>Аудиторії / Викладачі</h4>
+                        <div class="input-row">
+                            <input type="text" id="newRoomName" placeholder="Аудиторія (напр. 305)">
+                            <button id="addRoomBtn">+</button>
+                        </div>
+                        <div id="roomList" class="items-list"></div>
+                    </div>
+                </div>
+                <div class="wizard-nav">
+                    <button class="prev-btn" onclick="wizardNext(1)">⬅ Назад</button>
+                    <button class="next-btn" onclick="wizardNext(3)">Створити сітку ➡</button>
                 </div>
             </div>
-            <div id="defaultTimesContainer" class="form-grid" style="margin-top: 20px; border-top: 1px dashed var(--border); padding-top: 20px;">
-                </div>
-        </fieldset>
 
-        <div id="scheduleForm" class="schedule-form-container">
-            {/* Сюди JS згенерує повну форму */}
+            <div id="step3" class="wizard-step full-width">
+                <div class="workspace">
+                    
+                    <div class="schedule-grid-container">
+                        <div class="days-header">
+                            <button class="day-tab active" data-day="monday">ПН</button>
+                            <button class="day-tab" data-day="tuesday">ВТ</button>
+                            <button class="day-tab" data-day="wednesday">СР</button>
+                            <button class="day-tab" data-day="thursday">ЧТ</button>
+                            <button class="day-tab" data-day="friday">ПТ</button>
+                        </div>
+                        <div id="visualGrid" class="visual-grid">
+                            </div>
+                        <div class="grid-hint">
+                            💡 Тягни картку: ➡ Підгрупи | ⬇ Числ/Знам | ⬅ Час
+                        </div>
+                    </div>
+
+                    <div class="puzzle-sidebar">
+                        <div class="puzzle-tabs">
+                            <button class="puz-tab active" data-type="subjects">Предмети</button>
+                            <button class="puz-tab" data-type="rooms">Аудиторії</button>
+                        </div>
+                        <div id="puzzleContainer" class="puzzle-container">
+                            </div>
+                        <div class="sidebar-hint" id="sidebarHint">
+                            Тягни предмет: ⬆ Лекція | ↙ Практика | ↘ Лаба
+                        </div>
+                        <button id="finishVisualBtn" class="save-btn big">💾 Зберегти все</button>
+                    </div>
+
+                </div>
+            </div>
+
         </div>
 
     </main>
+
+    <div id="timeModal" class="modal">
+        <div class="modal-content">
+            <h3>Змінити час</h3>
+            <input type="text" id="customTimeInput" placeholder="00:00 - 00:00">
+            <div class="modal-actions">
+                <button id="saveTimeBtn">ОК</button>
+                <button onclick="document.getElementById('timeModal').style.display='none'">Скасувати</button>
+            </div>
+        </div>
+    </div>
 
     <script src="./editor.js"></script>
 </body>
