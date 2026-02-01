@@ -228,7 +228,6 @@ function renderNodeHTML(node, day, idx, pathStr, mode) {
         return inner;
     } 
     
-    // Classes for split (Corrected: split-v = Column, split-h = Row)
     let containerClass = (node.type === 'numden') ? 'split-v' : 'split-h';
     let keys = (node.type === 'numden') ? ['num', 'den'] : ['sub1', 'sub2'];
     let labels = (node.type === 'numden') ? ['Чис', 'Знам'] : ['Гр. 1', 'Гр. 2'];
@@ -291,7 +290,6 @@ window.handleCellClick = function(e, day, idx, path) {
     
     appState.activePath = { day, idx, path };
     
-    // Check constraints
     const hasNumDen = path.includes('num') || path.includes('den');
     const hasSub = path.includes('sub1') || path.includes('sub2');
     
@@ -313,7 +311,8 @@ function applyStructureChange(action) {
     if (action === 'time') { openTimeModal(day, idx); return; }
 
     if (action === 'clear') {
-        // === FIX: RESET ROOT SLOT ===
+        // === FIX: RESET WHOLE SLOT ===
+        // We ignore 'path' and reset the root lesson in gridData
         appState.gridData[day][idx] = { type: 'single', content: {} };
     } else {
         let node = getNodeByPath(day, idx, path);
@@ -485,7 +484,6 @@ function showRadialMenu(x, y, options, callback) {
     const menu = appState.radialMenu;
     const labels = appState.radialLabels;
     
-    // Build Dynamic Gradient
     let parts = [];
     options.forEach(opt => {
         if(opt.color) {
