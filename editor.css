@@ -37,72 +37,18 @@ button:active { transform: scale(0.98); }
 .step-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-shrink: 0; }
 .step-header-slim { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: var(--card); border-radius: 12px; margin-bottom: 10px; border: 1px solid var(--border); flex-shrink: 0; }
 
-/* КРОК 2: ДИЗАЙН ФОРМИ */
+/* КРОК 2 */
 .db-creator-smart { display: flex; gap: 20px; flex-wrap: wrap; height: 100%; overflow: hidden; }
 .smart-card-form { flex: 1; min-width: 320px; background: var(--bg); padding: 15px; border-radius: 12px; border: 1px solid var(--border); overflow-y: auto; }
 .smart-list-container { flex: 1; min-width: 300px; overflow-y: auto; padding-right: 5px; }
 
-/* --- ВИПРАВЛЕННЯ ДИЗАЙНУ РЯДКА --- */
-.teacher-room-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
-
-.detail-row { 
-    display: grid; 
-    /* Викладач | Аудиторія | Галочки | Кнопка видалення */
-    grid-template-columns: 1fr 0.7fr auto auto; 
-    gap: 8px; 
-    align-items: center; 
-    background: var(--card);
-    padding: 5px;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-}
-
-.detail-row input { margin: 0; height: 36px; } /* Фіксована висота, щоб не пливли */
-
-.type-bind-checks { 
-    display: flex; 
-    gap: 6px; 
-    background: var(--bg); 
-    padding: 4px 8px; 
-    border-radius: 6px; 
-    border: 1px solid var(--border); 
-    height: 36px;
-    align-items: center;
-    box-sizing: border-box;
-}
-/* Ховаємо блок, якщо JS каже, що він не треба */
+.detail-row { display: grid; grid-template-columns: 1fr 0.7fr auto auto; gap: 8px; align-items: center; background: var(--card); padding: 5px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 5px; }
+.type-bind-checks { display: flex; gap: 6px; background: var(--bg); padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border); height: 36px; align-items: center; box-sizing: border-box; }
 .type-bind-checks.hidden { display: none; }
+.type-bind-checks label { font-size: 11px; font-weight: bold; display: flex; align-items: center; gap: 3px; cursor: pointer; user-select: none; }
+.remove-row-btn { color: #ef4444; background: transparent; border: none; font-size: 18px; cursor: pointer; padding: 0 5px; }
 
-.type-bind-checks label { 
-    font-size: 11px; 
-    font-weight: bold;
-    display: flex; 
-    align-items: center; 
-    gap: 3px; 
-    cursor: pointer; 
-    user-select: none; 
-}
-/* Ховаємо конкретну букву, якщо тип не обраний */
-.chk-wrap { display: flex; align-items: center; }
-.chk-wrap.hidden { display: none; }
-
-.remove-row-btn {
-    color: #ef4444;
-    background: transparent;
-    border: none;
-    font-size: 18px;
-    cursor: pointer;
-    padding: 0 5px;
-    display: flex;
-    align-items: center;
-    height: 100%;
-}
-.remove-row-btn:hover { color: #b91c1c; }
-
-/* -------------------------------- */
-
-input[type="text"], input[type="number"], select { width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--text); box-sizing: border-box; }
-.type-toggles { display: flex; gap: 15px; margin-bottom: 15px; align-items: center; font-size: 14px; }
+input, select { width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--text); box-sizing: border-box; }
 .small-btn { padding: 8px; width: 100%; font-size: 13px; margin-bottom: 5px; background: var(--card); border: 1px dashed var(--border); color: var(--text); }
 .add-main-btn { width: 100%; padding: 12px; background: var(--accent); color: white; font-weight: bold; margin-top: 10px; }
 
@@ -116,28 +62,92 @@ input[type="text"], input[type="number"], select { width: 100%; padding: 8px 10p
 .badge.lab { background: var(--lab-bg); color: var(--lab-txt); }
 .del-item-btn { position: absolute; top: 5px; right: 8px; color: #ef4444; cursor: pointer; font-weight: bold; font-size: 18px; }
 
-/* WORKSPACE */
+/* === ВИПРАВЛЕНИЙ ДИЗАЙН СІТКИ (КРОК 3 і 4) === */
 .structure-editor-container { flex: 1; overflow-y: auto; padding-right: 5px; }
-.visual-feed { display: flex; flex-direction: column; gap: 20px; padding-bottom: 50px; }
+.visual-feed { display: flex; flex-direction: column; gap: 15px; padding-bottom: 50px; }
+
 .day-block { background: var(--card); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
 .day-header { background: var(--accent); color: white; padding: 8px 15px; font-weight: bold; font-size: 0.9em; text-transform: uppercase; }
-.day-slots { padding: 10px; display: flex; flex-direction: column; gap: 8px; }
-.grid-row { display: flex; gap: 10px; align-items: stretch; }
-.row-number { width: 30px; display: flex; align-items: center; justify-content: center; font-weight: bold; color: var(--accent); font-size: 1.2em; border-right: 2px solid var(--border); }
-.grid-slot { flex: 1; border: 2px dashed var(--border); border-radius: 8px; min-height: 70px; background: var(--bg); display: flex; align-items: stretch; transition: 0.2s; position: relative; }
-.grid-slot.filled { border-style: solid; background: var(--card); border-color: var(--border); }
-.inner-time { position: absolute; top: 2px; right: 5px; font-size: 10px; color: #888; background: rgba(255,255,255,0.8); padding: 2px 4px; border-radius: 4px; z-index: 2; }
-body.dark-mode .inner-time { background: rgba(0,0,0,0.5); }
-.slot-content { flex: 1; display: flex; flex-direction: column; }
-.sub-row { flex: 1; display: flex; border-bottom: 1px solid var(--border); }
-.sub-row:last-child { border-bottom: none; }
-.sub-cell { flex: 1; border-right: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 12px; padding: 15px 5px 5px 5px; text-align: center; min-height: 40px; position: relative; }
-.sub-cell:last-child { border-right: none; }
-.clickable-slot { cursor: pointer; }
-.clickable-slot:hover { background: rgba(99, 102, 241, 0.05); border-color: var(--accent); }
-.clickable-slot:empty::after { content: 'Натисни для налаштування'; color: #ccc; font-size: 12px; }
+.day-slots { padding: 0; display: flex; flex-direction: column; }
 
-/* STEP 4 LAYOUT */
+/* Рядок пари: Номер | Час | Картка */
+.grid-row { 
+    display: flex; 
+    align-items: stretch; 
+    border-bottom: 1px solid var(--border); 
+    min-height: 80px; 
+}
+.grid-row:last-child { border-bottom: none; }
+
+/* Номер пари (зліва) */
+.row-number { 
+    width: 30px; 
+    flex-shrink: 0;
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    font-weight: 800; 
+    color: var(--accent); 
+    font-size: 1.2em; 
+    background: var(--bg);
+    border-right: 1px solid var(--border); 
+}
+
+/* Час (окрема колонка) */
+.row-time {
+    width: 50px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    color: #666;
+    border-right: 1px solid var(--border);
+    padding: 0 5px;
+    text-align: center;
+    background: var(--card);
+    cursor: pointer;
+}
+.row-time:hover { background: var(--bg); color: var(--accent); }
+
+/* Сама картка */
+.grid-slot { 
+    flex: 1; 
+    background: var(--card); 
+    display: flex; 
+    flex-direction: column; /* Щоб підтримувати вкладеність */
+}
+
+/* Вкладена структура (Рекурсивна) */
+.split-v { display: flex; flex-direction: column; flex: 1; height: 100%; } /* Вертикально (Чис/Знам) */
+.split-h { display: flex; flex-direction: row; flex: 1; height: 100%; } /* Горизонтально (Підгрупи) */
+
+.sub-cell-wrapper { 
+    flex: 1; 
+    display: flex; 
+    position: relative; 
+    border: 1px solid var(--border); 
+    margin: -1px; /* Overlap borders */
+}
+
+.sub-cell { 
+    flex: 1; 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    justify-content: center; 
+    font-size: 12px; 
+    padding: 5px; 
+    text-align: center; 
+    min-height: 40px; 
+    width: 100%;
+}
+
+.clickable-slot { cursor: pointer; transition: 0.2s; }
+.clickable-slot:hover { background: rgba(99, 102, 241, 0.05); inset: 0; z-index: 10; box-shadow: inset 0 0 0 2px var(--accent); }
+.clickable-slot:empty::after { content: 'Налаштувати'; color: #ccc; font-size: 10px; }
+
+/* КРОК 4: LAYOUT */
 .workspace-layout { display: flex; width: 100%; height: 100%; gap: 15px; }
 .puzzle-sidebar { width: 240px; flex-shrink: 0; background: var(--card); border-radius: 12px; padding: 15px; display: flex; flex-direction: column; border: 1px solid var(--border); }
 .puzzle-container { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
@@ -145,9 +155,21 @@ body.dark-mode .inner-time { background: rgba(0,0,0,0.5); }
 .schedule-scroll-container { flex: 1; overflow-y: auto; border-radius: 12px; }
 
 /* RADIAL MENU */
-.radial-menu { position: fixed; width: 200px; height: 200px; border-radius: 50%; pointer-events: none; z-index: 9999; transform: translate(-50%, -50%); display: none; background: conic-gradient(from 0deg, transparent 0%, transparent 100%); -webkit-mask: radial-gradient(transparent 35%, black 36%); mask: radial-gradient(transparent 35%, black 36%); }
-.radial-labels-container { position: fixed; width: 200px; height: 200px; pointer-events: none; z-index: 10000; transform: translate(-50%, -50%); display: none; }
-.r-label { position: absolute; font-size: 11px; font-weight: bold; color: white; background: rgba(0,0,0,0.6); padding: 4px 8px; border-radius: 10px; white-space: nowrap; }
+.radial-menu {
+    position: fixed; width: 180px; height: 180px; border-radius: 50%;
+    pointer-events: none; z-index: 9999; transform: translate(-50%, -50%); display: none;
+    /* Прозорий градієнт для секторів */
+    background: conic-gradient(rgba(0,0,0,0.05) 0deg 360deg);
+    box-shadow: 0 0 0 2px rgba(0,0,0,0.1);
+}
+.radial-menu::after {
+    content: ''; position: absolute; top: 50%; left: 50%;
+    width: 60px; height: 60px; background: rgba(255,255,255,0.9);
+    transform: translate(-50%, -50%); border-radius: 50%;
+    border: 1px solid #ddd;
+}
+.radial-labels-container { position: fixed; width: 180px; height: 180px; pointer-events: none; z-index: 10000; transform: translate(-50%, -50%); display: none; }
+.r-label { position: absolute; font-size: 11px; font-weight: bold; color: white; background: rgba(0,0,0,0.7); padding: 4px 8px; border-radius: 10px; white-space: nowrap; }
 
 /* MODALS */
 .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; z-index: 10000; backdrop-filter: blur(2px); }
