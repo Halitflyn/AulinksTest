@@ -12,7 +12,7 @@ let appState = {
     radialMenu: null, radialLabels: null,
     activePath: null,
     editTimeTarget: null,
-    lastHoveredCell: null // Для підсвітки
+    lastHoveredCell: null
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -74,7 +74,7 @@ function renderWizardTimeSlots() {
     }
 }
 
-// === STEP 2 ===
+// === STEP 2: Subjects ===
 function updateBindCheckboxesVisibility() {
     const l = document.getElementById('smartHasLec').checked;
     const p = document.getElementById('smartHasPrac').checked;
@@ -195,7 +195,7 @@ function removeSmartSubject(id) {
     renderSmartList();
 }
 
-// === GRID RENDERING ===
+// === GRID LOGIC ===
 function getNodeByPath(day, idx, path) {
     let node = appState.gridData[day][idx];
     for (let key of path) {
@@ -261,17 +261,11 @@ function renderGridGeneric(containerId, mode) {
         appState.gridData[day].forEach((lesson, idx) => {
             const row = document.createElement('div');
             row.className = 'grid-row';
-            
             const timeVal = lesson.customTime || appState.config.times[idx] || '';
-            row.innerHTML = `
-                <div class="row-number">${idx+1}</div>
-                <div class="row-time" onclick="openTimeModal('${day}', ${idx})">${timeVal}</div>
-            `;
-
+            row.innerHTML = `<div class="row-number">${idx+1}</div><div class="row-time" onclick="openTimeModal('${day}', ${idx})">${timeVal}</div>`;
             const slot = document.createElement('div');
             slot.className = 'grid-slot';
             slot.innerHTML = renderNodeHTML(lesson, day, idx, [], mode);
-            
             row.appendChild(slot);
             slotsContainer.appendChild(row);
         });
@@ -283,7 +277,7 @@ function renderGridGeneric(containerId, mode) {
 function renderStructureGrid() { renderGridGeneric('structureGrid', 'structure'); }
 function renderFillGrid() { renderGridGeneric('visualGridFill', 'fill'); }
 
-// === STRUCTURE MENU ===
+// === STEP 3: STRUCTURE EDIT ===
 window.handleCellClick = function(e, day, idx, path) {
     e.stopPropagation();
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -297,22 +291,16 @@ window.handleCellClick = function(e, day, idx, path) {
     const options = [];
     options.push({ label: '⏰ Час', angle: 270, action: 'time', color: '#f59e0b' });
     options.push({ label: '🗑 Очистити', angle: 180, action: 'clear', color: '#ef4444' });
-    
     if (!hasNumDen) options.push({ label: '⬆ Чис/Знам', angle: 0, action: 'numden', color: '#10b981' });
     if (!hasSub) options.push({ label: '➡ Підгрупи', angle: 90, action: 'subgroups', color: '#3b82f6' });
     
-    showRadialMenu(clientX, clientY, options, (action) => {
-        applyStructureChange(action);
-    });
+    showRadialMenu(clientX, clientY, options, (action) => applyStructureChange(action));
 }
 
 function applyStructureChange(action) {
     const { day, idx, path } = appState.activePath;
-    
     if (action === 'time') { openTimeModal(day, idx); return; }
-
     if (action === 'clear') {
-        // RESET ENTIRE SLOT
         appState.gridData[day][idx] = { type: 'single', content: {} };
     } else {
         let node = getNodeByPath(day, idx, path);
@@ -329,7 +317,7 @@ function applyStructureChange(action) {
     renderStructureGrid();
 }
 
-// === DRAG & DROP ===
+// === STEP 4: DRAG & DROP ===
 function renderSidebarPuzzles() {
     const container = document.getElementById('puzzleContainer');
     container.innerHTML = '';
@@ -347,16 +335,15 @@ function setupTouchDrag(element, subject) {
     element.addEventListener('mousedown', start);
 
     function start(e) {
-        // e.preventDefault();
         const cx = e.touches ? e.touches[0].clientX : e.clientX;
         const cy = e.touches ? e.touches[0].clientY : e.clientY;
         appState.dragStartPos = {x:cx, y:cy};
         appState.draggedSubject = subject;
         
         const ghost = element.cloneNode(true);
-        ghost.style.position = 'fixed'; ghost.style.zIndex = 10001; ghost.style.width = '150px';
-        ghost.style.pointerEvents = 'none'; // Essential
-        ghost.style.opacity = 0.9;
+        ghost.className = 'puzzle-piece ghost-drag'; // Uses CSS pointer-events:none
+        ghost.style.left = cx + 'px';
+        ghost.style.top = cy + 'px';
         document.body.appendChild(ghost);
         appState.ghost = ghost;
 
@@ -374,10 +361,9 @@ function setupTouchDrag(element, subject) {
             const my = ev.touches ? ev.touches[0].clientY : ev.clientY;
             ghost.style.left = mx + 'px'; ghost.style.top = my + 'px';
             
-            // HIGHLIGHT LOGIC
+            // Highlight Logic
             const target = document.elementFromPoint(mx, my);
             const subCell = target?.closest('.sub-cell');
-            
             if (appState.lastHoveredCell && appState.lastHoveredCell !== subCell) {
                 appState.lastHoveredCell.classList.remove('drag-over');
             }
@@ -409,10 +395,7 @@ function setupTouchDrag(element, subject) {
                 ghost.style.color = (selectedType==='Лекція')?'black':'white';
                 ghost.innerText = `${subject.name}\n${selectedType}`;
                 appState.activeSector = selectedType;
-            } else { 
-                appState.activeSector = null; 
-                ghost.style.background = 'var(--bg)'; ghost.style.color = 'var(--text)';
-            }
+            } else { appState.activeSector = null; }
         }
 
         const onEnd = (ev) => {
@@ -420,13 +403,13 @@ function setupTouchDrag(element, subject) {
             document.removeEventListener('touchend', onEnd); document.removeEventListener('mouseup', onEnd);
             
             if (appState.lastHoveredCell) appState.lastHoveredCell.classList.remove('drag-over');
-            
-            ghost.style.display = 'none'; // Hide to find element below
+            ghost.remove(); 
             menu.style.display = 'none';
 
             const mx = ev.changedTouches ? ev.changedTouches[0].clientX : ev.clientX;
             const my = ev.changedTouches ? ev.changedTouches[0].clientY : ev.clientY;
             
+            // === CRITICAL FIX: Find element now that ghost is removed ===
             const target = document.elementFromPoint(mx, my);
             const subCell = target?.closest('.sub-cell');
 
@@ -437,7 +420,6 @@ function setupTouchDrag(element, subject) {
                 try { path = JSON.parse(subCell.dataset.path || '[]'); } catch(e){}
                 handleDropLogic(day, idx, path, subject, appState.activeSector);
             }
-            ghost.remove();
         };
 
         document.addEventListener('touchmove', onMove, {passive:false});
@@ -501,7 +483,6 @@ function createRadialMenuDOM() {
 function showRadialMenu(x, y, options, callback) {
     const menu = appState.radialMenu;
     const labels = appState.radialLabels;
-    
     let parts = [];
     options.forEach(opt => {
         if(opt.color) {
@@ -512,32 +493,25 @@ function showRadialMenu(x, y, options, callback) {
         }
     });
     menu.style.background = parts.length ? `conic-gradient(${parts.join(', ')})` : 'rgba(255,255,255,0.9)';
-
     labels.innerHTML = '';
     options.forEach(opt => {
-        const lbl = document.createElement('div');
-        lbl.className = 'r-label';
-        lbl.innerText = opt.label;
+        const lbl = document.createElement('div'); lbl.className = 'r-label'; lbl.innerText = opt.label;
         const rad = (opt.angle - 90) * Math.PI / 180;
         const lx = 90 + 70 * Math.cos(rad); const ly = 90 + 70 * Math.sin(rad);
         lbl.style.left = lx + 'px'; lbl.style.top = ly + 'px';
         labels.appendChild(lbl);
     });
-
     menu.style.left = x + 'px'; menu.style.top = y + 'px';
     labels.style.left = x + 'px'; labels.style.top = y + 'px';
     menu.style.display = 'block'; labels.style.display = 'block';
-
     const overlay = document.createElement('div');
     overlay.style.position = 'fixed'; overlay.style.inset = 0; overlay.style.zIndex = 9998;
     document.body.appendChild(overlay);
-
     const onEnd = () => {
         menu.style.display = 'none'; labels.style.display = 'none'; overlay.remove();
         if(appState.menuSelection) callback(appState.menuSelection);
         appState.menuSelection = null;
     };
-    
     const onMove = (e) => {
         const cx = e.touches ? e.touches[0].clientX : e.clientX;
         const cy = e.touches ? e.touches[0].clientY : e.clientY;
@@ -553,7 +527,6 @@ function showRadialMenu(x, y, options, callback) {
             if(selected) { menu.style.opacity = 1; appState.menuSelection = selected.action; }
         }
     }
-
     document.addEventListener('touchmove', onMove); document.addEventListener('mousemove', onMove);
     document.addEventListener('touchend', onEnd, {once:true}); document.addEventListener('mouseup', onEnd, {once:true});
 }
@@ -578,7 +551,6 @@ function saveVisualSchedule() {
         schedule: {}
     };
     if(appState.config.currentWeek === 'den') { const d = new Date(); d.setDate(d.getDate() - 7); finalSchedule.startDate = d.toISOString(); }
-
     DAYS.forEach(day => {
         finalSchedule.schedule[day] = {
             name: DAYS_UA[day],
@@ -597,7 +569,6 @@ function flattenNode(node, base) {
         if (node.content.subject) return { ...base, ...node.content, weeks: 'all', subgroups: [] };
         return { ...base, type: 'empty' };
     }
-    
     let subgroups = [];
     const extract = (n, weeks, group) => {
         if(n.type === 'single') {
@@ -610,7 +581,6 @@ function flattenNode(node, base) {
             extract(n.content.sub2, weeks, 'sub2');
         }
     };
-
     if (node.type === 'numden') {
         extract(node.content.num, 'num', 'all');
         extract(node.content.den, 'den', 'all');
@@ -618,7 +588,6 @@ function flattenNode(node, base) {
         extract(node.content.sub1, 'all', 'sub1');
         extract(node.content.sub2, 'all', 'sub2');
     }
-
     if(subgroups.length > 0) return { ...base, type: 'mixed', subgroups };
     return { ...base, type: 'empty' };
 }
