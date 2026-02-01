@@ -54,73 +54,63 @@
                         <input type="number" id="wizLessonCount" value="5" min="1" max="10">
                     </label>
                 </div>
-                <div id="wizTimeSlots" class="time-slots-grid">
-                    </div>
+                <div id="wizTimeSlots" class="time-slots-grid"></div>
                 <button class="next-btn" onclick="wizardNext(2)">Далі ➡</button>
             </div>
 
             <div id="step2" class="wizard-step">
-                <h3>Крок 2: Створіть "Пазли"</h3>
+                <div class="step-header">
+                    <button class="prev-btn icon-btn" onclick="wizardNext(1)">⬅</button>
+                    <h3>Крок 2: Створіть "Пазли" (Предмети)</h3>
+                    <button class="next-btn" onclick="wizardNext(3)">Створити сітку ➡</button>
+                </div>
                 
-                <div class="db-creator">
-                    <div class="db-column">
-                        <h4>Предмети</h4>
-                        <div class="input-row">
-                            <input type="text" id="newSubjectName" placeholder="Назва предмету">
-                            <div class="type-toggles">
-                                <label><input type="checkbox" id="hasLec"> Лек</label>
-                                <label><input type="checkbox" id="hasPrac"> Прак</label>
-                                <label><input type="checkbox" id="hasLab"> Лаб</label>
-                            </div>
-                            <button id="addSubjectBtn">+</button>
+                <div class="db-creator-smart">
+                    <div class="smart-card-form">
+                        <h4>Новий предмет</h4>
+                        <input type="text" id="smartSubjectName" placeholder="Назва (напр. Фізика)">
+                        
+                        <div class="type-toggles">
+                            <span>Типи:</span>
+                            <label><input type="checkbox" id="smartHasLec"> Лек (Білий)</label>
+                            <label><input type="checkbox" id="smartHasPrac"> Прак (Сірий)</label>
+                            <label><input type="checkbox" id="smartHasLab"> Лаб (Чорний)</label>
                         </div>
-                        <div id="subjectList" class="items-list"></div>
+
+                        <div class="teacher-room-list" id="smartDetailsList">
+                            <div class="detail-row">
+                                <input type="text" class="inp-teacher" placeholder="Викладач">
+                                <input type="text" class="inp-room" placeholder="Аудиторія">
+                            </div>
+                        </div>
+                        <button id="addDetailRowBtn" class="small-btn">+ Дод. аудиторію/викладача</button>
+
+                        <button id="addSmartSubjectBtn" class="add-main-btn">+ Додати предмет</button>
                     </div>
 
-                    <div class="db-column">
-                        <h4>Аудиторії / Викладачі</h4>
-                        <div class="input-row">
-                            <input type="text" id="newRoomName" placeholder="Аудиторія (напр. 305)">
-                            <button id="addRoomBtn">+</button>
-                        </div>
-                        <div id="roomList" class="items-list"></div>
+                    <div class="smart-list-container">
+                        <h4>Ваші предмети:</h4>
+                        <div id="smartSubjectList" class="items-list"></div>
                     </div>
-                </div>
-                <div class="wizard-nav">
-                    <button class="prev-btn" onclick="wizardNext(1)">⬅ Назад</button>
-                    <button class="next-btn" onclick="wizardNext(3)">Створити сітку ➡</button>
                 </div>
             </div>
 
             <div id="step3" class="wizard-step full-width">
-                <div class="workspace">
+                <div class="workspace-layout">
                     
-                    <div class="schedule-grid-container">
-                        <div class="days-header">
-                            <button class="day-tab active" data-day="monday">ПН</button>
-                            <button class="day-tab" data-day="tuesday">ВТ</button>
-                            <button class="day-tab" data-day="wednesday">СР</button>
-                            <button class="day-tab" data-day="thursday">ЧТ</button>
-                            <button class="day-tab" data-day="friday">ПТ</button>
-                        </div>
-                        <div id="visualGrid" class="visual-grid">
+                    <div class="puzzle-sidebar">
+                        <h3>🧩 Предмети</h3>
+                        <div id="puzzleContainer" class="puzzle-container">
                             </div>
-                        <div class="grid-hint">
-                            💡 Тягни картку: ➡ Підгрупи | ⬇ Числ/Знам | ⬅ Час
+                        <div class="sidebar-buttons">
+                            <button class="prev-btn" onclick="wizardNext(2)">⬅ Назад</button>
+                            <button id="finishVisualBtn" class="save-btn big">💾 Зберегти</button>
                         </div>
                     </div>
 
-                    <div class="puzzle-sidebar">
-                        <div class="puzzle-tabs">
-                            <button class="puz-tab active" data-type="subjects">Предмети</button>
-                            <button class="puz-tab" data-type="rooms">Аудиторії</button>
-                        </div>
-                        <div id="puzzleContainer" class="puzzle-container">
+                    <div class="schedule-scroll-container">
+                        <div id="visualGrid" class="visual-feed">
                             </div>
-                        <div class="sidebar-hint" id="sidebarHint">
-                            Тягни предмет: ⬆ Лекція | ↙ Практика | ↘ Лаба
-                        </div>
-                        <button id="finishVisualBtn" class="save-btn big">💾 Зберегти все</button>
                     </div>
 
                 </div>
@@ -138,6 +128,14 @@
                 <button id="saveTimeBtn">ОК</button>
                 <button onclick="document.getElementById('timeModal').style.display='none'">Скасувати</button>
             </div>
+        </div>
+    </div>
+
+    <div id="roomChoiceModal" class="modal">
+        <div class="modal-content">
+            <h3>Оберіть викладача/аудиторію</h3>
+            <div id="roomChoicesList" class="room-choices-grid"></div>
+            <button onclick="document.getElementById('roomChoiceModal').style.display='none'" style="margin-top:10px;">Скасувати</button>
         </div>
     </div>
 
