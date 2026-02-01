@@ -8,15 +8,14 @@
     --border: #e5e7eb;
     
     --lec-bg: #ffffff; --lec-txt: #000; --lec-border: #d1d5db;
-    --prac-bg: #9ca3af; --prac-txt: #fff; --prac-border: #6b7280;
-    --lab-bg: #1f2937; --lab-txt: #fff; --lab-border: #000000;
-    
-    --highlight: #3b82f6;
+    --prac-bg: #9ca3af; --prac-txt: #ffffff; --prac-border: #6b7280;
+    --lab-bg: #1f2937; --lab-txt: #ffffff; --lab-border: #000000;
 }
 
 body.dark-mode {
     --bg: #111827; --card: #1f2937; --text: #f9fafb; --border: #374151;
-    --lec-bg: #e5e7eb; --lec-txt: #000; --prac-bg: #4b5563; --lab-bg: #000000; --lab-border: #374151;
+    --lec-bg: #e5e7eb; --lec-txt: #000;
+    --prac-bg: #4b5563; --lab-bg: #000000; --lab-border: #374151;
 }
 
 body { font-family: 'Inter', sans-serif; margin: 0; padding: 10px; background: var(--bg); color: var(--text); height: 100vh; box-sizing: border-box; overflow: hidden; }
@@ -64,7 +63,7 @@ input, select { width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px 
 .badge.lab { background: var(--lab-bg); color: var(--lab-txt); }
 .del-item-btn { position: absolute; top: 5px; right: 8px; color: #ef4444; cursor: pointer; font-weight: bold; font-size: 18px; }
 
-/* GRID STYLES */
+/* GRID & STRUCTURE */
 .structure-editor-container { flex: 1; overflow-y: auto; padding-right: 5px; }
 .visual-feed { display: flex; flex-direction: column; gap: 15px; padding-bottom: 50px; }
 .day-block { background: var(--card); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
@@ -79,20 +78,18 @@ input, select { width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px 
 
 .grid-slot { flex: 1; background: var(--card); display: flex; flex-direction: column; position: relative; }
 
-/* === ВИПРАВЛЕНО ТУТ === */
-/* split-v = Вертикально (Чисельник зверху, Знаменник знизу) */
-.split-v { display: flex; flex-direction: column; flex: 1; height: 100%; } 
-/* split-h = Горизонтально (Підгрупи збоку) */
-.split-h { display: flex; flex-direction: row; flex: 1; height: 100%; }
+/* === НАПРЯМКИ ПОДІЛУ (Виправлено) === */
+.split-v { display: flex; flex-direction: column; flex: 1; height: 100%; } /* Чисельник/Знаменник - Вертикально */
+.split-h { display: flex; flex-direction: row; flex: 1; height: 100%; }    /* Підгрупи - Горизонтально */
 
 .sub-cell-wrapper { flex: 1; display: flex; position: relative; border: 1px solid var(--border); margin: -1px; min-width: 0; }
-.sub-cell { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 12px; padding: 5px; text-align: center; min-height: 40px; width: 100%; }
+.sub-cell { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 12px; padding: 5px; text-align: center; min-height: 40px; width: 100%; word-break: break-word; }
 
 .clickable-slot { cursor: pointer; transition: 0.2s; }
 .clickable-slot:hover { background: rgba(99, 102, 241, 0.05); inset: 0; z-index: 10; box-shadow: inset 0 0 0 2px var(--accent); }
 .clickable-slot:empty::after { content: 'Налаштувати'; color: #ccc; font-size: 10px; }
 
-/* LAYOUT STEP 4 */
+/* STEP 4 LAYOUT */
 .workspace-layout { display: flex; width: 100%; height: 100%; gap: 15px; }
 .puzzle-sidebar { width: 240px; flex-shrink: 0; background: var(--card); border-radius: 12px; padding: 15px; display: flex; flex-direction: column; border: 1px solid var(--border); }
 .puzzle-container { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
