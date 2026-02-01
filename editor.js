@@ -8,30 +8,21 @@ let appState = {
     config: { weekType: 'numden', currentWeek: 'num', count: 5, times: [] },
     subjects: [], 
     gridData: {}, 
-    // Drag state
     draggedSubject: null, dragStartPos: {x:0, y:0}, activeSector: null, ghost: null,
     radialMenu: null, radialLabels: null,
-    activeCell: null
+    activePath: null // Path to the clicked cell for structure editing
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Nav
     document.getElementById('btnClassicEdit').onclick = () => showScreen('classicEditor');
     document.getElementById('btnVisualEdit').onclick = () => { showScreen('visualWizard'); initWizard(); };
-    
-    // Step 2 (Bind Listeners)
     document.getElementById('addDetailRowBtn').onclick = () => addDetailRow();
     document.getElementById('addSmartSubjectBtn').onclick = addSmartSubject;
-    
-    // Listen to Checkbox changes to update UI
     ['smartHasLec', 'smartHasPrac', 'smartHasLab'].forEach(id => {
         document.getElementById(id).addEventListener('change', updateBindCheckboxesVisibility);
     });
-
-    // Final
     document.getElementById('finishVisualBtn').onclick = saveVisualSchedule;
     document.getElementById('saveTimeBtn').onclick = applyCustomTime;
-
     createRadialMenuDOM();
 });
 
@@ -53,7 +44,6 @@ function wizardNext(step) {
     appState.step = step;
 
     if (step === 2) {
-        // Save Config
         appState.config.weekType = document.getElementById('wizWeekType').value;
         appState.config.currentWeek = document.getElementById('wizCurrentWeek').value;
         appState.config.count = parseInt(document.getElementById('wizLessonCount').value);
@@ -63,6 +53,7 @@ function wizardNext(step) {
         }
         DAYS.forEach(day => {
             if (appState.gridData[day].length === 0) {
+                // Initial Structure: Array of Root Nodes
                 appState.gridData[day] = Array(appState.config.count).fill(null).map(() => ({ type: 'single', content: {} }));
             }
         });
@@ -82,29 +73,18 @@ function renderWizardTimeSlots() {
     }
 }
 
-// === КРОК 2: ПРЕДМЕТИ ===
-
+// === STEP 2 (Subjects) ===
 function updateBindCheckboxesVisibility() {
     const l = document.getElementById('smartHasLec').checked;
     const p = document.getElementById('smartHasPrac').checked;
     const lb = document.getElementById('smartHasLab').checked;
-    
-    // Рахуємо скільки типів вибрано
-    const count = (l?1:0) + (p?1:0) + (lb?1:0);
-    
-    // Якщо вибрано більше 1 типу, показуємо блок галочок. Інакше - ховаємо.
-    const showBlock = (count > 1);
-
+    const showBlock = ((l?1:0) + (p?1:0) + (lb?1:0)) > 1;
     document.querySelectorAll('.type-bind-checks').forEach(block => {
         if(showBlock) {
             block.classList.remove('hidden');
-            // Всередині блоку показуємо тільки актуальні букви
-            const wL = block.querySelector('.chk-wrap-l');
-            const wP = block.querySelector('.chk-wrap-p');
-            const wLb = block.querySelector('.chk-wrap-lb');
-            if(wL) wL.style.display = l ? 'flex' : 'none';
-            if(wP) wP.style.display = p ? 'flex' : 'none';
-            if(wLb) wLb.style.display = lb ? 'flex' : 'none';
+            block.querySelector('.chk-wrap-l').style.display = l ? 'flex' : 'none';
+            block.querySelector('.chk-wrap-p').style.display = p ? 'flex' : 'none';
+            block.querySelector('.chk-wrap-lb').style.display = lb ? 'flex' : 'none';
         } else {
             block.classList.add('hidden');
         }
@@ -118,65 +98,46 @@ function addDetailRow(data = {}) {
     div.innerHTML = `
         <input type="text" class="inp-teacher" placeholder="Викладач" value="${data.teacher || ''}">
         <input type="text" class="inp-room" placeholder="Аудиторія" value="${data.room || ''}">
-        
         <div class="type-bind-checks hidden">
             <div class="chk-wrap chk-wrap-l"><label><input type="checkbox" class="chk-l" ${data.bind?.l ? 'checked' : ''}>L</label></div>
             <div class="chk-wrap chk-wrap-p"><label><input type="checkbox" class="chk-p" ${data.bind?.p ? 'checked' : ''}>P</label></div>
             <div class="chk-wrap chk-wrap-lb"><label><input type="checkbox" class="chk-lb" ${data.bind?.lb ? 'checked' : ''}>Lb</label></div>
         </div>
-
         <button class="remove-row-btn" onclick="this.parentElement.remove()">×</button>
     `;
     container.appendChild(div);
-    updateBindCheckboxesVisibility(); // Оновити видимість одразу
+    updateBindCheckboxesVisibility();
 }
 
 function addSmartSubject() {
     const name = document.getElementById('smartSubjectName').value.trim();
     if(!name) return alert('Введіть назву');
-    
     const types = {
         lec: document.getElementById('smartHasLec').checked,
         prac: document.getElementById('smartHasPrac').checked,
         lab: document.getElementById('smartHasLab').checked
     };
-    
     if(!types.lec && !types.prac && !types.lab) return alert('Оберіть хоча б один тип');
 
     const details = [];
     document.querySelectorAll('#smartDetailsList .detail-row').forEach(row => {
         const t = row.querySelector('.inp-teacher').value.trim();
         const r = row.querySelector('.inp-room').value.trim();
-        // Read binding checkboxes (even if hidden)
         let bind = {
             l: row.querySelector('.chk-l').checked,
             p: row.querySelector('.chk-p').checked,
             lb: row.querySelector('.chk-lb').checked
         };
-        
-        // --- ЛОГІКА "РОЗУМНОГО ПРИЗНАЧЕННЯ" ---
-        // Якщо блок галочок прихований (бо тип всього 1), або користувач нічого не вибрав,
-        // ми вважаємо, що цей викладач підходить до ВСІХ обраних типів.
         const areChecksHidden = row.querySelector('.type-bind-checks').classList.contains('hidden');
-        const nothingChecked = (!bind.l && !bind.p && !bind.lb);
-        
-        if (areChecksHidden || nothingChecked) {
-            if(types.lec) bind.l = true;
-            if(types.prac) bind.p = true;
-            if(types.lab) bind.lb = true;
+        if (areChecksHidden || (!bind.l && !bind.p && !bind.lb)) {
+            if(types.lec) bind.l = true; if(types.prac) bind.p = true; if(types.lab) bind.lb = true;
         }
-
         if(t || r) details.push({ teacher: t, room: r, bind });
     });
-    
-    if(details.length === 0) {
-        // Якщо нічого не ввів, створюємо пустий, який підходить під все
-        details.push({teacher:'', room:'', bind:{l:types.lec, p:types.prac, lb:types.lab}});
-    }
+    if(details.length === 0) details.push({teacher:'', room:'', bind:{l:types.lec, p:types.prac, lb:types.lab}});
 
     const newSubj = { id: Date.now(), name, types, details };
     
-    // Save/Update
     if (appState.editingId) {
         const idx = appState.subjects.findIndex(s => s.id === appState.editingId);
         if(idx > -1) appState.subjects[idx] = newSubj;
@@ -186,7 +147,6 @@ function addSmartSubject() {
         appState.subjects.push(newSubj);
     }
     
-    // Reset Form
     document.getElementById('smartSubjectName').value = '';
     document.getElementById('smartHasLec').checked = false;
     document.getElementById('smartHasPrac').checked = false;
@@ -194,7 +154,6 @@ function addSmartSubject() {
     document.getElementById('smartDetailsList').innerHTML = '';
     addDetailRow(); 
     document.getElementById('addSmartSubjectBtn').innerText = '+ Додати предмет';
-    
     renderSmartList();
     updateBindCheckboxesVisibility();
 }
@@ -210,29 +169,25 @@ function renderSmartList() {
                 ${s.types.prac ? '<span class="badge prac">Прак</span>' : ''}
                 ${s.types.lab ? '<span class="badge lab">Лаб</span>' : ''}
             </div>
-            <div style="font-size:11px; color:#666; margin-top:4px;">
-                ${s.details.length} варіант(ів)
-            </div>
-        </div>
-    `).join('');
+        </div>`).join('');
 }
 
 function editSmartSubject(id) {
     const s = appState.subjects.find(x => x.id === id);
     if(!s) return;
-    
     appState.editingId = id;
     document.getElementById('smartSubjectName').value = s.name;
     document.getElementById('smartHasLec').checked = s.types.lec;
     document.getElementById('smartHasPrac').checked = s.types.prac;
     document.getElementById('smartHasLab').checked = s.types.lab;
-    
     const container = document.getElementById('smartDetailsList');
     container.innerHTML = '';
     s.details.forEach(d => addDetailRow(d));
-    
     document.getElementById('addSmartSubjectBtn').innerText = '💾 Зберегти зміни';
     updateBindCheckboxesVisibility();
+    // Remove from list visually
+    appState.subjects = appState.subjects.filter(x => x.id !== id);
+    renderSmartList();
 }
 
 function removeSmartSubject(id) {
@@ -240,9 +195,68 @@ function removeSmartSubject(id) {
     renderSmartList();
 }
 
-// === КРОК 3: STRUCTURE ===
-function renderStructureGrid() {
-    const container = document.getElementById('structureGrid');
+// === RECURSIVE GRID RENDERING (Structure & Fill) ===
+
+function getNodeByPath(day, idx, path) {
+    let node = appState.gridData[day][idx];
+    for (let key of path) {
+        if (!node.content[key]) node.content[key] = { type: 'single', content: {} };
+        node = node.content[key];
+    }
+    return node;
+}
+
+// Generates HTML for a node (recursive)
+function renderNodeHTML(node, day, idx, pathStr, mode) {
+    if (node.type === 'single') {
+        const pathJSON = JSON.stringify(pathStr);
+        let inner = '';
+        if (mode === 'structure') {
+            inner = `<div class="sub-cell-wrapper"><div class="sub-cell clickable-slot" onclick='handleCellClick(event, "${day}", ${idx}, ${pathJSON})'></div></div>`;
+        } else {
+            // FILL MODE
+            inner = `<div class="sub-cell-wrapper"><div class="sub-cell clickable-slot" data-path='${pathJSON}' data-day="${day}" data-idx="${idx}">`;
+            if (node.content.subject) {
+                let typeLabel = node.content.type === 'Лекція' ? 'Лек' : (node.content.type === 'Практична' ? 'Прак' : 'Лаб');
+                let style = '';
+                if(node.content.type==='Лекція') style='background:var(--lec-bg);color:var(--lec-txt)';
+                if(node.content.type==='Практична') style='background:var(--prac-bg);color:var(--prac-txt)';
+                if(node.content.type==='Лабораторна') style='background:var(--lab-bg);color:var(--lab-txt)';
+                
+                inner = `<div class="sub-cell" style="${style}"><b>${node.content.subject}</b><br><small>${typeLabel}</small><br><small>${node.content.room||''}</small></div>`;
+            } else {
+                inner = `<div class="sub-cell" style="opacity:0.5; font-size:10px">Пусто</div>`;
+            }
+            inner += `</div></div>`;
+        }
+        return inner;
+    } 
+    
+    // Recursive container
+    let containerClass = (node.type === 'numden') ? 'split-v' : 'split-h';
+    let keys = (node.type === 'numden') ? ['num', 'den'] : ['sub1', 'sub2'];
+    let labels = (node.type === 'numden') ? ['Чис', 'Знам'] : ['Гр. 1', 'Гр. 2'];
+    
+    let html = `<div class="${containerClass}">`;
+    keys.forEach((k, i) => {
+        // Ensure child exists
+        if(!node.content[k]) node.content[k] = { type: 'single', content: {} };
+        
+        html += `<div style="flex:1; display:flex; position:relative; border:1px solid var(--border); margin:-1px;">`;
+        // Label for container
+        if (mode === 'structure') {
+             html += `<div style="position:absolute; top:0; left:0; font-size:9px; color:#aaa; padding:1px;">${labels[i]}</div>`;
+        }
+        // Recurse
+        html += renderNodeHTML(node.content[k], day, idx, [...pathStr, k], mode);
+        html += `</div>`;
+    });
+    html += `</div>`;
+    return html;
+}
+
+function renderGridGeneric(containerId, mode) {
+    const container = document.getElementById(containerId);
     container.innerHTML = '';
 
     DAYS.forEach(day => {
@@ -255,94 +269,79 @@ function renderStructureGrid() {
         appState.gridData[day].forEach((lesson, idx) => {
             const row = document.createElement('div');
             row.className = 'grid-row';
-            row.innerHTML = `<div class="row-number">${idx+1}</div>`;
-
-            const slot = document.createElement('div');
-            slot.className = 'grid-slot clickable-slot';
-            slot.onmousedown = (e) => startStructureMenu(e, day, idx, slot);
-            slot.ontouchstart = (e) => startStructureMenu(e, day, idx, slot);
-
-            const timeVal = lesson.customTime || appState.config.times[idx] || '';
-            let contentHTML = `<div class="inner-time">${timeVal}</div>`;
             
-            if (lesson.type === 'subgroups') contentHTML += `<div class="sub-row"><div class="sub-cell">Група 1</div></div><div class="sub-row"><div class="sub-cell">Група 2</div></div>`;
-            else if (lesson.type === 'numden') contentHTML += `<div class="sub-row"><div class="sub-cell">Чисельник</div></div><div class="sub-row"><div class="sub-cell">Знаменник</div></div>`;
-            else contentHTML += `<div class="sub-row"><div class="sub-cell">Загальна</div></div>`;
+            // Fixed Time & Number Columns
+            const timeVal = lesson.customTime || appState.config.times[idx] || '';
+            row.innerHTML = `
+                <div class="row-number">${idx+1}</div>
+                <div class="row-time" onclick="openTimeModal('${day}', ${idx})">${timeVal}</div>
+            `;
 
-            slot.innerHTML = contentHTML;
+            // Slot Tree
+            const slot = document.createElement('div');
+            slot.className = 'grid-slot';
+            slot.innerHTML = renderNodeHTML(lesson, day, idx, [], mode);
+            
             row.appendChild(slot);
             slotsContainer.appendChild(row);
         });
         dayBlock.appendChild(slotsContainer);
         container.appendChild(dayBlock);
     });
+    
+    if (mode === 'fill') setupFillListeners();
 }
 
-function startStructureMenu(e, day, idx, el) {
-    e.preventDefault();
+function renderStructureGrid() { renderGridGeneric('structureGrid', 'structure'); }
+function renderFillGrid() { renderGridGeneric('visualGridFill', 'fill'); }
+
+// === STRUCTURE ACTIONS ===
+window.handleCellClick = function(e, day, idx, path) {
+    e.stopPropagation();
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
     
-    appState.activeCell = { day, idx };
+    appState.activePath = { day, idx, path };
     
     const options = [
-        { label: '⏰ Час', angle: 270, action: 'time' },   
-        { label: '📅 Чис/Знам', angle: 0, action: 'numden' }, 
-        { label: '👥 Підгрупи', angle: 90, action: 'subgroups' }
+        { label: '🗑 Очистити', angle: 270, action: 'clear', color: '#ef4444' }, // Left
+        { label: '⬆ Чис/Знам', angle: 0, action: 'numden', color: '#10b981' },   // Top
+        { label: '➡ Підгрупи', angle: 90, action: 'subgroups', color: '#3b82f6' } // Right
     ];
     
     showRadialMenu(clientX, clientY, options, (action) => {
-        if(action === 'time') openTimeModal(day, idx);
-        else splitSlot(day, idx, action);
+        applyStructureChange(action);
     });
 }
 
-// === КРОК 4: FILL ===
-function renderFillGrid() {
-    const container = document.getElementById('visualGridFill');
-    container.innerHTML = '';
-
-    DAYS.forEach(day => {
-        const dayBlock = document.createElement('div');
-        dayBlock.className = 'day-block';
-        dayBlock.innerHTML = `<div class="day-header">${DAYS_UA[day]}</div>`;
-        const slotsContainer = document.createElement('div');
-        slotsContainer.className = 'day-slots';
-
-        appState.gridData[day].forEach((lesson, idx) => {
-            const row = document.createElement('div');
-            row.className = 'grid-row';
-            row.innerHTML = `<div class="row-number">${idx+1}</div>`;
-
-            const slot = document.createElement('div');
-            slot.className = `grid-slot ${lesson.content.subject ? 'filled' : ''}`;
-            
-            const timeVal = lesson.customTime || appState.config.times[idx] || '';
-            let contentHTML = `<div class="inner-time">${timeVal}</div>`;
-            
-            if (lesson.type === 'single') contentHTML += renderFillCell(lesson.content, day, idx, 'main');
-            else if (lesson.type === 'subgroups') contentHTML += `<div class="sub-row">${renderFillCell(lesson.content.sub1||{}, day, idx, 'sub1', 'Група 1')}</div><div class="sub-row">${renderFillCell(lesson.content.sub2||{}, day, idx, 'sub2', 'Група 2')}</div>`;
-            else if (lesson.type === 'numden') contentHTML += `<div class="sub-row">${renderFillCell(lesson.content.num||{}, day, idx, 'num', 'Чисельник')}</div><div class="sub-row">${renderFillCell(lesson.content.den||{}, day, idx, 'den', 'Знаменник')}</div>`;
-            
-            slot.innerHTML = contentHTML;
-            row.appendChild(slot);
-            slotsContainer.appendChild(row);
-        });
-        dayBlock.appendChild(slotsContainer);
-        container.appendChild(dayBlock);
-    });
+function applyStructureChange(action) {
+    const { day, idx, path } = appState.activePath;
+    let node = getNodeByPath(day, idx, path);
+    
+    if (action === 'clear') {
+        // Reset this node to single empty
+        node.type = 'single';
+        node.content = {};
+    } else {
+        // Split
+        node.type = action;
+        node.content = {}; // Reset content when splitting structure
+        if (action === 'numden') {
+            node.content.num = { type: 'single', content: {} };
+            node.content.den = { type: 'single', content: {} };
+        } else {
+            node.content.sub1 = { type: 'single', content: {} };
+            node.content.sub2 = { type: 'single', content: {} };
+        }
+    }
+    renderStructureGrid();
 }
 
-function renderFillCell(data, day, idx, key, label) {
-    let style = ''; let typeLabel = '';
-    if(data.type === 'Лекція') { style = 'background:var(--lec-bg); color:var(--lec-txt);'; typeLabel = 'Лек'; }
-    if(data.type === 'Практична') { style = 'background:var(--prac-bg); color:var(--prac-txt);'; typeLabel = 'Прак'; }
-    if(data.type === 'Лабораторна') { style = 'background:var(--lab-bg); color:var(--lab-txt);'; typeLabel = 'Лаб'; }
-
-    let inner = '';
-    if(data.subject) inner = `<b>${data.subject}</b><br><small>${typeLabel}</small><br><small>${data.room || ''}</small>`;
-    else if(label) inner = `<span style="opacity:0.5">${label}</span>`;
-    return `<div class="sub-cell" style="${style}" data-day="${day}" data-idx="${idx}" data-key="${key}">${inner}</div>`;
+// === FILL & DRAG ACTIONS ===
+function setupFillListeners() {
+    // Add touch listeners to .sub-cell elements in Fill Grid
+    // Since innerHTML is re-rendered, we need to re-bind or use delegation.
+    // The visual rendering puts data attributes, so setupTouchDrag handles drop target finding via elementFromPoint.
 }
 
 function renderSidebarPuzzles() {
@@ -357,79 +356,6 @@ function renderSidebarPuzzles() {
     });
 }
 
-// === RADIAL MENU SYSTEM ===
-function createRadialMenuDOM() {
-    const menu = document.createElement('div'); menu.id = 'radialMenu'; menu.className = 'radial-menu';
-    const labels = document.createElement('div'); labels.id = 'radialLabels'; labels.className = 'radial-labels-container';
-    document.body.appendChild(menu); document.body.appendChild(labels);
-    appState.radialMenu = menu; appState.radialLabels = labels;
-}
-
-function showRadialMenu(x, y, options, callback) {
-    const menu = appState.radialMenu;
-    const labels = appState.radialLabels;
-    
-    // 3 slices gradient
-    menu.style.background = `conic-gradient(#10b981 300deg 360deg, #10b981 0deg 60deg, #3b82f6 60deg 180deg, #f59e0b 180deg 300deg)`;
-    if(options.length !== 3) menu.style.background = 'rgba(255,255,255,0.9)'; // Fallback
-
-    labels.innerHTML = '';
-    options.forEach(opt => {
-        const lbl = document.createElement('div');
-        lbl.className = 'r-label';
-        lbl.innerText = opt.label;
-        const rad = (opt.angle - 90) * Math.PI / 180;
-        const dist = 75;
-        const lx = 100 + dist * Math.cos(rad);
-        const ly = 100 + dist * Math.sin(rad);
-        lbl.style.left = lx + 'px'; lbl.style.top = ly + 'px';
-        labels.appendChild(lbl);
-    });
-
-    menu.style.left = x + 'px'; menu.style.top = y + 'px';
-    labels.style.left = x + 'px'; labels.style.top = y + 'px';
-    menu.style.display = 'block'; labels.style.display = 'block';
-
-    const overlay = document.createElement('div');
-    overlay.style.position = 'fixed'; overlay.style.top = 0; overlay.style.left = 0; overlay.style.width = '100%'; overlay.style.height = '100%'; overlay.style.zIndex = 9998;
-    document.body.appendChild(overlay);
-
-    const onMove = (e) => {
-        const cx = e.touches ? e.touches[0].clientX : e.clientX;
-        const cy = e.touches ? e.touches[0].clientY : e.clientY;
-        const dx = cx - x; const dy = cy - y;
-        const dist = Math.sqrt(dx*dx + dy*dy);
-        
-        if (dist > 20) {
-            let angle = Math.atan2(dy, dx) * 180 / Math.PI;
-            angle += 90; if(angle < 0) angle += 360; 
-            
-            let selected = null;
-            if (angle > 300 || angle <= 60) selected = options.find(o => o.angle === 0);
-            else if (angle > 60 && angle <= 180) selected = options.find(o => o.angle === 90);
-            else if (angle > 180 && angle <= 300) selected = options.find(o => o.angle === 270);
-            
-            if(selected) {
-                menu.style.opacity = 1;
-                appState.menuSelection = selected.action;
-            }
-        }
-    };
-
-    const onEnd = () => {
-        menu.style.display = 'none'; labels.style.display = 'none'; overlay.remove();
-        document.removeEventListener('touchmove', onMove); document.removeEventListener('mousemove', onMove);
-        if(appState.menuSelection) callback(appState.menuSelection);
-        appState.menuSelection = null;
-    };
-
-    document.addEventListener('touchmove', onMove, {passive: false});
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('touchend', onEnd, {once:true});
-    document.addEventListener('mouseup', onEnd, {once:true});
-}
-
-// === DRAG & DROP LOGIC ===
 function setupTouchDrag(element, subject) {
     element.addEventListener('touchstart', start, {passive:false});
     element.addEventListener('mousedown', start);
@@ -437,34 +363,17 @@ function setupTouchDrag(element, subject) {
     function start(e) {
         const cx = e.touches ? e.touches[0].clientX : e.clientX;
         const cy = e.touches ? e.touches[0].clientY : e.clientY;
-        appState.dragStartPos = {x:cx, y:cy};
         appState.draggedSubject = subject;
         
-        // Show Ghost
         const ghost = element.cloneNode(true);
         ghost.style.position = 'fixed'; ghost.style.zIndex = 10001; ghost.style.width = '150px';
         document.body.appendChild(ghost);
         appState.ghost = ghost;
 
-        // Radial Feedback (Visual only for now, logic is in move)
         const menu = appState.radialMenu;
-        const labels = appState.radialLabels;
-        // Build visuals based on available types
-        let parts = [];
-        labels.innerHTML = '';
-        
-        // Simple logic for visuals: 3 slices if 3 types
-        if(subject.types.lec && subject.types.prac && subject.types.lab) {
-             menu.style.background = `conic-gradient(#9ca3af 0deg 120deg, #1f2937 120deg 240deg, #ffffff 240deg 360deg)`;
-             // Add labels positions... (Simplified for code brevity)
-        } else {
-             menu.style.background = 'rgba(255,255,255,0.9)'; // Basic
-        }
-        
-        if (Object.values(subject.types).filter(Boolean).length > 1) {
-             menu.style.left = cx+'px'; menu.style.top = cy+'px';
-             menu.style.display = 'block';
-        }
+        menu.style.background = `conic-gradient(#9ca3af 0deg 120deg, #1f2937 120deg 240deg, #ffffff 240deg 360deg)`;
+        menu.style.left = cx+'px'; menu.style.top = cy+'px';
+        menu.style.display = 'block';
 
         const onMove = (ev) => {
             ev.preventDefault();
@@ -484,12 +393,8 @@ function setupTouchDrag(element, subject) {
                      if(dy > 0 && subject.types.lab) selectedType = 'Лабораторна';
                  }
             }
-            // Fallback if only 1 type
-            if (!selectedType) {
-                 if(subject.types.lec && !subject.types.prac && !subject.types.lab) selectedType = 'Лекція';
-                 if(!subject.types.lec && subject.types.prac && !subject.types.lab) selectedType = 'Практична';
-                 if(!subject.types.lec && !subject.types.prac && subject.types.lab) selectedType = 'Лабораторна';
-            }
+            if (!selectedType && !subject.types.lec && subject.types.prac && !subject.types.lab) selectedType = 'Практична';
+            if (!selectedType && subject.types.lec && !subject.types.prac && !subject.types.lab) selectedType = 'Лекція';
 
             if(selectedType) {
                 ghost.style.background = (selectedType==='Лекція')?'white':(selectedType==='Практична'?'#9ca3af':'#1f2937');
@@ -503,15 +408,19 @@ function setupTouchDrag(element, subject) {
             document.removeEventListener('touchmove', onMove); document.removeEventListener('mousemove', onMove);
             document.removeEventListener('touchend', onEnd); document.removeEventListener('mouseup', onEnd);
             ghost.remove();
-            menu.style.display = 'none'; labels.style.display = 'none';
+            menu.style.display = 'none';
 
             const mx = ev.changedTouches ? ev.changedTouches[0].clientX : ev.clientX;
             const my = ev.changedTouches ? ev.changedTouches[0].clientY : ev.clientY;
             const target = document.elementFromPoint(mx, my);
-            const subCell = target?.closest('.sub-cell');
+            const subCell = target?.closest('.sub-cell'); // The div inside sub-cell-wrapper
 
             if(subCell && appState.activeSector) {
-                handleDropLogic(subCell, subject, appState.activeSector);
+                const day = subCell.dataset.day;
+                const idx = parseInt(subCell.dataset.idx);
+                const path = JSON.parse(subCell.dataset.path);
+                
+                handleDropLogic(day, idx, path, subject, appState.activeSector);
             }
         };
 
@@ -522,31 +431,33 @@ function setupTouchDrag(element, subject) {
     }
 }
 
-function handleDropLogic(targetEl, subject, type) {
-    const day = targetEl.dataset.day;
-    const idx = parseInt(targetEl.dataset.idx);
-    const key = targetEl.dataset.key;
-
-    // Filter details by type binding
+function handleDropLogic(day, idx, path, subject, type) {
     let validDetails = subject.details.filter(d => {
-        if(d.bind.l && type === 'Лекція') return true;
-        if(d.bind.p && type === 'Практична') return true;
-        if(d.bind.lb && type === 'Лабораторна') return true;
-        // If bind all false -> universal
-        if(!d.bind.l && !d.bind.p && !d.bind.lb) return true;
+        if(!d.bind || (!d.bind.l && !d.bind.p && !d.bind.lb)) return true;
+        if(type === 'Лекція' && d.bind.l) return true;
+        if(type === 'Практична' && d.bind.p) return true;
+        if(type === 'Лабораторна' && d.bind.lb) return true;
         return false;
     });
-
-    if(validDetails.length === 0) validDetails = subject.details; // Fallback
+    if(validDetails.length === 0) validDetails = subject.details;
 
     if (validDetails.length > 1) {
         showRoomChoiceModal(validDetails, (choice) => {
-            applyDataToGrid(day, idx, key, subject.name, type, choice.room, choice.teacher);
+            applyDataToGrid(day, idx, path, subject.name, type, choice.room, choice.teacher);
         });
     } else {
         const choice = validDetails[0] || {room:'', teacher:''};
-        applyDataToGrid(day, idx, key, subject.name, type, choice.room, choice.teacher);
+        applyDataToGrid(day, idx, path, subject.name, type, choice.room, choice.teacher);
     }
+}
+
+function applyDataToGrid(day, idx, path, subjName, type, room, teacher) {
+    let node = getNodeByPath(day, idx, path);
+    node.content.subject = subjName;
+    node.content.type = type;
+    node.content.room = room;
+    node.content.teacher = teacher;
+    renderFillGrid();
 }
 
 function showRoomChoiceModal(details, callback) {
@@ -556,78 +467,134 @@ function showRoomChoiceModal(details, callback) {
     details.forEach(d => {
         const btn = document.createElement('div');
         btn.className = 'room-btn';
-        let badge = '';
-        if(d.bind?.l) badge+='L '; if(d.bind?.p) badge+='P '; if(d.bind?.lb) badge+='Lb';
-        btn.innerHTML = `<b>${d.teacher || 'Без викладача'}</b> <br> ${d.room || 'Без ауд.'} <span style="font-size:10px; color:gray">${badge}</span>`;
+        let badge = ''; if(d.bind?.l) badge+='L '; if(d.bind?.p) badge+='P '; if(d.bind?.lb) badge+='Lb';
+        btn.innerHTML = `<b>${d.teacher || 'Без викл.'}</b> <br> ${d.room || 'Без ауд.'} <span style="font-size:9px;color:gray">${badge}</span>`;
         btn.onclick = () => { modal.style.display = 'none'; callback(d); };
         list.appendChild(btn);
     });
     modal.style.display = 'flex';
 }
 
-function applyDataToGrid(day, idx, key, subjName, type, room, teacher) {
-    const lesson = appState.gridData[day][idx];
-    let target = (lesson.type === 'single') ? lesson.content : lesson.content[key];
-    if(!target) { lesson.content[key] = {}; target = lesson.content[key]; }
-    target.subject = subjName; target.type = type; target.room = room; target.teacher = teacher;
-    renderFillGrid();
+function createRadialMenuDOM() {
+    const menu = document.createElement('div'); menu.id = 'radialMenu'; menu.className = 'radial-menu';
+    const labels = document.createElement('div'); labels.id = 'radialLabels'; labels.className = 'radial-labels-container';
+    document.body.appendChild(menu); document.body.appendChild(labels);
+    appState.radialMenu = menu; appState.radialLabels = labels;
 }
 
-// === UTILS ===
-function splitSlot(day, idx, type) {
-    appState.gridData[day][idx].type = type;
-    appState.gridData[day][idx].content = {};
-    renderStructureGrid();
+function showRadialMenu(x, y, options, callback) {
+    const menu = appState.radialMenu;
+    const labels = appState.radialLabels;
+    // ... (Simple implementation)
+    // For Step 3 (Clear/NumDen/Sub)
+    menu.style.background = `conic-gradient(#10b981 300deg 360deg, #10b981 0deg 60deg, #3b82f6 60deg 180deg, #ef4444 180deg 300deg)`;
+    
+    labels.innerHTML = '';
+    options.forEach(opt => {
+        const lbl = document.createElement('div'); lbl.className = 'r-label'; lbl.innerText = opt.label;
+        const rad = (opt.angle - 90) * Math.PI / 180;
+        const lx = 90 + 70 * Math.cos(rad); const ly = 90 + 70 * Math.sin(rad);
+        lbl.style.left = lx + 'px'; lbl.style.top = ly + 'px';
+        labels.appendChild(lbl);
+    });
+
+    menu.style.left = x + 'px'; menu.style.top = y + 'px';
+    labels.style.left = x + 'px'; labels.style.top = y + 'px';
+    menu.style.display = 'block'; labels.style.display = 'block';
+
+    const overlay = document.createElement('div');
+    overlay.style.position = 'fixed'; overlay.style.inset = 0; overlay.style.zIndex = 9998;
+    document.body.appendChild(overlay);
+
+    const onEnd = () => {
+        menu.style.display = 'none'; labels.style.display = 'none'; overlay.remove();
+        if(appState.menuSelection) callback(appState.menuSelection);
+        appState.menuSelection = null;
+    };
+    
+    const onMove = (e) => {
+        const cx = e.touches ? e.touches[0].clientX : e.clientX;
+        const cy = e.touches ? e.touches[0].clientY : e.clientY;
+        const dx = cx - x; const dy = cy - y;
+        if(Math.sqrt(dx*dx + dy*dy) > 20) {
+            let angle = Math.atan2(dy, dx) * 180 / Math.PI + 90;
+            if(angle < 0) angle += 360;
+            
+            let selected = options.find(o => Math.abs(o.angle - angle) < 60 || Math.abs(o.angle - angle) > 300);
+            if(selected) { menu.style.opacity = 1; appState.menuSelection = selected.action; }
+        }
+    }
+
+    document.addEventListener('touchmove', onMove); document.addEventListener('mousemove', onMove);
+    document.addEventListener('touchend', onEnd, {once:true}); document.addEventListener('mouseup', onEnd, {once:true});
 }
 
 function openTimeModal(day, idx) {
     appState.editTimeTarget = {day, idx};
-    const val = appState.gridData[day][idx].customTime || DEFAULT_TIMES[idx] || '';
-    document.getElementById('customTimeInput').value = val;
+    document.getElementById('customTimeInput').value = appState.gridData[day][idx].customTime || DEFAULT_TIMES[idx] || '';
     document.getElementById('timeModal').style.display = 'flex';
 }
-
 function applyCustomTime() {
-    if(appState.editTimeTarget) {
-        appState.gridData[appState.editTimeTarget.day][appState.editTimeTarget.idx].customTime = document.getElementById('customTimeInput').value;
-    }
+    appState.gridData[appState.editTimeTarget.day][appState.editTimeTarget.idx].customTime = document.getElementById('customTimeInput').value;
     document.getElementById('timeModal').style.display = 'none';
     renderStructureGrid();
 }
 
+// === EXPORT (FLATTENING RECURSIVE GRID TO SCHEDULE.JSON) ===
 function saveVisualSchedule() {
     const finalSchedule = {
         group: "My Group", semester: "1", startDate: new Date().toISOString(),
         schedule: {}
     };
-    if(appState.config.currentWeek === 'den') {
-         const d = new Date(); d.setDate(d.getDate() - 7);
-         finalSchedule.startDate = d.toISOString();
-    }
+    if(appState.config.currentWeek === 'den') { const d = new Date(); d.setDate(d.getDate() - 7); finalSchedule.startDate = d.toISOString(); }
 
     DAYS.forEach(day => {
         finalSchedule.schedule[day] = {
             name: DAYS_UA[day],
-            lessons: appState.gridData[day].map((l, idx) => {
-                const base = { number: idx + 1, time: l.customTime || appState.config.times[idx] || '' };
-                if (l.type === 'single') {
-                    if (l.content.subject) return { ...base, ...l.content, weeks: 'all', subgroups: [] };
-                    return { ...base, type: 'empty' };
-                } 
-                const subgroups = [];
-                if (l.type === 'subgroups') {
-                    if (l.content.sub1?.subject) subgroups.push({ ...l.content.sub1, group: 'sub1', weeks: 'all' });
-                    if (l.content.sub2?.subject) subgroups.push({ ...l.content.sub2, group: 'sub2', weeks: 'all' });
-                } else if (l.type === 'numden') {
-                    if (l.content.num?.subject) subgroups.push({ ...l.content.num, group: 'all', weeks: 'num' });
-                    if (l.content.den?.subject) subgroups.push({ ...l.content.den, group: 'all', weeks: 'den' });
-                }
-                if (subgroups.length > 0) return { ...base, type: 'mixed', subgroups };
-                return { ...base, type: 'empty' };
+            lessons: appState.gridData[day].map((node, idx) => {
+                const base = { number: idx + 1, time: node.customTime || appState.config.times[idx] || '' };
+                return flattenNode(node, base);
             })
         };
     });
     localStorage.setItem(SCHEDULE_STORAGE_KEY, JSON.stringify(finalSchedule));
-    alert('Збережено!');
-    window.location.href = './index.html';
+    alert('Збережено!'); window.location.href = './index.html';
+}
+
+function flattenNode(node, base) {
+    if (node.type === 'single') {
+        if (node.content.subject) return { ...base, ...node.content, weeks: 'all', subgroups: [] };
+        return { ...base, type: 'empty' };
+    }
+    
+    // Complex flattening for nested structures
+    // This is a simplified flattener that handles 1 level of nesting as per current standard
+    // If you need deep nesting support in the viewer, the viewer script needs updates too.
+    // Here we map Level 1 nesting to standard format.
+    
+    let subgroups = [];
+    
+    // Helper to extract leaf nodes
+    const extract = (n, weeks, group) => {
+        if(n.type === 'single') {
+            if(n.content.subject) subgroups.push({ ...n.content, weeks, group });
+        } else if (n.type === 'numden') {
+            extract(n.content.num, 'num', group);
+            extract(n.content.den, 'den', group);
+        } else if (n.type === 'subgroups') {
+            extract(n.content.sub1, weeks, 'sub1');
+            extract(n.content.sub2, weeks, 'sub2');
+        }
+    };
+
+    if (node.type === 'numden') {
+        extract(node.content.num, 'num', 'all');
+        extract(node.content.den, 'den', 'all');
+    } else if (node.type === 'subgroups') {
+        extract(node.content.sub1, 'all', 'sub1');
+        extract(node.content.sub2, 'all', 'sub2');
+    }
+
+    if(subgroups.length > 0) return { ...base, type: 'mixed', subgroups };
+    return { ...base, type: 'empty' };
 }
