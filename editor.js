@@ -1,860 +1,489 @@
-// Константа для ключа в localStorage
+// === КОНСТАНТИ ===
 const SCHEDULE_STORAGE_KEY = 'myCustomSchedule';
+const DEFAULT_TIMES = ['08:30 – 09:50', '10:05 – 11:25', '11:40 – 13:00', '13:15 – 14:35', '14:50 – 16:10', '16:25 – 17:45', '18:00 – 19:20', '19:30 – 20:50'];
+const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
 
-// Елементи керування (оголошуємо тут, щоб були доступні глобально всередині файлу)
-let saveBtn, loadStorageBtn, loadFileBtn, loadFileInput, exportJsonBtn, scheduleFormContainer, statusEl, themeToggle,
-    lessonCountInput, defaultTimesContainer, daySelectionContainer; // <-- ДОДАНО НОВІ
-
-// (НОВІ) Глобальні константи для налаштувань
-const ALL_DAYS = {
-    monday: 'Понеділок',
-    tuesday: 'Вівторок',
-    wednesday: 'Середа',
-    thursday: 'Четвер',
-    friday: 'П’ятниця',
-    saturday: 'Субота',
-    sunday: 'Неділя'
-};
-// (НОВІ) Часи за замовчуванням (за твоїм запитом)
-const DEFAULT_TIMES = [
-    '08:30 – 09:50', // 1
-    '10:05 – 11:25', // 2
-    '11:40 – 13:00', // 3
-    '13:15 – 14:35', // 4
-    '14:50 – 16:10', // 5
-    '16:25 – 17:45', // 6
-    '18:00 – 19:20', // 7
-    '19:30 – 20:50'  // 8
-];
-
-// (ВИДАЛЕНО) Старі масиви days та dayNames
-
-const lessonTypes = {
-    'Лекція': 'lecture',
-    'Практична': 'practical',
-    'Лабораторна': 'lab',
-    'Змішана': 'mixed',
-    '': ''
-};
-const lessonTypesReverse = {
-    'lecture': 'Лекція',
-    'practical': 'Практична',
-    'lab': 'Лабораторна',
-    'mixed': 'Змішана',
-    'empty': '',
-    '': ''
+// === СТАН ===
+let appState = {
+    mode: null, // 'classic' або 'visual'
+    step: 1,
+    config: { weekType: 'numden', count: 5, times: [] },
+    db: { subjects: [], rooms: [] }, // База предметів і аудиторій
+    gridData: {}, // Структура розкладу
+    currentDay: 'monday'
 };
 
-// --- Генерація HTML для однієї пари (ОНОВЛЕНО) ---
-function generatePairHTML(day, pairNum, defaultTime) {
-    const baseId = `${day}-${pairNum}`;
-
-    const typeOptions = `
-    <option value="">Оберіть</option>
-    <option value="Лекція">Лекція</option>
-    <option value="Практична">Практична</option>
-    <option value="Лабораторна">Лабораторна</option>
-    <option value="Змішана">Змішана</option>
-  `;
-
-    let html = `
-    <div class="pair" data-day="${day}" data-pair="${pairNum}">
-      <h4>
-        <span>${pairNum} пара <span class="pair-time-default">${defaultTime}</span></span>
-        <input type="text" id="${baseId}-time-custom" class="pair-time-custom-input" placeholder="00:00 – 00:00">
-        <label class="pair-time-custom-toggle">
-            <input type="checkbox" id="${baseId}-time-toggle"> інший час
-        </label>
-      </h4>
-      <div class="option-group main-mode">
-        <label><input type="radio" name="mode-${baseId}" value="none"> Звичайна</label>
-        <label><input type="radio" name="mode-${baseId}" value="subgroups"> Підгрупи</label>
-        <label><input type="radio" name="mode-${baseId}" value="numden"> Числ/Знам</label>
-        <label><input type="radio" name="mode-${baseId}" value="empty" checked> Немає</label>
-      </div>
-
-      <div class="details-container">
-        <div class="input-group main-details mode-none details-block">
-          <div><label>Предмет:</label><input type="text" id="${baseId}-subject"></div>
-          <div><label>Тип:</label><select id="${baseId}-type">${typeOptions}</select></div>
-          <div><label>Викладач:</label><input type="text" id="${baseId}-teacher"></div>
-          <div><label>Аудиторія:</label><input type="text" id="${baseId}-room"></div>
-          <div><label>Посилання:</label><input type="text" id="${baseId}-link" placeholder="https://meet.google.com/..."></div>
-        </div>
-
-        <div class="subgroup-inputs mode-subgroups details-block">
-          ${[1, 2].map(subNum => `
-            <div class="subgroup">
-              <h5>Підгрупа ${subNum}:</h5>
-              <div class="option-group sub-mode">
-                <label><input type="radio" name="mode-${baseId}-sub${subNum}" value="none"> Завжди</label>
-                <label><input type="radio" name="mode-${baseId}-sub${subNum}" value="numden"> Числ/Знам</label>
-                <label><input type="radio" name="mode-${baseId}-sub${subNum}" value="empty" checked> Немає</label>
-              </div>
-
-              <div class="details-container">
-                  <div class="input-group sub-details mode-none details-block">
-                    <div><label>Предмет:</label><input type="text" id="${baseId}-sub${subNum}-subject"></div>
-                    <div><label>Тип:</label><select id="${baseId}-sub${subNum}-type">${typeOptions}</select></div>
-                    <div><label>Викладач:</label><input type="text" id="${baseId}-sub${subNum}-teacher"></div>
-                    <div><label>Аудиторія:</label><input type="text" id="${baseId}-sub${subNum}-room"></div>
-                    <div><label>Посилання:</label><input type="text" id="${baseId}-sub${subNum}-link" placeholder="https://meet.google.com/..."></div>
-                  </div>
-
-                  <div class="num-den-inputs sub-numden mode-numden details-block">
-                    ${['num', 'den'].map(weekType => `
-                      <div class="week-section">
-                        <h6>${weekType === 'num' ? 'Чисельник' : 'Знаменник'}:</h6>
-                        <div class="option-group sub-week-mode">
-                           <label><input type="radio" name="mode-${baseId}-sub${subNum}-${weekType}" value="none"> Є пара</label>
-                           <label><input type="radio" name="mode-${baseId}-sub${subNum}-${weekType}" value="empty" checked> Немає</label>
-                        </div>
-                        <div class="details-container">
-                            <div class="input-group sub-week-details mode-none details-block">
-                              <div><label>Предмет:</label><input type="text" id="${baseId}-sub${subNum}-${weekType}-subject"></div>
-                              <div><label>Тип:</label><select id="${baseId}-sub${subNum}-${weekType}-type">${typeOptions}</select></div>
-                              <div><label>Викладач:</label><input type="text" id="${baseId}-sub${subNum}-${weekType}-teacher"></div>
-                              <div><label>Аудиторія:</label><input type="text" id="${baseId}-sub${subNum}-${weekType}-room"></div>
-                              <div><label>Посилання:</label><input type="text" id="${baseId}-sub${subNum}-${weekType}-link" placeholder="https://meet.google.com/..."></div>
-                            </div>
-                        </div>
-                      </div>
-                    `).join('')}
-                  </div>
-              </div>
-            </div>
-          `).join('')}
-        </div>
-
-        <div class="num-den-inputs mode-numden details-block">
-           ${['num', 'den'].map(weekType => `
-             <div class="week-section">
-               <h5>${weekType === 'num' ? 'Чисельник' : 'Знаменник'}:</h5>
-               <div class="option-group main-week-mode">
-                  <label><input type="radio" name="mode-${baseId}-${weekType}" value="none"> Є пара</label>
-                  <label><input type="radio" name="mode-${baseId}-${weekType}" value="empty" checked> Немає</label>
-               </div>
-               <div class="details-container">
-                   <div class="input-group main-week-details mode-none details-block">
-                     <div><label>Предмет:</label><input type="text" id="${baseId}-${weekType}-subject"></div>
-                     <div><label>Тип:</label><select id="${baseId}-${weekType}-type">${typeOptions}</select></div>
-                     <div><label>Викладач:</label><input type="text" id="${baseId}-${weekType}-teacher"></div>
-                     <div><label>Аудиторія:</label><input type="text" id="${baseId}-${weekType}-room"></div>
-                     <div><label>Посилання:</label><input type="text" id="${baseId}-${weekType}-link" placeholder="https://meet.google.com/..."></div>
-                   </div>
-               </div>
-             </div>
-            `).join('')}
-        </div>
-      </div>
-    </div>`;
-    return html;
-}
-
-// --- Генерація повної форми (ОНОВЛЕНО) ---
-function generateForm() {
-    let formHTML = '';
-    // Читаємо кількість пар з нового поля
-    const lessonCount = parseInt(lessonCountInput?.value, 10) || 8;
-
-    // (НОВЕ) Отримуємо обрані дні
-    const selectedDays = getSelectedDays();
-
-    selectedDays.forEach(dayKey => {
-        const dayName = ALL_DAYS[dayKey] || dayKey;
-        formHTML += `
-      <div class="section day" data-day="${dayKey}">
-        <h2>${dayName}</h2>
-        <div class="pairs">`;
-
-        // Цикл тепер динамічний
-        for (let pairNum = 1; pairNum <= lessonCount; pairNum++) {
-            // Отримуємо час за замовчуванням з полів
-            const defaultTimeInput = document.getElementById(`default-time-${pairNum}`);
-            const defaultTime = defaultTimeInput?.value || '00:00 – 00:00';
-            // Передаємо час у функцію
-            formHTML += generatePairHTML(dayKey, pairNum, defaultTime);
-        }
-        formHTML += '</div></div>';
-    });
-
-    if (scheduleFormContainer) {
-        scheduleFormContainer.innerHTML = formHTML;
-        setupAllPairRadios();
-        setupTimeToggles();
-    } else {
-        console.error("Елемент #scheduleForm не знайдено!");
-    }
-}
-
-// === Логіка показу/приховування для Радіокнопок ===
-function setupAllPairRadios() {
-    if (!scheduleFormContainer) return; // Додав перевірку
-    scheduleFormContainer.querySelectorAll('.pair, .subgroup, .week-section').forEach(container => {
-        const radioGroup = container.querySelector(':scope > .option-group');
-        if (!radioGroup) return;
-        const radios = radioGroup.querySelectorAll('input[type="radio"]');
-        if (radios.length === 0) return;
-        const detailsContainer = container.querySelector(':scope > .details-container');
-        if (!detailsContainer) return;
-
-        const updateVisibility = () => {
-            const selectedRadio = radioGroup.querySelector('input[type="radio"]:checked');
-            if (!selectedRadio) return;
-            const mode = selectedRadio.value;
-
-            detailsContainer.querySelectorAll(':scope > .details-block').forEach(el => el.classList.remove('active'));
-
-            if (mode !== 'empty') {
-                const targetBlock = detailsContainer.querySelector(`:scope > .mode-${mode}`);
-                if (targetBlock) targetBlock.classList.add('active');
-            }
-        };
-
-        radios.forEach(radio => radio.addEventListener('change', updateVisibility));
-        updateVisibility();
-    });
-}
-
-// === Логіка для Чекбоксів Часу ===
-function setupTimeToggles() {
-    if (!scheduleFormContainer) return; // Додав перевірку
-    scheduleFormContainer.querySelectorAll('.pair-time-custom-toggle input[type="checkbox"]').forEach(checkbox => {
-        const pairDiv = checkbox.closest('.pair');
-        const defaultTimeSpan = pairDiv?.querySelector('.pair-time-default');
-        const customTimeInput = pairDiv?.querySelector('.pair-time-custom-input');
-
-        if (!pairDiv || !defaultTimeSpan || !customTimeInput) return;
-
-        const update = () => {
-            defaultTimeSpan.style.display = checkbox.checked ? 'none' : 'inline';
-            customTimeInput.style.display = checkbox.checked ? 'inline-block' : 'none';
-        };
-
-        checkbox.addEventListener('change', update);
-        update();
-    });
-}
-
-// --- Обчислення startDate (ПРАВИЛЬНА ВЕРСІЯ) ---
-function calculateStartDate() {
-    const today = new Date();
-    const todayDayOfWeek = today.getDay();
-    // Знаходимо понеділок поточного тижня
-    const diffToMonday = todayDayOfWeek === 0 ? -6 : 1 - todayDayOfWeek;
-    const currentMonday = new Date(today);
-    currentMonday.setDate(today.getDate() + diffToMonday);
-    currentMonday.setHours(0, 0, 0, 0);
-
-    // Читаємо, що вибрав користувач
-    const todayIsRadio = document.querySelector('input[name="todayWeekType"]:checked');
-    const todayIs = todayIsRadio ? todayIsRadio.value : 'num';
-
-    let startDate = new Date(currentMonday);
-
-    // ЛОГІКА:
-    // Якщо ми кажемо, що сьогодні "Знаменник" ('den'),
-    // то ми відкручуємо дату початку на тиждень назад.
-    // Тоді script.js побачить різницю в тижнях і скаже: "Ага, зараз Знаменник".
-    if (todayIs === 'den') {
-        startDate.setDate(startDate.getDate() - 7);
-    }
-
-    const y = startDate.getFullYear();
-    const m = String(startDate.getMonth() + 1).padStart(2, '0');
-    const d = String(startDate.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
-}
-
-// Функція getISOWeek
-function getISOWeek(date) {
-    const d = new Date(date.getTime());
-    d.setHours(0, 0, 0, 0);
-    d.setDate(d.getDate() + 3 - (d.getDay() + 6) % 7);
-    const week1 = new Date(d.getFullYear(), 0, 4);
-    return 1 + Math.round(((d.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
-}
-
-// --- (НОВА) Нова функція для генерації полів часу ---
-function updateDefaultTimeInputs() {
-    if (!lessonCountInput || !defaultTimesContainer) return;
-
-    const count = parseInt(lessonCountInput.value, 10) || 0;
-    const currentTimes = [];
-
-    // 1. Зберігаємо поточні значення, щоб не стирати їх
-    const maxInputsToRead = Math.max(count, DEFAULT_TIMES.length, 10);
-    for (let i = 1; i <= maxInputsToRead; i++) {
-        const input = document.getElementById(`default-time-${i}`);
-        if (input) currentTimes[i - 1] = input.value;
-    }
-
-    defaultTimesContainer.innerHTML = ''; // Очищуємо контейнер
-
-    // 2. Генеруємо нові поля вводу
-    for (let i = 1; i <= count; i++) {
-        // Беремо збережене значення, АБО дефолтне, АБО пустий рядок
-        const savedValue = currentTimes[i - 1] || DEFAULT_TIMES[i - 1] || '';
-        defaultTimesContainer.innerHTML += `
-            <div>
-                <label for="default-time-${i}">${i} пара:</label>
-                <input type="text" id="default-time-${i}" placeholder="00:00 – 00:00" value="${savedValue}">
-            </div>
-        `;
-    }
-}
-
-// --- (НОВІ) Функції для генерації та отримання днів ---
-function generateDaySelectionCheckboxes() {
-    if (!daySelectionContainer) return;
-    daySelectionContainer.innerHTML = Object.keys(ALL_DAYS).map(dayKey => {
-        const dayName = ALL_DAYS[dayKey];
-        // За замовчуванням Пн-Пт увімкнені
-        const isChecked = (dayKey !== 'saturday' && dayKey !== 'sunday');
-        return `
-            <label>
-                <input type="checkbox" class="day-checkbox" data-day-key="${dayKey}" ${isChecked ? 'checked' : ''}>
-                ${dayName}
-            </label>
-        `;
-    }).join('');
-
-    // Додаємо слухачі, щоб форма перегенерувалась при зміні
-    daySelectionContainer.querySelectorAll('.day-checkbox').forEach(checkbox => {
-        checkbox.addEventListener('change', generateForm);
-    });
-}
-
-function getSelectedDays() {
-    if (!daySelectionContainer) {
-        // Fallback, якщо щось пішло не так
-        return ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
-    }
-    const days = [];
-    daySelectionContainer.querySelectorAll('.day-checkbox:checked').forEach(checkbox => {
-        days.push(checkbox.dataset.dayKey);
-    });
-    return days;
-}
-
-
-// --- ЗБИРАННЯ ДАНИХ З ФОРМИ (ОНОВЛЕНО) ---
-function buildScheduleObject() {
-    const schedule = {};
-    const lessonCount = parseInt(lessonCountInput?.value, 10) || 8;
-
-    // 1. Зберігаємо час за замовчуванням
-    schedule.defaultTimes = [];
-    for (let i = 1; i <= lessonCount; i++) {
-        const timeInput = document.getElementById(`default-time-${i}`);
-        schedule.defaultTimes.push(timeInput?.value || '00:00 – 00:00');
-    }
-
-    // 2. Зберігаємо загальну інформацію
-    schedule.group = document.getElementById('group')?.value || 'Моя група';
-    schedule.semester = document.getElementById('semester')?.value || 'Поточний семестр';
-    schedule.startDate = calculateStartDate();
-    schedule.schedule = {}; // Створюємо пустий об'єкт розкладу
-
-    // 3. Збираємо дані по днях (ТІЛЬКИ для обраних)
-    const selectedDays = getSelectedDays();
-
-    selectedDays.forEach(dayKey => {
-        schedule.schedule[dayKey] = { name: ALL_DAYS[dayKey], lessons: [] };
-
-        // Використовуємо динамічний цикл
-        for (let pairNum = 1; pairNum <= lessonCount; pairNum++) {
-            const baseId = `${dayKey}-${pairNum}`;
-            const pairDiv = scheduleFormContainer.querySelector(`.pair[data-day="${dayKey}"][data-pair="${pairNum}"]`);
-            if (!pairDiv) continue;
-            const modeRadio = pairDiv.querySelector(`input[name="mode-${baseId}"]:checked`);
-            if (!modeRadio) continue;
-            const mode = modeRadio.value;
-
-            // Отримуємо час (за замовчуванням або кастомний)
-            const timeToggle = document.getElementById(`${baseId}-time-toggle`);
-            let timeValue = schedule.defaultTimes[pairNum - 1] || '00:00 - 00:00'; // Беремо з масиву
-            if (timeToggle?.checked) {
-                const customTimeInput = document.getElementById(`${baseId}-time-custom`);
-                if (customTimeInput?.value.trim()) timeValue = customTimeInput.value.trim();
-            }
-
-            const lesson = {
-                number: pairNum, time: timeValue, subject: "", type: "",
-                teacher: "", room: "", link: "", weeks: "all", subgroups: []
-            };
-
-            if (mode === 'empty') {
-                lesson.type = 'empty';
-            } else if (mode === 'none') {
-                lesson.subject = document.getElementById(`${baseId}-subject`)?.value || '';
-                lesson.type = lessonTypes[document.getElementById(`${baseId}-type`)?.value] || '';
-                lesson.teacher = document.getElementById(`${baseId}-teacher`)?.value || '';
-                lesson.room = document.getElementById(`${baseId}-room`)?.value || '';
-                lesson.link = document.getElementById(`${baseId}-link`)?.value || '';
-                if (!lesson.subject) lesson.type = 'empty';
-            } else if (mode === 'numden') {
-                lesson.type = 'mixed';
-                ['num', 'den'].forEach(weekType => {
-                    const weekModeRadio = pairDiv.querySelector(`input[name="mode-${baseId}-${weekType}"]:checked`);
-                    if (weekModeRadio?.value === 'none') {
-                        const weekSubject = document.getElementById(`${baseId}-${weekType}-subject`)?.value || '';
-                        if (weekSubject) {
-                            lesson.subgroups.push({
-                                group: "all", weeks: weekType, subject: weekSubject,
-                                type: lessonTypes[document.getElementById(`${baseId}-${weekType}-type`)?.value] || '',
-                                teacher: document.getElementById(`${baseId}-${weekType}-teacher`)?.value || '',
-                                room: document.getElementById(`${baseId}-${weekType}-room`)?.value || '',
-                                link: document.getElementById(`${baseId}-${weekType}-link`)?.value || ''
-                            });
-                        }
-                    }
-                });
-                if (lesson.subgroups.length === 0) lesson.type = 'empty';
-            } else if (mode === 'subgroups') {
-                lesson.type = 'mixed';
-                [1, 2].forEach(subNum => {
-                    const subModeRadio = pairDiv.querySelector(`input[name="mode-${baseId}-sub${subNum}"]:checked`);
-                    if (!subModeRadio) return;
-                    const subMode = subModeRadio.value;
-                    if (subMode === 'none') {
-                        const subSubject = document.getElementById(`${baseId}-sub${subNum}-subject`)?.value || '';
-                        if (subSubject) {
-                            lesson.subgroups.push({
-                                group: `sub${subNum}`, weeks: "all", subject: subSubject,
-                                type: lessonTypes[document.getElementById(`${baseId}-sub${subNum}-type`)?.value] || '',
-                                teacher: document.getElementById(`${baseId}-sub${subNum}-teacher`)?.value || '',
-                                room: document.getElementById(`${baseId}-sub${subNum}-room`)?.value || '',
-                                link: document.getElementById(`${baseId}-sub${subNum}-link`)?.value || ''
-                            });
-                        }
-                    } else if (subMode === 'numden') {
-                        ['num', 'den'].forEach(weekType => {
-                            const weekModeRadio = pairDiv.querySelector(`input[name="mode-${baseId}-sub${subNum}-${weekType}"]:checked`);
-                            if (weekModeRadio?.value === 'none') {
-                                const weekSubject = document.getElementById(`${baseId}-sub${subNum}-${weekType}-subject`)?.value || '';
-                                if (weekSubject) {
-                                    lesson.subgroups.push({
-                                        group: `sub${subNum}`, weeks: weekType, subject: weekSubject,
-                                        type: lessonTypes[document.getElementById(`${baseId}-sub${subNum}-${weekType}-type`)?.value] || '',
-                                        teacher: document.getElementById(`${baseId}-sub${subNum}-${weekType}-teacher`)?.value || '',
-                                        room: document.getElementById(`${baseId}-sub${subNum}-${weekType}-room`)?.value || '',
-                                        link: document.getElementById(`${baseId}-sub${subNum}-${weekType}-link`)?.value || ''
-                                    });
-                                }
-                            }
-                        });
-                    }
-                });
-                if (lesson.subgroups.length === 0) lesson.type = 'empty';
-            }
-
-            if (!lesson.subject && lesson.subgroups.length === 0) lesson.type = 'empty';
-            if (lesson.type === 'empty') {
-                lesson.subject = ""; lesson.teacher = ""; lesson.room = ""; lesson.link = "";
-                lesson.weeks = "all"; lesson.subgroups = [];
-            }
-
-            schedule.schedule[dayKey].lessons.push(lesson);
-        }
-    });
-
-    // 4. (НОВЕ) Додаємо пусті об'єкти для днів, які НЕ обрані
-    // Це потрібно, щоб головний сайт (script.js) знав, що ці дні існують, але порожні
-    Object.keys(ALL_DAYS).forEach(dayKey => {
-        if (!schedule.schedule[dayKey]) {
-            schedule.schedule[dayKey] = { name: ALL_DAYS[dayKey], lessons: [] };
-        }
-    });
-
-    return schedule;
-}
-
-
-// --- ЗАПОВНЕННЯ ФОРМИ З JSON (ОНОВЛЕНО) ---
-function populateForms(schedule) {
-    const groupEl = document.getElementById('group'); if (groupEl) groupEl.value = schedule.group || '';
-    const semesterEl = document.getElementById('semester'); if (semesterEl) semesterEl.value = schedule.semester || '';
-
-    // 1. Встановлюємо кількість пар та час за замовчуванням
-    let lessonCount = DEFAULT_TIMES.length; // За замовчуванням
-    if (schedule.defaultTimes && schedule.defaultTimes.length > 0) {
-        lessonCount = schedule.defaultTimes.length;
-    } else if (schedule.schedule?.monday?.lessons?.length > 0) {
-        // Fallback для старих JSON
-        lessonCount = schedule.schedule.monday.lessons.length;
-    }
-
-    if (lessonCountInput) lessonCountInput.value = lessonCount;
-
-    // 2. Оновлюємо та заповнюємо поля часу
-    updateDefaultTimeInputs();
-    if (schedule.defaultTimes) {
-        for (let i = 0; i < lessonCount; i++) {
-            const timeInput = document.getElementById(`default-time-${i + 1}`);
-            if (timeInput) timeInput.value = schedule.defaultTimes[i] || '';
-        }
-    } else {
-        // Fallback для старих JSON: витягуємо час
-        for (let i = 0; i < lessonCount; i++) {
-            const timeInput = document.getElementById(`default-time-${i + 1}`);
-            if (timeInput && schedule.schedule?.monday?.lessons?.[i]) {
-                timeInput.value = schedule.schedule.monday.lessons[i].time || '';
-            }
-        }
-    }
-
-    // 3. (НОВЕ) Встановлюємо галочки днів
-    const savedDays = Object.keys(schedule.schedule).filter(dayKey =>
-        schedule.schedule[dayKey] && schedule.schedule[dayKey].lessons.length > 0
-    );
-
-    if (daySelectionContainer) {
-        daySelectionContainer.querySelectorAll('.day-checkbox').forEach(checkbox => {
-            const dayKey = checkbox.dataset.dayKey;
-            // Якщо дні збережені, ставимо галочки за збереженим
-            if (savedDays.length > 0) {
-                checkbox.checked = savedDays.includes(dayKey);
-            }
-            // Інакше, залишаємо Пн-Пт за замовчуванням (вже зроблено в generateDaySelectionCheckboxes)
-        });
-    }
-
-    // 4. Генеруємо структуру форми на основі нової кількості пар І днів
-    generateForm();
-
-    // 5. Заповнюємо згенеровану форму даними
-    const daysToPopulate = getSelectedDays(); // Отримуємо дні, які *зараз* видимі
-
-    daysToPopulate.forEach(dayKey => {
-        const dayData = schedule.schedule[dayKey];
-        if (!dayData || !Array.isArray(dayData.lessons)) return;
-
-        // Використовуємо динамічний цикл
-        for (let pairNum = 1; pairNum <= lessonCount; pairNum++) {
-            const lesson = dayData.lessons.find(l => l.number === pairNum);
-            const baseId = `${dayKey}-${pairNum}`;
-            const pairDiv = scheduleFormContainer.querySelector(`.pair[data-day="${dayKey}"][data-pair="${pairNum}"]`);
-            if (!pairDiv) continue;
-
-            pairDiv.querySelectorAll('input[type="radio"]').forEach(radio => radio.checked = (radio.value === 'empty'));
-            pairDiv.querySelectorAll('input[type="text"], select').forEach(input => {
-                if (input.tagName === 'SELECT') input.value = ""; else input.value = "";
-            });
-
-            if (!lesson) continue; // Якщо даних для цієї пари немає, пропускаємо
-
-            // Обробка часу (кастомний чи ні)
-            const timeToggle = document.getElementById(`${baseId}-time-toggle`);
-            const defaultTimeInput = document.getElementById(`default-time-${pairNum}`);
-            const defaultTime = defaultTimeInput?.value || '';
-
-            const customTimeInput = document.getElementById(`${baseId}-time-custom`);
-
-            if (timeToggle && customTimeInput) {
-                if (lesson.time && lesson.time !== defaultTime) {
-                    timeToggle.checked = true;
-                    customTimeInput.value = lesson.time;
-                } else {
-                    timeToggle.checked = false;
-                    customTimeInput.value = '';
-                }
-            }
-
-            // Визначаємо головний режим
-            let mainMode = 'empty';
-            if (lesson.type !== 'empty') {
-                const isMainNumDen = lesson.subgroups.length > 0 && lesson.subgroups.every(sg => sg.group === 'all');
-                const isSubgroups = lesson.subgroups.length > 0 && lesson.subgroups.some(sg => sg.group === 'sub1' || sg.group === 'sub2');
-                if (isSubgroups) mainMode = 'subgroups';
-                else if (isMainNumDen) mainMode = 'numden';
-                else if (lesson.subject) mainMode = 'none';
-            }
-
-            const mainRadio = pairDiv.querySelector(`input[name="mode-${baseId}"][value="${mainMode}"]`);
-            if (mainRadio) mainRadio.checked = true;
-
-            // Заповнюємо деталі (включаючи посилання)
-            if (mainMode === 'none') {
-                const subjEl = document.getElementById(`${baseId}-subject`); if (subjEl) subjEl.value = lesson.subject || '';
-                const typeEl = document.getElementById(`${baseId}-type`); if (typeEl) typeEl.value = lessonTypesReverse[lesson.type] || '';
-                const teachEl = document.getElementById(`${baseId}-teacher`); if (teachEl) teachEl.value = lesson.teacher || '';
-                const roomEl = document.getElementById(`${baseId}-room`); if (roomEl) roomEl.value = lesson.room || '';
-                const linkEl = document.getElementById(`${baseId}-link`); if (linkEl) linkEl.value = lesson.link || '';
-            } else if (mainMode === 'numden') {
-                lesson.subgroups.forEach(sg => {
-                    const weekType = sg.weeks;
-                    const weekRadio = pairDiv.querySelector(`input[name="mode-${baseId}-${weekType}"][value="none"]`);
-                    if (weekRadio) weekRadio.checked = true;
-                    const subjEl = document.getElementById(`${baseId}-${weekType}-subject`); if (subjEl) subjEl.value = sg.subject || '';
-                    const typeEl = document.getElementById(`${baseId}-${weekType}-type`); if (typeEl) typeEl.value = lessonTypesReverse[sg.type] || '';
-                    const teachEl = document.getElementById(`${baseId}-${weekType}-teacher`); if (teachEl) teachEl.value = sg.teacher || '';
-                    const roomEl = document.getElementById(`${baseId}-${weekType}-room`); if (roomEl) roomEl.value = sg.room || '';
-                    const linkEl = document.getElementById(`${baseId}-${weekType}-link`); if (linkEl) linkEl.value = sg.link || '';
-                });
-                ['num', 'den'].forEach(wt => {
-                    if (!lesson.subgroups.some(sg => sg.weeks === wt)) {
-                        const emptyRadio = pairDiv.querySelector(`input[name="mode-${baseId}-${wt}"][value="empty"]`);
-                        if (emptyRadio) emptyRadio.checked = true;
-                    }
-                });
-            } else if (mainMode === 'subgroups') {
-                [1, 2].forEach(subNum => {
-                    const subGroupData = lesson.subgroups.filter(sg => sg.group === `sub${subNum}`);
-                    let subMode = 'empty';
-                    if (subGroupData.length > 0) {
-                        const alwaysData = subGroupData.find(sg => sg.weeks === 'all');
-                        const numData = subGroupData.find(sg => sg.weeks === 'num');
-                        const denData = subGroupData.find(sg => sg.weeks === 'den');
-                        if (alwaysData) {
-                            subMode = 'none';
-                            const subjEl = document.getElementById(`${baseId}-sub${subNum}-subject`); if (subjEl) subjEl.value = alwaysData.subject || '';
-                            const typeEl = document.getElementById(`${baseId}-sub${subNum}-type`); if (typeEl) typeEl.value = lessonTypesReverse[alwaysData.type] || '';
-                            const teachEl = document.getElementById(`${baseId}-sub${subNum}-teacher`); if (teachEl) teachEl.value = alwaysData.teacher || '';
-                            const roomEl = document.getElementById(`${baseId}-sub${subNum}-room`); if (roomEl) roomEl.value = alwaysData.room || '';
-                            const linkEl = document.getElementById(`${baseId}-sub${subNum}-link`); if (linkEl) linkEl.value = alwaysData.link || '';
-                        } else if (numData || denData) {
-                            subMode = 'numden';
-                            if (numData) {
-                                const weekRadio = pairDiv.querySelector(`input[name="mode-${baseId}-sub${subNum}-num"][value="none"]`); if (weekRadio) weekRadio.checked = true;
-                                const subjEl = document.getElementById(`${baseId}-sub${subNum}-num-subject`); if (subjEl) subjEl.value = numData.subject || '';
-                                const typeEl = document.getElementById(`${baseId}-sub${subNum}-num-type`); if (typeEl) typeEl.value = lessonTypesReverse[numData.type] || '';
-                                const teachEl = document.getElementById(`${baseId}-sub${subNum}-num-teacher`); if (teachEl) teachEl.value = numData.teacher || '';
-                                const roomEl = document.getElementById(`${baseId}-sub${subNum}-num-room`); if (roomEl) roomEl.value = numData.room || '';
-                                const linkEl = document.getElementById(`${baseId}-sub${subNum}-num-link`); if (linkEl) linkEl.value = numData.link || '';
-                            } else {
-                                const emptyRadio = pairDiv.querySelector(`input[name="mode-${baseId}-sub${subNum}-num"][value="empty"]`); if (emptyRadio) emptyRadio.checked = true;
-                            }
-                            if (denData) {
-                                const weekRadio = pairDiv.querySelector(`input[name="mode-${baseId}-sub${subNum}-den"][value="none"]`); if (weekRadio) weekRadio.checked = true;
-                                const subjEl = document.getElementById(`${baseId}-sub${subNum}-den-subject`); if (subjEl) subjEl.value = denData.subject || '';
-                                const typeEl = document.getElementById(`${baseId}-sub${subNum}-den-type`); if (typeEl) typeEl.value = lessonTypesReverse[denData.type] || '';
-                                const teachEl = document.getElementById(`${baseId}-sub${subNum}-den-teacher`); if (teachEl) teachEl.value = denData.teacher || '';
-                                const roomEl = document.getElementById(`${baseId}-sub${subNum}-den-room`); if (roomEl) roomEl.value = denData.room || '';
-                                const linkEl = document.getElementById(`${baseId}-sub${subNum}-den-link`); if (linkEl) linkEl.value = denData.link || '';
-                            } else {
-                                const emptyRadio = pairDiv.querySelector(`input[name="mode-${baseId}-sub${subNum}-den"][value="empty"]`); if (emptyRadio) emptyRadio.checked = true;
-                            }
-                        }
-                    }
-                    const subRadio = pairDiv.querySelector(`input[name="mode-${baseId}-sub${subNum}"][value="${subMode}"]`);
-                    if (subRadio) subRadio.checked = true;
-                });
-            }
-        }
-    });
-
-    // 6. Оновлюємо слухачі радіокнопок
-    setupAllPairRadios();
-    setupTimeToggles();
-}
-
-
-// --- ІНІЦІАЛІЗАЦІЯ (ОНОВЛЕНО) ---
+// === ІНІЦІАЛІЗАЦІЯ ===
 document.addEventListener('DOMContentLoaded', () => {
-    // Ініціалізуємо змінні елементів
-    saveBtn = document.getElementById('saveBtn');
-    loadStorageBtn = document.getElementById('loadStorageBtn');
-    loadFileBtn = document.getElementById('loadFileBtn');
-    loadFileInput = document.getElementById('loadFileInput');
-    exportJsonBtn = document.getElementById('exportJsonBtn');
-    scheduleFormContainer = document.getElementById('scheduleForm');
-    statusEl = document.getElementById('status');
-    themeToggle = document.getElementById('themeToggle');
+    // Навігація між режимами
+    document.getElementById('btnClassicEdit').onclick = () => showScreen('classicEditor');
+    document.getElementById('btnVisualEdit').onclick = () => { showScreen('visualWizard'); initWizard(); };
+    
+    // Ініціалізація компонентів
+    document.getElementById('addSubjectBtn').onclick = addSubjectToDb;
+    document.getElementById('addRoomBtn').onclick = addRoomToDb;
+    
+    document.querySelectorAll('.day-tab').forEach(btn => {
+        btn.onclick = (e) => switchDayTab(e.target.dataset.day);
+    });
 
-    // --- НОВІ ЕЛЕМЕНТИ ---
-    lessonCountInput = document.getElementById('lessonCount');
-    defaultTimesContainer = document.getElementById('defaultTimesContainer');
-    daySelectionContainer = document.getElementById('daySelectionContainer'); // (НОВЕ)
+    document.querySelectorAll('.puz-tab').forEach(btn => {
+        btn.onclick = (e) => switchPuzzleTab(e.target.dataset.type);
+    });
 
-    // === Логіка для кнопки перемикання теми ===
-    if (themeToggle) {
-        if (localStorage.getItem('theme') === 'dark') {
-            document.body.classList.add('dark-mode');
-            themeToggle.textContent = '☀️';
-        } else {
-            themeToggle.textContent = '🌙';
+    document.getElementById('saveTimeBtn').onclick = applyCustomTime;
+    document.getElementById('finishVisualBtn').onclick = saveVisualSchedule;
+
+    // Авто-генерація часів у Кроці 1
+    renderWizardTimeSlots();
+});
+
+function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(el => el.style.display = 'none');
+    document.getElementById('startScreen').style.display = 'none';
+    document.getElementById(id).style.display = 'block';
+}
+
+// === ЛОГІКА WIZARD (КРОКИ) ===
+function wizardNext(step) {
+    document.querySelectorAll('.wizard-step').forEach(el => el.classList.remove('active'));
+    document.getElementById(`step${step}`).classList.add('active');
+    appState.step = step;
+
+    if (step === 2) {
+        // Зберігаємо конфіг з Кроку 1
+        appState.config.weekType = document.getElementById('wizWeekType').value;
+        appState.config.count = parseInt(document.getElementById('wizLessonCount').value);
+        appState.config.times = [];
+        for(let i=1; i<=appState.config.count; i++) {
+            appState.config.times.push(document.getElementById(`wizTime_${i}`).value);
         }
+    }
+    if (step === 3) {
+        renderVisualGrid();
+        renderPuzzles('subjects');
+    }
+}
 
-        themeToggle.addEventListener('click', () => {
-            document.body.classList.toggle('dark-mode');
-            if (document.body.classList.contains('dark-mode')) {
-                localStorage.setItem('theme', 'dark');
-                themeToggle.textContent = '☀️';
-            } else {
-                localStorage.removeItem('theme');
-                themeToggle.textContent = '🌙';
-            }
-        });
+function renderWizardTimeSlots() {
+    const container = document.getElementById('wizTimeSlots');
+    container.innerHTML = '';
+    for(let i=0; i<8; i++) {
+        container.innerHTML += `<input type="text" id="wizTime_${i+1}" value="${DEFAULT_TIMES[i] || ''}" placeholder="Час ${i+1}">`;
+    }
+}
+
+// === КРОК 2: БАЗА ДАНИХ ===
+function addSubjectToDb() {
+    const name = document.getElementById('newSubjectName').value.trim();
+    if(!name) return;
+    const types = {
+        lec: document.getElementById('hasLec').checked,
+        prac: document.getElementById('hasPrac').checked,
+        lab: document.getElementById('hasLab').checked
+    };
+    appState.db.subjects.push({ id: Date.now(), name, types });
+    document.getElementById('newSubjectName').value = '';
+    renderDbList();
+}
+
+function addRoomToDb() {
+    const name = document.getElementById('newRoomName').value.trim();
+    if(!name) return;
+    appState.db.rooms.push({ id: Date.now(), name });
+    document.getElementById('newRoomName').value = '';
+    renderDbList();
+}
+
+function renderDbList() {
+    const sList = document.getElementById('subjectList');
+    sList.innerHTML = appState.db.subjects.map(s => 
+        `<div class="db-item">${s.name} <span onclick="removeItem('subjects', ${s.id})">×</span></div>`
+    ).join('');
+
+    const rList = document.getElementById('roomList');
+    rList.innerHTML = appState.db.rooms.map(r => 
+        `<div class="db-item">${r.name} <span onclick="removeItem('rooms', ${r.id})">×</span></div>`
+    ).join('');
+}
+
+function removeItem(type, id) {
+    appState.db[type] = appState.db[type].filter(x => x.id !== id);
+    renderDbList();
+}
+
+// === КРОК 3: ВІЗУАЛЬНИЙ РЕДАКТОР ===
+
+// 1. Рендеринг Сітки
+function renderVisualGrid() {
+    const container = document.getElementById('visualGrid');
+    container.innerHTML = '';
+    
+    // Якщо для цього дня ще немає даних, створюємо пусті
+    if (!appState.gridData[appState.currentDay]) {
+        appState.gridData[appState.currentDay] = Array(appState.config.count).fill(null).map(() => ({ type: 'single', content: {} }));
     }
 
-    // --- НОВІ СЛУХАЧІ ---
-    // Слухач для зміни кількості пар
-    if (lessonCountInput) {
-        lessonCountInput.addEventListener('change', () => {
-            updateDefaultTimeInputs(); // Оновлюємо поля часу
-            generateForm(); // Оновлюємо всю форму
-        });
-    }
+    const lessons = appState.gridData[appState.currentDay];
 
-    // 1. (НОВЕ) Генеруємо чекбокси днів
-    generateDaySelectionCheckboxes();
-    // 2. Генеруємо поля часу за замовчуванням (для 8 пар)
-    updateDefaultTimeInputs();
-    // 3. Генеруємо форму на основі цих 8 пар і Пн-Пт
-    generateForm();
-    // === Кінець логіки теми ===
+    lessons.forEach((lesson, index) => {
+        const slot = document.createElement('div');
+        slot.className = `grid-slot ${lesson.content.subject ? 'filled' : ''}`;
+        slot.dataset.index = index;
+        
+        // Header (Час + Кнопка меню, якщо треба)
+        const time = appState.config.times[index] || '';
+        slot.innerHTML = `<div class="grid-slot-header"><span>${index+1}. ${lesson.customTime || time}</span></div>`;
 
-    saveBtn?.addEventListener('click', () => {
-        try {
-            const schedule = buildScheduleObject();
-            const jsonString = JSON.stringify(schedule, null, 2);
-            localStorage.setItem(SCHEDULE_STORAGE_KEY, jsonString);
-            if (statusEl) {
-                statusEl.textContent = '✅ Розклад збережено! Повертаємося на головну...';
-                statusEl.className = 'status success active';
-            }
-            setTimeout(() => { window.location.href = './index.html'; }, 1500);
-        } catch (error) {
-            console.error("Помилка при збереженні:", error);
-            if (statusEl) {
-                statusEl.textContent = `❌ Помилка: ${error.message || 'Невідома помилка'}`;
-                statusEl.className = 'status error active';
-            }
+        // Content Area
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'slot-content';
+        
+        // Генерація під-слотів (залежно від структури: звичайна, підгрупи, чисельник)
+        if (lesson.type === 'single') {
+            contentDiv.appendChild(createSubSlot(lesson.content, 'main'));
+        } else if (lesson.type === 'subgroups') {
+            contentDiv.appendChild(createSubSlot(lesson.content.sub1 || {}, 'sub1', 'Група 1'));
+            contentDiv.appendChild(createSubSlot(lesson.content.sub2 || {}, 'sub2', 'Група 2'));
+        } else if (lesson.type === 'numden') {
+            contentDiv.appendChild(createSubSlot(lesson.content.num || {}, 'num', 'Чисельник'));
+            contentDiv.appendChild(createSubSlot(lesson.content.den || {}, 'den', 'Знаменник'));
         }
+
+        slot.appendChild(contentDiv);
+        
+        // === ЖЕСТИ ДЛЯ СЛОТА (Спліт/Час) ===
+        setupSlotGestures(slot, index);
+
+        container.appendChild(slot);
     });
+}
 
-    loadStorageBtn?.addEventListener('click', () => {
-        try {
-            const jsonString = localStorage.getItem(SCHEDULE_STORAGE_KEY);
-            if (!jsonString) {
-                fetch('./schedule.json')
-                    .then(response => {
-                        if (!response.ok) throw new Error('Дефолтний schedule.json не знайдено');
-                        return response.json();
-                    })
-                    .then(defaultSchedule => {
-                        populateForms(defaultSchedule); // Ця функція тепер все перебудує
-                        if (statusEl) {
-                            statusEl.textContent = 'ℹ️ Завантажено розклад за замовчуванням (збереженого не знайдено).';
-                            statusEl.className = 'status info active';
-                        }
-                    })
-                    .catch(fetchError => {
-                        console.error("Помилка завантаження дефолтного розкладу:", fetchError);
-                        if (statusEl) {
-                            statusEl.textContent = 'ℹ️ Збереженого розкладу не знайдено. Заповніть поля.';
-                            statusEl.className = 'status info active';
-                        }
-                        // Навіть якщо помилка, генеруємо все за замовчуванням
-                        if (lessonCountInput) lessonCountInput.value = DEFAULT_TIMES.length;
-                        updateDefaultTimeInputs();
-                        generateForm();
-                    });
-                return;
-            }
-
-            const schedule = JSON.parse(jsonString);
-            populateForms(schedule); // Ця функція тепер все перебудує
-
-            if (statusEl) {
-                statusEl.textContent = '✅ Ваш збережений розклад завантажено в редактор.';
-                statusEl.className = 'status success active';
-            }
-
-        } catch (error) {
-            console.error("Помилка при завантаженні:", error);
-            if (statusEl) {
-                statusEl.textContent = `❌ Помилка завантаження збереженого розкладу: ${error.message || 'Не вдалося прочитати дані'}`;
-                statusEl.className = 'status error active';
-            }
-            // Скидаємо на дефолт у разі помилки
-            if (lessonCountInput) lessonCountInput.value = DEFAULT_TIMES.length;
-            updateDefaultTimeInputs();
-            generateForm();
-        }
-    });
-
-    loadFileBtn?.addEventListener('click', () => {
-        if (loadFileInput) loadFileInput.click();
-    });
-
-    loadFileInput?.addEventListener('change', (event) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const text = e.target?.result;
-                if (typeof text !== 'string') throw new Error('Не вдалося прочитати файл');
-                const schedule = JSON.parse(text);
-                populateForms(schedule); // Ця функція тепер все перебудує
-                if (statusEl) {
-                    statusEl.textContent = `✅ Розклад з файлу "${file.name}" завантажено в редактор.`;
-                    statusEl.className = 'status success active';
-                }
-            } catch (err) {
-                console.error('Помилка імпорту файлу:', err);
-                if (statusEl) {
-                    statusEl.textContent = '❌ Помилка! Файл пошкоджений або це не .json.';
-                    statusEl.className = 'status error active';
-                }
-                if (lessonCountInput) lessonCountInput.value = DEFAULT_TIMES.length;
-                updateDefaultTimeInputs();
-                generateForm();
-            }
-        };
-        reader.onerror = () => {
-            console.error('Помилка читання файлу');
-            if (statusEl) {
-                statusEl.textContent = '❌ Помилка читання файлу.';
-                statusEl.className = 'status error active';
-            }
-            if (lessonCountInput) lessonCountInput.value = DEFAULT_TIMES.length;
-            updateDefaultTimeInputs();
-            generateForm();
-        };
-        reader.readAsText(file);
-        event.target.value = null;
-    });
-
-    exportJsonBtn?.addEventListener('click', () => {
-        try {
-            const schedule = buildScheduleObject();
-            const dataStr = JSON.stringify(schedule, null, 2);
-            const dataBlob = new Blob([dataStr], { type: 'application/json' });
-            const url = URL.createObjectURL(dataBlob);
-
-            const a = document.createElement('a');
-            a.href = url;
-            const groupName = document.getElementById('group')?.value || 'schedule';
-            a.download = `${groupName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-
-            if (statusEl) {
-                statusEl.textContent = '✅ Розклад експортовано у файл .json.';
-                statusEl.className = 'status success active';
-            }
-
-        } catch (error) {
-            console.error("Помилка при експорті:", error);
-            if (statusEl) {
-                statusEl.textContent = `❌ Помилка експорту: ${error.message || 'Не вдалося створити файл'}`;
-                statusEl.className = 'status error active';
-            }
-        }
-    });
-
-    // Авто-завантаження при вході на сторінку
-    if (loadStorageBtn) {
-        loadStorageBtn.click();
+function createSubSlot(data, key, label) {
+    const div = document.createElement('div');
+    div.className = 'sub-slot';
+    div.dataset.key = key; // sub1, sub2, num, den, main
+    
+    if (data.subject) {
+        div.innerHTML = `<div><b>${data.subject}</b><br><small>${data.type || ''}</small><br><small>${data.room || ''}</small></div>`;
+        div.style.backgroundColor = getSubjectColor(data.type);
     } else {
-        // Якщо кнопки load немає, все одно ініціалізуємо
-        updateDefaultTimeInputs();
-        generateForm();
+        if(label) div.innerHTML = `<span style="color:#aaa">${label}</span>`;
     }
-}); // Кінець DOMContentLoaded
+
+    // Дозволяємо Drop
+    div.ondragover = e => e.preventDefault();
+    div.ondrop = e => handleDrop(e, div);
+    
+    // Для мобільних (Touch Drop)
+    // Це складніше, реалізуємо через touchend на елементі, що перетягується
+    
+    return div;
+}
+
+function getSubjectColor(type) {
+    if(type === 'Лекція') return 'var(--lec-color)';
+    if(type === 'Практична') return 'var(--prac-color)';
+    if(type === 'Лабораторна') return 'var(--lab-color)';
+    return 'transparent';
+}
+
+// 2. Рендеринг Пазлів (Sidebar)
+function renderPuzzles(mode) {
+    const container = document.getElementById('puzzleContainer');
+    container.innerHTML = '';
+    
+    const items = mode === 'subjects' ? appState.db.subjects : appState.db.rooms;
+    
+    items.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'puzzle-piece';
+        div.textContent = item.name;
+        div.draggable = true;
+        div.dataset.id = item.id;
+        div.dataset.name = item.name;
+        div.dataset.mode = mode; // subjects or rooms
+        
+        // Інформація про типи для жестів
+        if(mode === 'subjects') {
+            div.dataset.hasLec = item.types.lec;
+            div.dataset.hasPrac = item.types.prac;
+            div.dataset.hasLab = item.types.lab;
+        }
+
+        // Desktop Drag
+        div.ondragstart = e => {
+            e.dataTransfer.setData('text/plain', JSON.stringify({
+                id: item.id, name: item.name, mode: mode,
+                types: item.types // передаємо типи
+            }));
+            appState.draggedItem = div; // зберігаємо посилання
+        };
+
+        // Mobile Drag (Touch)
+        setupTouchDrag(div);
+
+        container.appendChild(div);
+    });
+    
+    // Підказка
+    document.getElementById('sidebarHint').innerText = mode === 'subjects' 
+        ? "Тягни предмет: ⬆ Лекція | ↙ Практика | ↘ Лаба"
+        : "Перетягніть аудиторію на предмет";
+}
+
+// 3. Обробка Drop (Падіння пазла)
+function handleDrop(e, targetSlot) {
+    e.preventDefault();
+    let data;
+    try {
+        data = JSON.parse(e.dataTransfer.getData('text/plain'));
+    } catch(err) {
+        // Якщо це Touch Drop, дані беремо з глобальної змінної
+        data = appState.touchDragData;
+    }
+
+    if (!data) return;
+
+    // Знаходимо індекс пари та ключ під-слота
+    const gridSlot = targetSlot.closest('.grid-slot');
+    const index = parseInt(gridSlot.dataset.index);
+    const subKey = targetSlot.dataset.key; // main, sub1, num...
+
+    const lessonObj = appState.gridData[appState.currentDay][index];
+    
+    // Визначаємо куди писати
+    let targetObj;
+    if (lessonObj.type === 'single') targetObj = lessonObj.content;
+    else targetObj = lessonObj.content[subKey];
+
+    if (!targetObj) lessonObj.content[subKey] = {}; // ініціалізація якщо пусто
+
+    if (data.mode === 'subjects') {
+        // Записуємо предмет
+        // Враховуємо "Жест" (який тип було обрано під час перетягування)
+        let selectedType = appState.draggedType || 'Лекція'; // За замовчуванням
+        
+        // Якщо немає такого типу у предмета, беремо перший доступний
+        // (спрощення логіки)
+        
+        targetObj.subject = data.name;
+        targetObj.type = selectedType;
+    } else {
+        // Записуємо аудиторію
+        targetObj.room = data.name;
+    }
+
+    renderVisualGrid(); // Оновити вид
+}
+
+// === ЖЕСТИ (TOUCH LOGIC) ===
+
+// A. Жести на сітці (Split / Time)
+function setupSlotGestures(element, index) {
+    let startX, startY, startTime;
+    
+    element.addEventListener('touchstart', e => {
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        startTime = Date.now();
+    }, {passive: true});
+
+    element.addEventListener('touchend', e => {
+        const endX = e.changedTouches[0].clientX;
+        const endY = e.changedTouches[0].clientY;
+        const diffX = endX - startX;
+        const diffY = endY - startY;
+        const duration = Date.now() - startTime;
+
+        if (duration > 150) { // Ігноруємо випадкові кліки
+            // Логіка жестів
+            if (Math.abs(diffX) > 50 && Math.abs(diffY) < 30) {
+                // Горизонтальний свайп
+                if (diffX > 0) splitSlot(index, 'subgroups'); // Вправо -> Підгрупи
+                else openTimeModal(index); // Вліво -> Час
+            } else if (Math.abs(diffY) > 50 && Math.abs(diffX) < 30) {
+                // Вертикальний свайп
+                if (diffY > 0) splitSlot(index, 'numden'); // Вниз -> Числ/Знам
+            }
+        }
+    });
+    
+    // Для Desktop (Context Menu simulation)
+    element.oncontextmenu = (e) => {
+        e.preventDefault();
+        // Можна додати просте меню, якщо треба
+        if(confirm("Розділити на підгрупи?")) splitSlot(index, 'subgroups');
+    };
+}
+
+function splitSlot(index, type) {
+    const lesson = appState.gridData[appState.currentDay][index];
+    lesson.type = type;
+    lesson.content = {}; // Очищаємо контент при зміні структури
+    renderVisualGrid();
+}
+
+let editingTimeIndex = null;
+function openTimeModal(index) {
+    editingTimeIndex = index;
+    const lesson = appState.gridData[appState.currentDay][index];
+    document.getElementById('customTimeInput').value = lesson.customTime || '';
+    document.getElementById('timeModal').style.display = 'flex';
+}
+
+function applyCustomTime() {
+    const val = document.getElementById('customTimeInput').value;
+    if (editingTimeIndex !== null) {
+        appState.gridData[appState.currentDay][editingTimeIndex].customTime = val;
+    }
+    document.getElementById('timeModal').style.display = 'none';
+    renderVisualGrid();
+}
+
+// B. Жести на Пазлах (Вибір типу предмету)
+function setupTouchDrag(element) {
+    let startX, startY;
+    
+    element.addEventListener('touchstart', e => {
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        
+        // Готуємо дані для дропу
+        appState.touchDragData = {
+            id: element.dataset.id,
+            name: element.dataset.name,
+            mode: element.dataset.mode
+        };
+        appState.draggedItem = element;
+        
+        // Створюємо "привид" для візуалізації
+        const ghost = element.cloneNode(true);
+        ghost.id = 'dragGhost';
+        ghost.style.position = 'fixed';
+        ghost.style.opacity = '0.8';
+        ghost.style.zIndex = '9999';
+        ghost.style.pointerEvents = 'none';
+        document.body.appendChild(ghost);
+        appState.ghost = ghost;
+        
+    }, {passive: false});
+
+    element.addEventListener('touchmove', e => {
+        e.preventDefault(); // Щоб не скролило екран
+        const touch = e.touches[0];
+        
+        // Рухаємо привид
+        if(appState.ghost) {
+            appState.ghost.style.left = touch.clientX + 'px';
+            appState.ghost.style.top = touch.clientY + 'px';
+            
+            // ЛОГІКА ЗМІНИ ТИПУ ВІД НАПРЯМКУ
+            // Вектор від початку
+            const dx = touch.clientX - startX;
+            const dy = touch.clientY - startY;
+            
+            // Поріг чутливості
+            if (Math.abs(dy) > 30) {
+                if (dy < 0) { // ВГОРУ -> Лекція
+                    appState.draggedType = 'Лекція';
+                    appState.ghost.style.backgroundColor = 'var(--lec-color)';
+                    appState.ghost.style.borderColor = 'var(--lec-border)';
+                } else { // ВНИЗ
+                    if (dx < 0) { // ВНИЗ-ВЛІВО -> Практика
+                        appState.draggedType = 'Практична';
+                        appState.ghost.style.backgroundColor = 'var(--prac-color)';
+                        appState.ghost.style.borderColor = 'var(--prac-border)';
+                    } else { // ВНИЗ-ВПРАВО -> Лабораторна
+                        appState.draggedType = 'Лабораторна';
+                        appState.ghost.style.backgroundColor = 'var(--lab-color)';
+                        appState.ghost.style.borderColor = 'var(--lab-border)';
+                    }
+                }
+                appState.ghost.innerText = `${appState.touchDragData.name}\n(${appState.draggedType})`;
+            }
+        }
+    }, {passive: false});
+
+    element.addEventListener('touchend', e => {
+        // Видаляємо привид
+        if(appState.ghost) appState.ghost.remove();
+        
+        // Визначаємо елемент під пальцем
+        const touch = e.changedTouches[0];
+        const target = document.elementFromPoint(touch.clientX, touch.clientY);
+        
+        // Шукаємо, чи це sub-slot
+        const slot = target.closest('.sub-slot');
+        if (slot) {
+            handleDrop({ preventDefault: () => {} }, slot);
+        }
+        
+        appState.touchDragData = null;
+        appState.draggedType = null;
+    });
+}
+
+// === ЗБЕРЕЖЕННЯ ===
+function switchDayTab(day) {
+    document.querySelectorAll('.day-tab').forEach(b => b.classList.remove('active'));
+    document.querySelector(`.day-tab[data-day="${day}"]`).classList.add('active');
+    appState.currentDay = day;
+    renderVisualGrid();
+}
+
+function switchPuzzleTab(type) {
+    document.querySelectorAll('.puz-tab').forEach(b => b.classList.remove('active'));
+    document.querySelector(`.puz-tab[data-type="${type}"]`).classList.add('active');
+    renderPuzzles(type);
+}
+
+function saveVisualSchedule() {
+    // Конвертація внутрішнього формату gridData у формат сайту (schedule.json)
+    const finalSchedule = {
+        group: "My Group", 
+        semester: "1", 
+        startDate: new Date().toISOString(), // Треба додати вибір дати, якщо критично
+        schedule: {}
+    };
+
+    // Проходимо по всіх днях
+    DAYS.forEach(day => {
+        const dayLessons = appState.gridData[day];
+        if (!dayLessons) return;
+
+        finalSchedule.schedule[day] = {
+            name: ALL_DAYS[day],
+            lessons: dayLessons.map((l, idx) => {
+                const base = { 
+                    number: idx + 1, 
+                    time: l.customTime || appState.config.times[idx] || '' 
+                };
+
+                if (l.type === 'single') {
+                    if (l.content.subject) {
+                        return { ...base, ...l.content, weeks: 'all', subgroups: [] };
+                    }
+                    return { ...base, type: 'empty' };
+                } 
+                
+                // Конвертація sub/numden в формат schedule.json
+                const subgroups = [];
+                if (l.type === 'subgroups') {
+                    if (l.content.sub1?.subject) subgroups.push({ ...l.content.sub1, group: 'sub1', weeks: 'all' });
+                    if (l.content.sub2?.subject) subgroups.push({ ...l.content.sub2, group: 'sub2', weeks: 'all' });
+                } else if (l.type === 'numden') {
+                    if (l.content.num?.subject) subgroups.push({ ...l.content.num, group: 'all', weeks: 'num' });
+                    if (l.content.den?.subject) subgroups.push({ ...l.content.den, group: 'all', weeks: 'den' });
+                }
+
+                if (subgroups.length > 0) return { ...base, type: 'mixed', subgroups };
+                return { ...base, type: 'empty' };
+            })
+        };
+    });
+
+    localStorage.setItem(SCHEDULE_STORAGE_KEY, JSON.stringify(finalSchedule));
+    alert('Розклад збережено!');
+    window.location.href = './index.html';
+}
