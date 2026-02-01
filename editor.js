@@ -8,29 +8,22 @@ let appState = {
     config: { weekType: 'numden', currentWeek: 'num', count: 5, times: [] },
     subjects: [], 
     gridData: {}, 
-    // Drag state
     draggedSubject: null, dragStartPos: {x:0, y:0}, activeSector: null, ghost: null,
     radialMenu: null, radialLabels: null,
-    activePath: null, // Шлях до активної клітинки
+    activePath: null,
     editTimeTarget: null
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Nav
     document.getElementById('btnClassicEdit').onclick = () => showScreen('classicEditor');
     document.getElementById('btnVisualEdit').onclick = () => { showScreen('visualWizard'); initWizard(); };
-    
-    // Step 2
     document.getElementById('addDetailRowBtn').onclick = () => addDetailRow();
     document.getElementById('addSmartSubjectBtn').onclick = addSmartSubject;
     ['smartHasLec', 'smartHasPrac', 'smartHasLab'].forEach(id => {
         document.getElementById(id).addEventListener('change', updateBindCheckboxesVisibility);
     });
-
-    // Final
     document.getElementById('finishVisualBtn').onclick = saveVisualSchedule;
     document.getElementById('saveTimeBtn').onclick = applyCustomTime;
-
     createRadialMenuDOM();
 });
 
@@ -80,7 +73,7 @@ function renderWizardTimeSlots() {
     }
 }
 
-// === КРОК 2: ПРЕДМЕТИ ===
+// === STEP 2 ===
 function updateBindCheckboxesVisibility() {
     const l = document.getElementById('smartHasLec').checked;
     const p = document.getElementById('smartHasPrac').checked;
@@ -192,6 +185,8 @@ function editSmartSubject(id) {
     s.details.forEach(d => addDetailRow(d));
     document.getElementById('addSmartSubjectBtn').innerText = '💾 Зберегти зміни';
     updateBindCheckboxesVisibility();
+    appState.subjects = appState.subjects.filter(x => x.id !== id);
+    renderSmartList();
 }
 
 function removeSmartSubject(id) {
@@ -199,8 +194,7 @@ function removeSmartSubject(id) {
     renderSmartList();
 }
 
-// === GRID SYSTEM & STRUCTURE LOGIC ===
-
+// === STRUCTURE GRID ===
 function getNodeByPath(day, idx, path) {
     let node = appState.gridData[day][idx];
     for (let key of path) {
@@ -211,14 +205,13 @@ function getNodeByPath(day, idx, path) {
 }
 
 function renderNodeHTML(node, day, idx, pathStr, mode) {
+    const pathJSON = JSON.stringify(pathStr);
+    
     if (node.type === 'single') {
-        const pathJSON = JSON.stringify(pathStr);
         let inner = '';
         if (mode === 'structure') {
-            // Клік по комірці викликає меню структури (handleCellClick)
             inner = `<div class="sub-cell-wrapper"><div class="sub-cell clickable-slot" onclick='handleCellClick(event, "${day}", ${idx}, ${pathJSON})'></div></div>`;
         } else {
-            // Клік по комірці в режимі наповнення - це потенційно очищення або інше, але зараз драг-дроп головний
             inner = `<div class="sub-cell-wrapper"><div class="sub-cell clickable-slot" data-path='${pathJSON}' data-day="${day}" data-idx="${idx}">`;
             if (node.content.subject) {
                 let typeLabel = node.content.type === 'Лекція' ? 'Лек' : (node.content.type === 'Практична' ? 'Прак' : 'Лаб');
@@ -226,7 +219,6 @@ function renderNodeHTML(node, day, idx, pathStr, mode) {
                 if(node.content.type==='Лекція') style='background:var(--lec-bg);color:var(--lec-txt)';
                 if(node.content.type==='Практична') style='background:var(--prac-bg);color:var(--prac-txt)';
                 if(node.content.type==='Лабораторна') style='background:var(--lab-bg);color:var(--lab-txt)';
-                
                 inner = `<div class="sub-cell" style="${style}"><b>${node.content.subject}</b><br><small>${typeLabel}</small><br><small>${node.content.room||''}</small></div>`;
             } else {
                 inner = `<div class="sub-cell" style="opacity:0.5; font-size:10px">Пусто</div>`;
@@ -236,6 +228,8 @@ function renderNodeHTML(node, day, idx, pathStr, mode) {
         return inner;
     } 
     
+    // .split-v (Вертикально) для Чис/Знам
+    // .split-h (Горизонтально) для Підгруп
     let containerClass = (node.type === 'numden') ? 'split-v' : 'split-h';
     let keys = (node.type === 'numden') ? ['num', 'den'] : ['sub1', 'sub2'];
     let labels = (node.type === 'numden') ? ['Чис', 'Знам'] : ['Гр. 1', 'Гр. 2'];
@@ -270,7 +264,6 @@ function renderGridGeneric(containerId, mode) {
             row.className = 'grid-row';
             
             const timeVal = lesson.customTime || appState.config.times[idx] || '';
-            // Час тепер в окремій колонці
             row.innerHTML = `
                 <div class="row-number">${idx+1}</div>
                 <div class="row-time" onclick="openTimeModal('${day}', ${idx})">${timeVal}</div>
@@ -291,7 +284,7 @@ function renderGridGeneric(containerId, mode) {
 function renderStructureGrid() { renderGridGeneric('structureGrid', 'structure'); }
 function renderFillGrid() { renderGridGeneric('visualGridFill', 'fill'); }
 
-// === ЛОГІКА МЕНЮ СТРУКТУРИ (ВИПРАВЛЕНО) ===
+// === STRUCTURE MENU ===
 window.handleCellClick = function(e, day, idx, path) {
     e.stopPropagation();
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -299,27 +292,15 @@ window.handleCellClick = function(e, day, idx, path) {
     
     appState.activePath = { day, idx, path };
     
-    // Перевіряємо, що вже є в шляху, щоб не пропонувати це знову
     const hasNumDen = path.includes('num') || path.includes('den');
     const hasSub = path.includes('sub1') || path.includes('sub2');
     
     const options = [];
-    
-    // Час - завжди зліва (270)
     options.push({ label: '⏰ Час', angle: 270, action: 'time', color: '#f59e0b' });
-    
-    // Очистити - завжди внизу (180)
     options.push({ label: '🗑 Очистити', angle: 180, action: 'clear', color: '#ef4444' });
     
-    // Якщо ще немає Чис/Знам - додаємо вгору (0)
-    if (!hasNumDen) {
-        options.push({ label: '⬆ Чис/Знам', angle: 0, action: 'numden', color: '#10b981' });
-    }
-    
-    // Якщо ще немає Підгруп - додаємо вправо (90)
-    if (!hasSub) {
-        options.push({ label: '➡ Підгрупи', angle: 90, action: 'subgroups', color: '#3b82f6' });
-    }
+    if (!hasNumDen) options.push({ label: '⬆ Чис/Знам', angle: 0, action: 'numden', color: '#10b981' });
+    if (!hasSub) options.push({ label: '➡ Підгрупи', angle: 90, action: 'subgroups', color: '#3b82f6' });
     
     showRadialMenu(clientX, clientY, options, (action) => {
         applyStructureChange(action);
@@ -329,17 +310,14 @@ window.handleCellClick = function(e, day, idx, path) {
 function applyStructureChange(action) {
     const { day, idx, path } = appState.activePath;
     
-    if (action === 'time') {
-        openTimeModal(day, idx);
-        return;
-    }
+    if (action === 'time') { openTimeModal(day, idx); return; }
 
-    let node = getNodeByPath(day, idx, path);
-    
     if (action === 'clear') {
-        node.type = 'single';
-        node.content = {};
+        // === ВИПРАВЛЕНО: Скидаємо ВЕСЬ СЛОТ (корінь) ===
+        appState.gridData[day][idx] = { type: 'single', content: {} };
     } else {
+        // Ділимо поточний вузол
+        let node = getNodeByPath(day, idx, path);
         node.type = action;
         node.content = {}; 
         if (action === 'numden') {
@@ -353,7 +331,7 @@ function applyStructureChange(action) {
     renderStructureGrid();
 }
 
-// === FILL & DRAG ACTIONS ===
+// === DRAG & DROP ===
 function renderSidebarPuzzles() {
     const container = document.getElementById('puzzleContainer');
     container.innerHTML = '';
@@ -378,32 +356,30 @@ function setupTouchDrag(element, subject) {
         
         const ghost = element.cloneNode(true);
         ghost.style.position = 'fixed'; ghost.style.zIndex = 10001; ghost.style.width = '150px';
+        ghost.style.pointerEvents = 'none'; // CRITICAL for elementFromPoint
         document.body.appendChild(ghost);
         appState.ghost = ghost;
 
-        // Початкове меню для драгу
-        const opts = [];
-        if(subject.types.lec) opts.push({ label: 'Лекція', angle: 270, color: '#ffffff' }); // L
-        if(subject.types.prac) opts.push({ label: 'Практика', angle: 90, color: '#9ca3af' }); // R
-        if(subject.types.lab) opts.push({ label: 'Лабораторна', angle: 180, color: '#1f2937' }); // B
+        const menu = appState.radialMenu;
         
-        // Показати меню тільки якщо є вибір
-        if (opts.length > 1) {
-            showRadialMenu(cx, cy, opts, null); // callback null бо драг обробляється в onMove
+        let hasMultiple = ((subject.types.lec?1:0) + (subject.types.prac?1:0) + (subject.types.lab?1:0)) > 1;
+        if(hasMultiple) {
+             menu.style.background = `conic-gradient(#9ca3af 0deg 120deg, #1f2937 120deg 240deg, #ffffff 240deg 360deg)`;
+             menu.style.left = cx+'px'; menu.style.top = cy+'px';
+             menu.style.display = 'block';
         }
 
         const onMove = (ev) => {
             ev.preventDefault();
             const mx = ev.touches ? ev.touches[0].clientX : ev.clientX;
             const my = ev.touches ? ev.touches[0].clientY : ev.clientY;
-            
             ghost.style.left = mx + 'px'; ghost.style.top = my + 'px';
             
             const dx = mx - cx; const dy = my - cy;
             const dist = Math.sqrt(dx*dx + dy*dy);
             
             let selectedType = null;
-            if(dist > 20) {
+            if(dist > 20 && hasMultiple) {
                  if (Math.abs(dx) > Math.abs(dy)) {
                      if(dx < 0 && subject.types.lec) selectedType = 'Лекція';
                      if(dx > 0 && subject.types.prac) selectedType = 'Практична';
@@ -411,12 +387,10 @@ function setupTouchDrag(element, subject) {
                      if(dy > 0 && subject.types.lab) selectedType = 'Лабораторна';
                  }
             }
-            // Fallback for single type
-            if (!selectedType) {
-                 const t = subject.types;
-                 if(t.lec && !t.prac && !t.lab) selectedType = 'Лекція';
-                 else if(!t.lec && t.prac && !t.lab) selectedType = 'Практична';
-                 else if(!t.lec && !t.prac && t.lab) selectedType = 'Лабораторна';
+            if (!selectedType && !hasMultiple) {
+                 if(subject.types.lec) selectedType = 'Лекція';
+                 else if(subject.types.prac) selectedType = 'Практична';
+                 else selectedType = 'Лабораторна';
             }
 
             if(selectedType) {
@@ -424,22 +398,16 @@ function setupTouchDrag(element, subject) {
                 ghost.style.color = (selectedType==='Лекція')?'black':'white';
                 ghost.innerText = `${subject.name}\n${selectedType}`;
                 appState.activeSector = selectedType;
-                
-                // Highlight sector in menu (Optional visual feedback)
-                // appState.radialMenu.style.opacity = 1;
-            } else { 
-                appState.activeSector = null; 
-            }
+            } else { appState.activeSector = null; }
         }
 
         const onEnd = (ev) => {
             document.removeEventListener('touchmove', onMove); document.removeEventListener('mousemove', onMove);
             document.removeEventListener('touchend', onEnd); document.removeEventListener('mouseup', onEnd);
-            ghost.remove();
             
-            // Hide menu
-            appState.radialMenu.style.display = 'none';
-            appState.radialLabels.style.display = 'none';
+            // === ВИПРАВЛЕНО: Ховаємо все перед перевіркою ===
+            ghost.style.display = 'none';
+            menu.style.display = 'none';
 
             const mx = ev.changedTouches ? ev.changedTouches[0].clientX : ev.clientX;
             const my = ev.changedTouches ? ev.changedTouches[0].clientY : ev.clientY;
@@ -449,10 +417,11 @@ function setupTouchDrag(element, subject) {
             if(subCell && appState.activeSector) {
                 const day = subCell.dataset.day;
                 const idx = parseInt(subCell.dataset.idx);
-                const path = JSON.parse(subCell.dataset.path);
-                
+                let path = [];
+                try { path = JSON.parse(subCell.dataset.path || '[]'); } catch(e){}
                 handleDropLogic(day, idx, path, subject, appState.activeSector);
             }
+            ghost.remove();
         };
 
         document.addEventListener('touchmove', onMove, {passive:false});
@@ -517,40 +486,17 @@ function showRadialMenu(x, y, options, callback) {
     const menu = appState.radialMenu;
     const labels = appState.radialLabels;
     
-    // BUILD DYNAMIC GRADIENT FOR SECTORS
-    // Start angles: Top=0, Right=90, Bottom=180, Left=270.
-    // Slices are +/- 45 deg from center.
-    // 0 deg slice: 315 to 45
-    // 90 deg slice: 45 to 135
-    // 180 deg slice: 135 to 225
-    // 270 deg slice: 225 to 315
-    
+    // BUILD DYNAMIC GRADIENT
     let parts = [];
-    
-    // Helper to add slice
-    const addSlice = (centerAngle, color) => {
-        let start = centerAngle - 45;
-        let end = centerAngle + 45;
-        if (start < 0) start += 360; // 315
-        // CSS conic-gradient logic:
-        if (start > end) { // Wraps around 0 (e.g. 315 to 45)
-             parts.push(`${color} ${start}deg 360deg`);
-             parts.push(`${color} 0deg ${end}deg`);
-        } else {
-             parts.push(`${color} ${start}deg ${end}deg`);
-        }
-    };
-
     options.forEach(opt => {
-        if(opt.color) addSlice(opt.angle, opt.color);
+        if(opt.color) {
+            let start = opt.angle - 45; let end = opt.angle + 45;
+            if(start < 0) start += 360;
+            if(start > end) { parts.push(`${opt.color} ${start}deg 360deg`); parts.push(`${opt.color} 0deg ${end}deg`); }
+            else { parts.push(`${opt.color} ${start}deg ${end}deg`); }
+        }
     });
-    
-    // Background style
-    if (parts.length > 0) {
-        menu.style.background = `conic-gradient(${parts.join(', ')})`;
-    } else {
-        menu.style.background = 'rgba(255,255,255,0.9)';
-    }
+    menu.style.background = parts.length ? `conic-gradient(${parts.join(', ')})` : 'rgba(255,255,255,0.9)';
 
     labels.innerHTML = '';
     options.forEach(opt => {
@@ -558,9 +504,7 @@ function showRadialMenu(x, y, options, callback) {
         lbl.className = 'r-label';
         lbl.innerText = opt.label;
         const rad = (opt.angle - 90) * Math.PI / 180;
-        const dist = 75;
-        const lx = 100 + dist * Math.cos(rad);
-        const ly = 100 + dist * Math.sin(rad);
+        const lx = 90 + 70 * Math.cos(rad); const ly = 90 + 70 * Math.sin(rad);
         lbl.style.left = lx + 'px'; lbl.style.top = ly + 'px';
         labels.appendChild(lbl);
     });
@@ -586,21 +530,12 @@ function showRadialMenu(x, y, options, callback) {
         if(Math.sqrt(dx*dx + dy*dy) > 20) {
             let angle = Math.atan2(dy, dx) * 180 / Math.PI + 90;
             if(angle < 0) angle += 360;
-            
-            // Find closest option
-            // (Check if angle is within +/- 45 deg of option.angle)
             let selected = options.find(o => {
                 let diff = Math.abs(o.angle - angle);
                 if (diff > 180) diff = 360 - diff;
                 return diff <= 45;
             });
-            
-            if(selected) {
-                menu.style.opacity = 1;
-                appState.menuSelection = selected.action;
-            } else {
-                appState.menuSelection = null;
-            }
+            if(selected) { menu.style.opacity = 1; appState.menuSelection = selected.action; }
         }
     }
 
@@ -610,17 +545,13 @@ function showRadialMenu(x, y, options, callback) {
 
 function openTimeModal(day, idx) {
     appState.editTimeTarget = {day, idx};
-    const val = appState.gridData[day][idx].customTime || DEFAULT_TIMES[idx] || '';
-    document.getElementById('customTimeInput').value = val;
+    document.getElementById('customTimeInput').value = appState.gridData[day][idx].customTime || DEFAULT_TIMES[idx] || '';
     document.getElementById('timeModal').style.display = 'flex';
 }
 function applyCustomTime() {
-    if(appState.editTimeTarget) {
-        appState.gridData[appState.editTimeTarget.day][appState.editTimeTarget.idx].customTime = document.getElementById('customTimeInput').value;
-    }
+    appState.gridData[appState.editTimeTarget.day][appState.editTimeTarget.idx].customTime = document.getElementById('customTimeInput').value;
     document.getElementById('timeModal').style.display = 'none';
-    if(appState.step === 3) renderStructureGrid();
-    else renderFillGrid();
+    if(appState.step===3) renderStructureGrid(); else renderFillGrid();
 }
 
 function saveVisualSchedule() {
