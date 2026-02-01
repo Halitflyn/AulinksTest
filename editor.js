@@ -11,7 +11,8 @@ let appState = {
     draggedSubject: null, dragStartPos: {x:0, y:0}, activeSector: null, ghost: null,
     radialMenu: null, radialLabels: null,
     activePath: null,
-    editTimeTarget: null
+    editTimeTarget: null,
+    lastHoveredCell: null // Для підсвітки
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -194,7 +195,7 @@ function removeSmartSubject(id) {
     renderSmartList();
 }
 
-// === STRUCTURE GRID ===
+// === GRID RENDERING ===
 function getNodeByPath(day, idx, path) {
     let node = appState.gridData[day][idx];
     for (let key of path) {
@@ -311,8 +312,7 @@ function applyStructureChange(action) {
     if (action === 'time') { openTimeModal(day, idx); return; }
 
     if (action === 'clear') {
-        // === FIX: RESET WHOLE SLOT ===
-        // We ignore 'path' and reset the root lesson in gridData
+        // RESET ENTIRE SLOT
         appState.gridData[day][idx] = { type: 'single', content: {} };
     } else {
         let node = getNodeByPath(day, idx, path);
@@ -347,6 +347,7 @@ function setupTouchDrag(element, subject) {
     element.addEventListener('mousedown', start);
 
     function start(e) {
+        // e.preventDefault();
         const cx = e.touches ? e.touches[0].clientX : e.clientX;
         const cy = e.touches ? e.touches[0].clientY : e.clientY;
         appState.dragStartPos = {x:cx, y:cy};
@@ -354,7 +355,8 @@ function setupTouchDrag(element, subject) {
         
         const ghost = element.cloneNode(true);
         ghost.style.position = 'fixed'; ghost.style.zIndex = 10001; ghost.style.width = '150px';
-        ghost.style.pointerEvents = 'none'; // Critical
+        ghost.style.pointerEvents = 'none'; // Essential
+        ghost.style.opacity = 0.9;
         document.body.appendChild(ghost);
         appState.ghost = ghost;
 
@@ -372,6 +374,18 @@ function setupTouchDrag(element, subject) {
             const my = ev.touches ? ev.touches[0].clientY : ev.clientY;
             ghost.style.left = mx + 'px'; ghost.style.top = my + 'px';
             
+            // HIGHLIGHT LOGIC
+            const target = document.elementFromPoint(mx, my);
+            const subCell = target?.closest('.sub-cell');
+            
+            if (appState.lastHoveredCell && appState.lastHoveredCell !== subCell) {
+                appState.lastHoveredCell.classList.remove('drag-over');
+            }
+            if (subCell) {
+                subCell.classList.add('drag-over');
+                appState.lastHoveredCell = subCell;
+            }
+
             const dx = mx - cx; const dy = my - cy;
             const dist = Math.sqrt(dx*dx + dy*dy);
             
@@ -395,15 +409,19 @@ function setupTouchDrag(element, subject) {
                 ghost.style.color = (selectedType==='Лекція')?'black':'white';
                 ghost.innerText = `${subject.name}\n${selectedType}`;
                 appState.activeSector = selectedType;
-            } else { appState.activeSector = null; ghost.style.background='var(--bg)'; ghost.style.color='var(--text)'; }
+            } else { 
+                appState.activeSector = null; 
+                ghost.style.background = 'var(--bg)'; ghost.style.color = 'var(--text)';
+            }
         }
 
         const onEnd = (ev) => {
             document.removeEventListener('touchmove', onMove); document.removeEventListener('mousemove', onMove);
             document.removeEventListener('touchend', onEnd); document.removeEventListener('mouseup', onEnd);
             
-            // === FORCE HIDE GHOST TO DETECT UNDERLYING ELEMENT ===
-            ghost.style.display = 'none';
+            if (appState.lastHoveredCell) appState.lastHoveredCell.classList.remove('drag-over');
+            
+            ghost.style.display = 'none'; // Hide to find element below
             menu.style.display = 'none';
 
             const mx = ev.changedTouches ? ev.changedTouches[0].clientX : ev.clientX;
