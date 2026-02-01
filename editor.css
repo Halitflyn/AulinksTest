@@ -8,14 +8,13 @@
     --border: #e5e7eb;
     
     --lec-bg: #ffffff; --lec-txt: #000; --lec-border: #d1d5db;
-    --prac-bg: #9ca3af; --prac-txt: #ffffff; --prac-border: #6b7280;
-    --lab-bg: #1f2937; --lab-txt: #ffffff; --lab-border: #000000;
+    --prac-bg: #9ca3af; --prac-txt: #fff; --prac-border: #6b7280;
+    --lab-bg: #1f2937; --lab-txt: #fff; --lab-border: #000000;
 }
 
 body.dark-mode {
     --bg: #111827; --card: #1f2937; --text: #f9fafb; --border: #374151;
-    --lec-bg: #e5e7eb; --lec-txt: #000;
-    --prac-bg: #4b5563; --lab-bg: #000000; --lab-border: #374151;
+    --lec-bg: #e5e7eb; --lec-txt: #000; --prac-bg: #4b5563; --lab-bg: #000000; --lab-border: #374151;
 }
 
 body { font-family: 'Inter', sans-serif; margin: 0; padding: 10px; background: var(--bg); color: var(--text); height: 100vh; box-sizing: border-box; overflow: hidden; }
@@ -63,6 +62,12 @@ input, select { width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px 
 .badge.lab { background: var(--lab-bg); color: var(--lab-txt); }
 .del-item-btn { position: absolute; top: 5px; right: 8px; color: #ef4444; cursor: pointer; font-weight: bold; font-size: 18px; }
 
+/* MODE BUTTONS */
+.mode-buttons { display: flex; gap: 20px; justify-content: center; margin-top: 40px; flex-wrap: wrap; }
+.big-btn { padding: 20px 40px; font-size: 18px; font-weight: 600; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+.big-btn.primary { background: var(--accent); color: white; }
+.big-btn.secondary { background: var(--card); border: 1px solid var(--border); color: var(--text); }
+
 /* GRID & STRUCTURE */
 .structure-editor-container { flex: 1; overflow-y: auto; padding-right: 5px; }
 .visual-feed { display: flex; flex-direction: column; gap: 15px; padding-bottom: 50px; }
@@ -78,8 +83,8 @@ input, select { width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px 
 
 .grid-slot { flex: 1; background: var(--card); display: flex; flex-direction: column; position: relative; }
 
-/* === НАПРЯМКИ ПОДІЛУ (Виправлено) === */
-.split-v { display: flex; flex-direction: column; flex: 1; height: 100%; } /* Чисельник/Знаменник - Вертикально */
+/* === НАПРЯМКИ ПОДІЛУ === */
+.split-v { display: flex; flex-direction: column; flex: 1; height: 100%; } /* Чис/Знам - Вертикально */
 .split-h { display: flex; flex-direction: row; flex: 1; height: 100%; }    /* Підгрупи - Горизонтально */
 
 .sub-cell-wrapper { flex: 1; display: flex; position: relative; border: 1px solid var(--border); margin: -1px; min-width: 0; }
