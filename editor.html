@@ -36,11 +36,11 @@
             <div class="form-grid">
                 <div>
                     <label>Назва групи</label>
-                    <input type="text" id="groupName" value="Моя група">
+                    <input type="text" id="groupName" value="Моя група" name="groupName">
                 </div>
                 <div>
                     <label>Пар на день</label>
-                    <select id="pairsPerDay">
+                    <select id="pairsPerDay" name="pairsPerDay">
                         <option value="4">4</option>
                         <option value="5" selected>5</option>
                         <option value="6">6</option>
@@ -71,7 +71,7 @@
             <h2>📚 Предмети</h2>
             <div class="add-subject-box">
                 <div class="input-row">
-                    <input type="text" id="subjName" placeholder="Назва предмету (напр. Вища математика)" style="width: 100%;">
+                    <input type="text" id="subjName" placeholder="Назва предмету (напр. Вища математика)" style="width: 100%;" name="subjName">
                 </div>
                 
                 <div class="checkbox-row" style="margin: 15px 0;">
@@ -136,17 +136,17 @@
 
             <div id="variantSelectorContainer" style="display:none; margin-bottom: 15px;">
                 <label style="font-size: 0.8rem; font-weight: bold; display: block; margin-bottom: 5px;">Оберіть варіант:</label>
-                <select id="modalVariantSelector" style="width: 100%; padding: 8px;"></select>
+                <select id="modalVariantSelector" style="width: 100%; padding: 8px;" name="variantSelect"></select>
             </div>
 
             <div class="modal-inputs">
                 <div class="input-group">
                     <label>👤 Викладач:</label>
-                    <input type="text" id="modalDropTeacher" placeholder="Прізвище І.Б.">
+                    <input type="text" id="modalDropTeacher" placeholder="Прізвище І.Б." name="modalTeacher">
                 </div>
                 <div class="input-group">
                     <label>🚪 Аудиторія:</label>
-                    <input type="text" id="modalDropRoom" placeholder="Номер аудиторії">
+                    <input type="text" id="modalDropRoom" placeholder="Номер аудиторії" name="modalRoom">
                 </div>
             </div>
 
