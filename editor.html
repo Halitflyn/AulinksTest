@@ -3,154 +3,167 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Конструктор розкладу</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="./editor.css">
+    <title>Конструктор Розкладу</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="editor.css">
 </head>
 <body>
 
-    <header>
-        <h1>🧩 Конструктор</h1>
-        <div>
-            <button id="themeToggle" title="Змінити тему">🌗</button>
-            <a href="./index.html" class="nav-link">Вихід</a>
+    <div class="bg-decoration"></div>
+
+    <header class="glass-header">
+        <div class="header-content">
+            <div class="logo">📅 Editor <span>Wizard</span></div>
+            <div class="actions">
+                <button id="themeToggle" class="icon-btn">🌗</button>
+                <a href="index.html" class="nav-link">На сайт</a>
+            </div>
         </div>
     </header>
 
-    <main class="editor-container">
-        
-        <div id="startScreen" class="screen active">
-            <h2>Як ви хочете редагувати?</h2>
-            <div class="mode-buttons">
-                <button id="btnClassicEdit" class="big-btn secondary">📝 Класичний список</button>
-                <button id="btnVisualEdit" class="big-btn primary">✨ Створити з нуля (Візуально)</button>
-            </div>
-            <div class="controls" style="justify-content: center; margin-top: 20px;">
-                 <input type="file" id="loadFileInput" accept=".json" style="display: none;">
-                 <button id="loadFileBtn" class="load-file-btn">Завантажити файл</button>
-            </div>
+    <main class="wizard-container">
+        <div class="wizard-progress">
+            <div class="step-indicator active" data-step="1">1. Налаштування</div>
+            <div class="step-indicator" data-step="2">2. Предмети</div>
+            <div class="step-indicator" data-step="3">3. Сітка</div>
+            <div class="step-indicator" data-step="4">4. Наповнення</div>
         </div>
 
-        <div id="classicEditor" class="screen" style="display: none;">
-            <div class="controls">
-                <button id="backToStartBtn" class="load-btn">⬅ Назад</button>
-                <button id="saveBtn" class="save-btn">Зберегти</button>
-            </div>
-            <div id="classicFormContainer"></div>
-        </div>
-
-        <div id="visualWizard" class="screen" style="display: none;">
+        <div class="wizard-content glass-panel">
             
-            <div id="step1" class="wizard-step active">
-                <h3>Крок 1: Налаштування сітки</h3>
+            <section id="step-1" class="wizard-step active">
+                <h2>⚙️ Базові налаштування</h2>
                 <div class="form-grid">
-                    <label>Тип тижня (в університеті):
-                        <select id="wizWeekType">
-                            <option value="numden">Чисельник / Знаменник</option>
-                            <option value="none">Без поділу</option>
+                    <div class="input-group">
+                        <label>Назва групи</label>
+                        <input type="text" id="groupName" placeholder="ІП-24">
+                    </div>
+                    <div class="input-group">
+                        <label>Тип тижня</label>
+                        <select id="weekTypeSelect">
+                            <option value="static">Статичний (без поділу)</option>
+                            <option value="dynamic" selected>Чисельник / Знаменник</option>
                         </select>
-                    </label>
-                    <label>Який ЗАРАЗ тиждень?
-                        <select id="wizCurrentWeek">
-                            <option value="num">Чисельник</option>
-                            <option value="den">Знаменник</option>
-                        </select>
-                    </label>
-                    <label>Пар на день:
-                        <input type="number" id="wizLessonCount" value="5" min="1" max="8">
-                    </label>
-                </div>
-                <div id="wizTimeSlots" class="time-slots-grid"></div>
-                <button class="next-btn" onclick="wizardNext(2)">Далі (Предмети) ➡</button>
-            </div>
-
-            <div id="step2" class="wizard-step">
-                <div class="step-header">
-                    <button class="prev-btn icon-btn" onclick="wizardNext(1)">⬅</button>
-                    <h3>Крок 2: Створіть "Пазли" (Предмети)</h3>
-                    <button class="next-btn" onclick="wizardNext(3)">Далі (Структура) ➡</button>
-                </div>
-                
-                <div class="db-creator-smart">
-                    <div class="smart-card-form">
-                        <h4>Новий предмет</h4>
-                        <input type="text" id="smartSubjectName" placeholder="Назва (напр. Фізика)">
-                        
-                        <div class="type-toggles">
-                            <span>Типи:</span>
-                            <label><input type="checkbox" id="smartHasLec"> Лек</label>
-                            <label><input type="checkbox" id="smartHasPrac"> Прак</label>
-                            <label><input type="checkbox" id="smartHasLab"> Лаб</label>
+                    </div>
+                    <div class="input-group" id="currentWeekGroup">
+                        <label>Поточний тиждень</label>
+                        <div class="radio-toggle">
+                            <input type="radio" name="curWeek" id="cwNum" value="numerator" checked>
+                            <label for="cwNum">Чисельник</label>
+                            <input type="radio" name="curWeek" id="cwDen" value="denominator">
+                            <label for="cwDen">Знаменник</label>
                         </div>
+                    </div>
+                    <div class="input-group">
+                        <label>Пар на день</label>
+                        <input type="number" id="pairsPerDay" value="5" min="1" max="8">
+                    </div>
+                </div>
 
-                        <div class="teacher-room-label">Аудиторії та Викладачі:</div>
-                        <div class="teacher-room-list" id="smartDetailsList">
+                <h3>Час дзвінків</h3>
+                <div class="time-settings" id="timeSettings">
+                    </div>
+
+                <div class="step-footer">
+                    <button class="btn btn-primary" onclick="wizard.next()">Далі &rarr;</button>
+                </div>
+            </section>
+
+            <section id="step-2" class="wizard-step">
+                <h2>📚 База предметів</h2>
+                <div class="subject-creator">
+                    <div class="form-grid">
+                        <div class="input-group full-width">
+                            <label>Назва предмету</label>
+                            <input type="text" id="subjName" placeholder="Вища математика">
+                        </div>
+                        <div class="input-group full-width">
+                            <label>Типи занять</label>
+                            <div class="checkbox-group">
+                                <label><input type="checkbox" class="type-check" value="Lec"> Лекція</label>
+                                <label><input type="checkbox" class="type-check" value="Prac"> Практика</label>
+                                <label><input type="checkbox" class="type-check" value="Lab"> Лабораторна</label>
                             </div>
-                        <button id="addDetailRowBtn" class="small-btn dashed">+ Дод. аудиторію</button>
-
-                        <button id="addSmartSubjectBtn" class="add-main-btn">+ Додати предмет</button>
-                    </div>
-
-                    <div class="smart-list-container">
-                        <h4 style="margin-top: 0;">Ваші предмети:</h4>
-                        <div id="smartSubjectList" class="items-list"></div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="step3" class="wizard-step full-width-col">
-                <div class="step-header-slim">
-                    <button class="prev-btn icon-btn" onclick="wizardNext(2)">⬅ Назад</button>
-                    <h3>Крок 3: Налаштуйте структуру (Натисніть на клітинку)</h3>
-                    <button class="next-btn" onclick="wizardNext(4)">Далі (Наповнення) ➡</button>
-                </div>
-                <div class="structure-editor-container">
-                    <div id="structureGrid" class="visual-feed"></div>
-                </div>
-            </div>
-
-            <div id="step4" class="wizard-step full-width">
-                <div class="workspace-layout">
-                    
-                    <div class="puzzle-sidebar">
-                        <h3>🧩 Предмети</h3>
-                        <div id="puzzleContainer" class="puzzle-container"></div>
-                        <div class="sidebar-buttons">
-                            <button class="prev-btn" onclick="wizardNext(3)">⬅ Назад</button>
-                            <button id="finishVisualBtn" class="save-btn big">💾 Зберегти розклад</button>
                         </div>
                     </div>
+                    
+                    <div id="teacherFields" class="teacher-fields"></div>
+                    
+                    <button class="btn btn-secondary" id="addSubjectBtn">+ Додати предмет</button>
+                </div>
 
-                    <div class="schedule-scroll-container">
-                        <div id="visualGridFill" class="visual-feed"></div>
+                <div class="subjects-list" id="subjectsList">
                     </div>
 
+                <div class="step-footer">
+                    <button class="btn btn-outline" onclick="wizard.prev()">&larr; Назад</button>
+                    <button class="btn btn-primary" onclick="wizard.next()">Далі &rarr;</button>
                 </div>
-            </div>
+            </section>
 
+            <section id="step-3" class="wizard-step">
+                <h2>📐 Структура сітки</h2>
+                <p class="hint">Клікайте на клітинки, щоб розділити їх (Чис/Знам або Підгрупи) або змінити час.</p>
+                
+                <div class="schedule-grid-container" id="structureGrid">
+                    </div>
+
+                <div class="step-footer">
+                    <button class="btn btn-outline" onclick="wizard.prev()">&larr; Назад</button>
+                    <button class="btn btn-primary" onclick="wizard.next()">Далі &rarr;</button>
+                </div>
+            </section>
+
+            <section id="step-4" class="wizard-step">
+                <h2>🎨 Наповнення розкладу</h2>
+                
+                <div class="editor-layout">
+                    <aside class="sidebar glass-panel">
+                        <h3>Предмети</h3>
+                        <div id="draggableSubjects" class="draggable-list">
+                            </div>
+                    </aside>
+                    
+                    <div class="main-schedule-area">
+                        <div class="schedule-grid-container interactive" id="fillGrid">
+                            </div>
+                    </div>
+                </div>
+
+                <div class="step-footer">
+                    <button class="btn btn-outline" onclick="wizard.prev()">&larr; Назад</button>
+                    <button class="btn btn-success" id="saveResultBtn">💾 Зберегти розклад</button>
+                </div>
+            </section>
         </div>
-
     </main>
 
-    <div id="timeModal" class="modal">
-        <div class="modal-content">
-            <h3>Змінити час</h3>
-            <input type="text" id="customTimeInput" placeholder="00:00 - 00:00">
-            <div class="modal-actions">
-                <button id="saveTimeBtn">ОК</button>
-                <button onclick="document.getElementById('timeModal').style.display='none'">Скасувати</button>
-            </div>
+    <div id="gridRadialMenu" class="radial-menu hidden">
+        <div class="radial-btn top" data-action="split-vertical" title="Чис/Знам">⬆</div>
+        <div class="radial-btn right" data-action="split-horizontal" title="Підгрупи">➡</div>
+        <div class="radial-btn bottom" data-action="clear" title="Очистити">⬇</div>
+        <div class="radial-btn left" data-action="time" title="Час">⬅</div>
+        <div class="radial-center">⚙️</div>
+    </div>
+
+    <div id="dragGhost" class="drag-ghost hidden">
+        <div class="ghost-content"></div>
+        <div class="ghost-radial">
+            <div class="sector sec-lec">Lec</div>
+            <div class="sector sec-prac">Prac</div>
+            <div class="sector sec-lab">Lab</div>
         </div>
     </div>
 
-    <div id="roomChoiceModal" class="modal">
-        <div class="modal-content">
-            <h3>Оберіть варіант</h3>
-            <div id="roomChoicesList" class="room-choices-grid"></div>
-            <button onclick="document.getElementById('roomChoiceModal').style.display='none'" style="margin-top:10px;">Скасувати</button>
+    <div id="modalOverlay" class="modal-overlay hidden">
+        <div class="glass-modal">
+            <h3>Оберіть викладача</h3>
+            <div id="modalOptions" class="modal-options"></div>
+            <button class="btn btn-outline" onclick="closeModal()">Скасувати</button>
         </div>
     </div>
 
-    <script src="./editor.js"></script>
+    <script src="editor.js"></script>
 </body>
 </html>
