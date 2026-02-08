@@ -10,6 +10,10 @@ const state = {
     grid: {} 
 };
 
+// Тимчасове сховище варіантів для форми створення предмету
+// Формат: { lecture: [{teacher:'', room:''}, ...], practical: ... }
+let currentSubjectVariants = {};
+
 const dayKeys = ["monday", "tuesday", "wednesday", "thursday", "friday"];
 const dayNamesUk = ["Понеділок", "Вівторок", "Середа", "Четвер", "П'ятниця"];
 let pendingDrop = null; 
@@ -110,48 +114,48 @@ function renderTimeInputs() {
 }
 document.getElementById('pairsPerDay').addEventListener('change', renderTimeInputs);
 
-/* ================= КРОК 2 (DYNAMIC TYPES) ================= */
+/* ================= КРОК 2 (DYNAMIC TYPES & VARIANTS) ================= */
 function initSubjectFormListeners() {
     const checkboxes = document.querySelectorAll('.type-check');
     checkboxes.forEach(cb => {
         cb.addEventListener('change', renderTypeDetailInputs);
     });
-    renderTypeDetailInputs(); // Init on load
 }
 
 function renderTypeDetailInputs() {
     const container = document.getElementById('typeDetailsContainer');
-    // Не стираємо все, якщо там вже є введені дані (optional optimization)
-    // Але для простоти перемалюємо, зберігаючи значення? Ні, просто перемалюємо.
-    // Якщо хочете зберігати введене поки юзер клацає чекбокси, треба складнішу логіку.
-    // Тут проста версія:
-    const checkboxes = document.querySelectorAll('.type-check:checked');
+    // Зберігаємо поточні дані з полів перед перемальовкою
+    saveCurrentInputsToMemory();
     
-    // Збережемо поточні значення якщо елементи існують, щоб не втратити при перерендери
-    const currentValues = {};
-    container.querySelectorAll('.type-detail-row').forEach(row => {
-        const t = row.dataset.type;
-        currentValues[t] = {
-            teacher: row.querySelector('.inp-teacher').value,
-            room: row.querySelector('.inp-room').value
-        };
-    });
-
     container.innerHTML = '';
+    const checkboxes = document.querySelectorAll('.type-check:checked');
     if (checkboxes.length === 0) return;
 
     const labels = { 'lecture': 'Лекція', 'practical': 'Практика', 'lab': 'Лабораторна' };
 
     checkboxes.forEach(cb => {
         const type = cb.value;
-        const vals = currentValues[type] || {teacher: '', room: ''};
-        
+        // Якщо для цього типу ще немає варіантів, створимо один порожній
+        if (!currentSubjectVariants[type] || currentSubjectVariants[type].length === 0) {
+            currentSubjectVariants[type] = [{teacher: '', room: ''}];
+        }
+
+        const rowsHtml = currentSubjectVariants[type].map((variant, index) => `
+            <div class="variant-row" data-index="${index}">
+                <input type="text" class="inp-teacher" placeholder="Викладач" value="${variant.teacher}" oninput="updateMemory('${type}', ${index}, 'teacher', this.value)" style="flex:1">
+                <input type="text" class="inp-room" placeholder="Ауд." value="${variant.room}" oninput="updateMemory('${type}', ${index}, 'room', this.value)" style="flex:0.5">
+                ${index > 0 ? `<span class="btn-remove-variant" onclick="removeVariant('${type}', ${index})">×</span>` : ''}
+            </div>
+        `).join('');
+
         const html = `
-            <div class="type-detail-row" data-type="${type}">
-                <div class="detail-header">${labels[type]}</div>
-                <div class="detail-inputs">
-                    <input type="text" class="inp-teacher" placeholder="Викладач" value="${vals.teacher}" style="flex:1">
-                    <input type="text" class="inp-room" placeholder="Ауд." value="${vals.room}" style="flex:0.5">
+            <div class="type-detail-block" data-type="${type}">
+                <div class="type-header">
+                    <span>${labels[type]}</span>
+                    <button class="btn-add-variant" onclick="addVariant('${type}')">+ варіант</button>
+                </div>
+                <div class="variants-container">
+                    ${rowsHtml}
                 </div>
             </div>
         `;
@@ -159,7 +163,46 @@ function renderTypeDetailInputs() {
     });
 }
 
+// Глобальні функції для HTML onclick
+window.updateMemory = (type, index, field, value) => {
+    if(!currentSubjectVariants[type]) currentSubjectVariants[type] = [];
+    if(!currentSubjectVariants[type][index]) currentSubjectVariants[type][index] = {};
+    currentSubjectVariants[type][index][field] = value;
+}
+
+window.addVariant = (type) => {
+    saveCurrentInputsToMemory();
+    if(!currentSubjectVariants[type]) currentSubjectVariants[type] = [];
+    currentSubjectVariants[type].push({teacher: '', room: ''});
+    renderTypeDetailInputs();
+};
+
+window.removeVariant = (type, index) => {
+    saveCurrentInputsToMemory();
+    if(currentSubjectVariants[type]) {
+        currentSubjectVariants[type].splice(index, 1);
+    }
+    renderTypeDetailInputs();
+};
+
+function saveCurrentInputsToMemory() {
+    const blocks = document.querySelectorAll('.type-detail-block');
+    blocks.forEach(block => {
+        const type = block.dataset.type;
+        const rows = block.querySelectorAll('.variant-row');
+        // Очищаємо масив перед перезаписом
+        currentSubjectVariants[type] = [];
+        rows.forEach(row => {
+            currentSubjectVariants[type].push({
+                teacher: row.querySelector('.inp-teacher').value,
+                room: row.querySelector('.inp-room').value
+            });
+        });
+    });
+}
+
 document.getElementById('addSubjectBtn').addEventListener('click', () => {
+    saveCurrentInputsToMemory(); // Фінальний сейв
     const name = document.getElementById('subjName').value;
     if(!name) { alert("Введіть назву предмету"); return; }
     
@@ -172,25 +215,17 @@ document.getElementById('addSubjectBtn').addEventListener('click', () => {
     checkboxes.forEach(cb => {
         const type = cb.value;
         types.push(type);
-        
-        const row = document.querySelector(`.type-detail-row[data-type="${type}"]`);
-        if (row) {
-            details[type] = {
-                teacher: row.querySelector('.inp-teacher').value,
-                room: row.querySelector('.inp-room').value
-            };
-        }
+        // Копіюємо з пам'яті
+        details[type] = JSON.parse(JSON.stringify(currentSubjectVariants[type] || []));
     });
     
-    state.subjects.push({ 
-        id: Date.now().toString(), 
-        name, types, details 
-    });
-    
+    state.subjects.push({ id: Date.now().toString(), name, types, details });
     renderSubjectsList();
     
+    // Очистка
     document.getElementById('subjName').value = '';
     document.querySelectorAll('.type-check').forEach(c => c.checked = false);
+    currentSubjectVariants = {}; // Скидаємо пам'ять
     renderTypeDetailInputs(); 
 });
 
@@ -205,20 +240,18 @@ function renderSubjectsList() {
     
     list.innerHTML = state.subjects.map(s => {
         let info = s.types.map(t => {
-            const d = s.details[t];
-            const teacher = d.teacher ? d.teacher : '';
-            const room = d.room ? `(${d.room})` : '';
+            const variants = s.details[t] || [];
+            // Показуємо першого викладача + кількість варіантів
+            const first = variants[0] || {teacher: '', room: ''};
+            const count = variants.length > 1 ? ` (+${variants.length - 1})` : '';
             return `<div style="font-size:0.8rem; color:#555; margin-top:2px;">
-                <span style="font-weight:600; color:var(--primary)">${typeMap[t]}:</span> ${teacher} ${room}
+                <span style="font-weight:600; color:var(--primary)">${typeMap[t]}:</span> ${first.teacher} ${first.room} ${count}
             </div>`;
         }).join('');
 
         return `
         <div style="background:white; padding:10px; border:1px solid #ddd; border-radius:6px; margin-bottom:5px; display:flex; justify-content:space-between; align-items:start;">
-            <div>
-                <b>${s.name}</b>
-                ${info}
-            </div>
+            <div><b>${s.name}</b>${info}</div>
             <span style="cursor:pointer; color:red; font-weight:bold; padding:0 5px;" onclick="removeSubject('${s.id}')">×</span>
         </div>`;
     }).join('');
@@ -359,7 +392,7 @@ function renderFillGrid() {
     }
 }
 
-// === DRAG & DROP & MODAL ===
+// === DRAG & DROP ===
 let isDragging = false, dragSubjId = null;
 const ghost = document.getElementById('dragGhost');
 
@@ -406,14 +439,14 @@ function endDrag(e) {
     document.querySelectorAll('.drop-hover').forEach(x => x.classList.remove('drop-hover'));
 }
 
-// === DROP LOGIC ===
+// === ОБРОБКА ПАДІННЯ ===
 function handleDrop(key, pos) {
     const subj = state.subjects.find(s => s.id === dragSubjId);
     if (!subj) return;
     showDropModal(key, pos, subj);
 }
 
-// === MODAL ===
+// === МОДАЛКА ===
 function initDropModal() {
     document.getElementById('btnCancelDrop').addEventListener('click', () => {
         document.getElementById('dropModal').classList.remove('active');
@@ -436,6 +469,20 @@ function initDropModal() {
         document.getElementById('dropModal').classList.remove('active');
         pendingDrop = null;
     });
+    
+    // Слухач на зміну варіанту
+    document.getElementById('modalVariantSelector').addEventListener('change', (e) => {
+        if(!pendingDrop) return;
+        const selectedTypeBtn = document.querySelector('.type-btn.selected');
+        const type = selectedTypeBtn ? selectedTypeBtn.dataset.value : pendingDrop.types[0];
+        
+        const variants = pendingDrop.details[type] || [];
+        const index = parseInt(e.target.value);
+        if(variants[index]) {
+            document.getElementById('modalDropTeacher').value = variants[index].teacher;
+            document.getElementById('modalDropRoom').value = variants[index].room;
+        }
+    });
 }
 
 function showDropModal(key, pos, subj) {
@@ -456,25 +503,42 @@ function showDropModal(key, pos, subj) {
         btn.onclick = () => {
             document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('selected'));
             btn.classList.add('selected');
-            // АВТОЗАПОВНЕННЯ ПОЛІВ ПРИ КЛІКУ НА ТИП
-            fillModalInputs(t, subj.details);
+            updateModalVariants(t);
         };
         typeContainer.appendChild(btn);
     });
 
-    // Заповнюємо для першого типу
-    fillModalInputs(subj.types[0], subj.details);
+    updateModalVariants(subj.types[0]);
     document.getElementById('dropModal').classList.add('active');
 }
 
-function fillModalInputs(type, details) {
-    if(details && details[type]) {
-        document.getElementById('modalDropTeacher').value = details[type].teacher || '';
-        document.getElementById('modalDropRoom').value = details[type].room || '';
+function updateModalVariants(type) {
+    const details = pendingDrop.details;
+    const variants = (details && details[type]) ? details[type] : [];
+    
+    const selectorContainer = document.getElementById('variantSelectorContainer');
+    const selector = document.getElementById('modalVariantSelector');
+    
+    selector.innerHTML = '';
+    
+    if (variants.length > 1) {
+        selectorContainer.style.display = 'block';
+        variants.forEach((v, i) => {
+            const opt = document.createElement('option');
+            opt.value = i;
+            const t = v.teacher || 'Без викладача';
+            const r = v.room ? `(${v.room})` : '';
+            opt.text = `${t} ${r}`;
+            selector.appendChild(opt);
+        });
     } else {
-        document.getElementById('modalDropTeacher').value = '';
-        document.getElementById('modalDropRoom').value = '';
+        selectorContainer.style.display = 'none';
     }
+    
+    // Заповнюємо поля першим варіантом (або порожнім, якщо немає)
+    const first = variants[0] || {teacher:'', room:''};
+    document.getElementById('modalDropTeacher').value = first.teacher;
+    document.getElementById('modalDropRoom').value = first.room;
 }
 
 function saveToGrid(key, pos, data) {
