@@ -32,7 +32,44 @@ function getCookie(name) {
 }
 
 // =======================================
-// === ЛОГІКА СКАСОВАНИХ ПАР ===
+// === ЗАВАНТАЖЕННЯ ДАНИХ (ВИПРАВЛЕНО) ===
+// =======================================
+
+async function loadScheduleData() {
+    // 1. Спочатку перевіряємо, чи є створений вами розклад
+    const customSchedule = localStorage.getItem(SCHEDULE_STORAGE_KEY);
+    
+    if (customSchedule) {
+        try {
+            console.log("Завантажуємо власний розклад з редактора...");
+            const data = JSON.parse(customSchedule);
+            // Базова перевірка цілісності
+            if (!data || !data.schedule) throw new Error("Invalid format");
+            return data;
+        } catch (e) {
+            console.error("Помилка читання власного розкладу, вантажимо стандартний.", e);
+            localStorage.removeItem(SCHEDULE_STORAGE_KEY); // Видаляємо пошкоджені дані
+        }
+    }
+
+    // 2. Якщо власного немає - вантажимо стандартний JSON
+    try {
+        const response = await fetch('./schedule.json');
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error('Помилка завантаження розкладу:', error);
+        const loadingEl = document.getElementById('loading');
+        if (loadingEl) {
+            loadingEl.innerHTML = `<div style="color: #d32f2f; text-align: center;"><h3>❌ Помилка завантаження</h3><p>${error.message}</p></div>`;
+        }
+        return null;
+    }
+}
+
+// =======================================
+// === ЛОГІКА ТИЖНІВ ТА ДАТ ===
 // =======================================
 
 function getTodayDateString() {
@@ -70,10 +107,6 @@ function toggleCanceledLesson(id) {
     if (index > -1) asList.splice(index, 1); else asList.push({ id: id, canceledOn: today });
     setCookie('canceledLessons', JSON.stringify(asList));
 }
-
-// =======================================
-// === ЛОГІКА ТИЖНІВ ТА ДАТ ===
-// =======================================
 
 function getISOWeek(date) {
     if (!(date instanceof Date) || isNaN(date.getTime())) return NaN;
@@ -123,34 +156,8 @@ function getWeekDates(date) {
 }
 
 // =======================================
-// === ЗАВАНТАЖЕННЯ ТА ГЕНЕРАЦІЯ UI ===
+// === ГЕНЕРАЦІЯ UI ===
 // =======================================
-
-async function loadScheduleData() {
-    const customSchedule = localStorage.getItem(SCHEDULE_STORAGE_KEY);
-    if (customSchedule) {
-        try {
-            scheduleData = JSON.parse(customSchedule);
-            if (typeof scheduleData !== 'object' || scheduleData === null) throw new Error("Invalid data format");
-            return scheduleData;
-        } catch (e) {
-            localStorage.removeItem(SCHEDULE_STORAGE_KEY);
-        }
-    }
-    try {
-        const response = await fetch('./schedule.json');
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        scheduleData = await response.json();
-        return scheduleData;
-    } catch (error) {
-        console.error('Помилка завантаження розкладу:', error);
-        const loadingEl = document.getElementById('loading');
-        if (loadingEl) {
-            loadingEl.innerHTML = `<div style="color: #d32f2f; text-align: center;"><h3>❌ Помилка завантаження</h3><p>${error.message}</p></div>`;
-        }
-        return null;
-    }
-}
 
 function generateNavigation() {
     const nav = document.getElementById('navigation');
@@ -158,9 +165,8 @@ function generateNavigation() {
     const days = Object.keys(scheduleData.schedule);
     nav.innerHTML = days.map(dayKey => {
         const day = scheduleData.schedule[dayKey];
-        // Перевіряємо, чи є пари в цей день
         const hasLessons = day && day.lessons && day.lessons.some(l => l.type !== 'empty');
-        if (!hasLessons) return ''; // Не показуємо пусті дні
+        if (!hasLessons) return ''; 
 
         const dayName = day.name || dayKey;
         const shortName = getShortDayName(dayName);
@@ -169,7 +175,6 @@ function generateNavigation() {
 }
 
 function getShortDayName(fullName) {
-    // Виправлено апостроф
     const shortNames = { 'Понеділок': 'ПН', 'Вівторок': 'ВТ', 'Середа': 'СР', 'Четвер': 'ЧТ', 'П’ятниця': 'ПТ' };
     return shortNames[fullName] || fullName?.substring(0, 2).toUpperCase() || '?';
 }
@@ -181,7 +186,7 @@ function generateSchedule() {
     container.innerHTML = days.map(dayKey => {
         const day = scheduleData.schedule[dayKey];
         const hasLessons = day && day.lessons && day.lessons.some(l => l.type !== 'empty');
-        if (!hasLessons) return ''; // Не показуємо пусті дні
+        if (!hasLessons) return ''; 
 
         return `<section class="day" id="${dayKey}"><h2>${day.name || dayKey}</h2><div class="cards">${day.lessons.map(lesson => generateLessonCard(lesson, dayKey)).join('')}</div></section>`;
     }).join('');
@@ -190,13 +195,14 @@ function generateSchedule() {
 function generateLessonCard(lesson, dayKey) {
     if (!lesson) return '';
     const hasSubgroups = Array.isArray(lesson.subgroups) && lesson.subgroups.length > 0;
-    const isEmpty = (lesson.type === 'empty' || !lesson.subject) && !hasSubgroups;
+    // Виправляємо логіку empty
+    const isEmpty = (!lesson.subject && !hasSubgroups) || lesson.type === 'empty';
 
     let cardClass = isEmpty ? 'card empty' : `card ${lesson.type || 'unknown'}`;
     if (!hasSubgroups && lesson.weeks && (lesson.weeks === 'num' || lesson.weeks === 'den')) {
         cardClass += ` numden ${lesson.weeks}`;
     }
-    const lessonId = `lesson-${dayKey}-${lesson.number || '?'}`;
+    const lessonId = `lesson-${dayKey}-${lesson.number || Math.random()}`;
 
     if (isEmpty) {
         return `<article class="${cardClass}" id="${lessonId}"><h3>${lesson.number || '?'} пара</h3><p class="empty-message">Немає</p></article>`;
@@ -218,7 +224,6 @@ function generateLessonCard(lesson, dayKey) {
             const subClass = getSubgroupClass(sub);
             const subLabel = getSubgroupLabel(sub);
 
-            // Генерація підписів для підгруп
             let weekLabel = '';
             if (sub.weeks === 'num') weekLabel = '<span class="week-label num-label"> (Чисельник)</span>';
             else if (sub.weeks === 'den') weekLabel = '<span class="week-label den-label"> (Знаменник)</span>';
@@ -227,7 +232,6 @@ function generateLessonCard(lesson, dayKey) {
             return `<div class="subgroup ${subClass}"><p class="subgroup-label">${subLabel}${weekLabel}</p><p><b>${sub.subject || '?'}</b> (${getTypeLabel(sub.type)})</p><p class="teacher-room">${sub.teacher || ''}${sub.room ? ', ' + sub.room : ''}</p>${subLinkBtn}</div>`;
         }).join('');
     } else if (lesson.subject) {
-        // Генерація підписів для звичайної пари (НОВЕ)
         let mainWeekLabel = '';
         if (lesson.weeks === 'num') mainWeekLabel = '<span class="week-label num-label"> (Чисельник)</span>';
         else if (lesson.weeks === 'den') mainWeekLabel = '<span class="week-label den-label"> (Знаменник)</span>';
@@ -244,7 +248,7 @@ function getSubgroupLabel(sub) { if (sub?.group === 'sub1') return 'Підгру
 function getTypeLabel(type) { const types = { 'lecture': 'Лекція', 'practical': 'Практична', 'lab': 'Лабораторна', 'mixed': 'Змішана' }; return types[type] || type || '?'; }
 
 // =======================================
-// === ГОЛОВНИЙ ФІЛЬТР ===
+// === ФІЛЬТРАЦІЯ ===
 // =======================================
 
 function filterSchedule() {
@@ -255,7 +259,6 @@ function filterSchedule() {
     const currentType = getCurrentType();
     const cards = document.querySelectorAll('#schedule-container .card');
 
-    // Фільтри для приховування елементів
     const hideTotalLessons = document.getElementById('hideTotalLessons')?.checked || false;
     const hideSubjectsType = document.getElementById('hideSubjectsType')?.checked || false;
     const hideDonate = document.getElementById('hideDonate')?.checked || false;
@@ -264,11 +267,8 @@ function filterSchedule() {
     const donateBtn = document.getElementById('donateBtn');
 
     if (totalLessonsCard) totalLessonsCard.style.display = hideTotalLessons ? 'none' : 'flex';
-
-    // Ховаємо статистику
     const reportsBlock = document.querySelector('.reports');
     if (reportsBlock) reportsBlock.style.display = hideSubjectsType ? 'none' : 'block';
-
     if (donateBtn) donateBtn.style.display = hideDonate ? 'none' : 'block';
 
     if (showNextWeekBtn) {
@@ -360,9 +360,6 @@ function filterSchedule() {
         }
     });
 
-    // === ВИПРАВЛЕННЯ ТУТ ===
-    // Ми завжди показуємо підписи, або показуємо їх, якщо showAll = true.
-    // Оскільки користувач хоче бачити підписи, коли дивиться "Всі тижні", ставимо 'inline'.
     const weekLabels = document.querySelectorAll('.week-label');
     weekLabels.forEach(label => label.style.display = 'inline');
 
@@ -371,10 +368,6 @@ function filterSchedule() {
     saveSettings();
     generateReports();
 }
-
-// =======================================
-// === ЛОГІКА ПРОКРУТКИ ===
-// =======================================
 
 function scrollToDay(dayId) {
     const el = document.getElementById(dayId);
@@ -426,13 +419,8 @@ function scrollToCorrectDay() {
             return;
         }
     }
-    // Fallback
     scrollToDay('monday');
 }
-
-// ==============================
-// === ОНОВЛЕННЯ UI ===
-// ==============================
 
 function updateWeekInfo() {
     const showAll = showAllWeeks?.checked || false;
@@ -532,10 +520,6 @@ function highlightCurrentPair() {
     if (upcomingCard && minDiffToStart <= 60) upcomingCard.classList.add('upcoming');
 }
 
-// ==============================
-// === ПЛАВАЮЧА КНОПКА ТЕМИ ===
-// ==============================
-
 let themeClickCount = 0;
 let themeClickTimer;
 
@@ -628,10 +612,6 @@ function updateThemeButtonTime() {
     }
 }
 
-// ==============================
-// === НАЛАШТУВАННЯ ===
-// ==============================
-
 function loadSettings() {
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme === 'dark') document.body.classList.add('dark-mode');
@@ -653,7 +633,6 @@ function loadSettings() {
         else showNextWeekBtn.classList.remove('active');
     }
 
-    // Завантаження нових фільтрів
     const hideTotal = getCookie('hideTotalLessons');
     const hideSubj = getCookie('hideSubjectsType');
     const hideDon = getCookie('hideDonate');
@@ -666,7 +645,6 @@ function loadSettings() {
     if (hideSubjEl) hideSubjEl.checked = (hideSubj === 'true');
     if (hideDonEl) hideDonEl.checked = (hideDon === 'true');
 
-    // Завантаження disableUpdates
     const disableUpd = getCookie('disableUpdates');
     const disableUpdEl = document.getElementById('disableUpdates');
     if (disableUpdEl) disableUpdEl.checked = (disableUpd === 'true');
@@ -697,10 +675,6 @@ function handleCancelClick(e) {
         vibrate();
     }
 }
-
-// ==============================
-// === ЗВІТИ ТА СТАТИСТИКА ===
-// ==============================
 
 function generateReports() {
     if (!scheduleData?.schedule) return;
@@ -764,7 +738,6 @@ function calculateStatistics() {
                     });
                 }
             } else {
-                // Main lesson logic
                 isVisible = true;
                 if (!showAll) {
                     const weekType = lesson.weeks || 'all';
@@ -789,10 +762,6 @@ function calculateStatistics() {
     });
     return stats;
 }
-
-// ==============================
-// === МОДАЛЬНІ ВІКНА ===
-// ==============================
 
 function initModal() {
     settingsModal = document.getElementById('settingsModal');
@@ -898,7 +867,7 @@ function initDonateModal() {
 }
 
 // ==============================
-// === ГОЛОВНА ФУНКЦІЯ ЗАПУСКУ (INIT) ===
+// === INIT ===
 // ==============================
 
 function setupEventListeners() {
@@ -932,7 +901,6 @@ function setupEventListeners() {
     showAllWeeks?.addEventListener('change', filterSchedule);
     hideEmptyLessons?.addEventListener('change', filterSchedule);
 
-    // Додаткові фільтри
     document.getElementById('hideTotalLessons')?.addEventListener('change', filterSchedule);
     document.getElementById('hideSubjectsType')?.addEventListener('change', filterSchedule);
     document.getElementById('hideDonate')?.addEventListener('change', filterSchedule);
@@ -960,6 +928,7 @@ async function initApp() {
     loadSettings();
     const data = await loadScheduleData();
     if (!data) return;
+    scheduleData = data;
 
     const titleEl = document.getElementById('schedule-title');
     if (titleEl) titleEl.textContent = `Розклад занять`;
