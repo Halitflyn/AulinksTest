@@ -10,8 +10,7 @@ const state = {
     grid: {} 
 };
 
-// Тимчасове сховище варіантів для форми створення предмету
-// Формат: { lecture: [{teacher:'', room:''}, ...], practical: ... }
+// Тимчасове сховище варіантів для Кроку 2
 let currentSubjectVariants = {};
 
 const dayKeys = ["monday", "tuesday", "wednesday", "thursday", "friday"];
@@ -30,7 +29,10 @@ const wizard = {
         initSubjectFormListeners(); 
     },
     next: () => {
-        if (state.step === 1) saveStep1Data();
+        if (state.step === 1) {
+            saveStep1Data();
+        }
+        
         if (state.step === 2 && state.subjects.length === 0) {
             alert("Додайте хоча б один предмет!"); return;
         }
@@ -39,20 +41,26 @@ const wizard = {
     prev: () => wizard.goTo(state.step - 1),
     goTo: (stepNum) => {
         if(stepNum < 1 || stepNum > 4) return;
+        
+        // Рендер при переході
         if (stepNum === 3) renderStructureGrid();
         if (stepNum === 4) { renderFillGrid(); renderDraggables(); }
+
         state.step = stepNum;
         updateUI();
     }
 };
 
 function initButtons() {
+    // Верхня панель
     document.getElementById('navStep1').onclick = () => wizard.goTo(1);
     document.getElementById('navStep2').onclick = () => wizard.goTo(2);
     document.getElementById('navStep3').onclick = () => wizard.goTo(3);
     document.getElementById('navStep4').onclick = () => wizard.goTo(4);
 
-    const btnNext1 = document.getElementById('btnNext1'); if(btnNext1) btnNext1.onclick = () => wizard.next();
+    // Нижні кнопки
+    const btnNext1 = document.getElementById('btnNext1'); 
+    if(btnNext1) btnNext1.onclick = () => wizard.next();
     
     const btnNext2 = document.getElementById('btnNext2'); 
     const btnPrev2 = document.getElementById('btnPrev2'); 
@@ -71,7 +79,10 @@ function initButtons() {
 function saveStep1Data() {
     state.settings.group = document.getElementById('groupName').value;
     state.settings.pairsPerDay = parseInt(document.getElementById('pairsPerDay').value);
-    state.settings.times = Array.from(document.querySelectorAll('.time-in')).map(i => i.value);
+    
+    // Збираємо часи
+    const inputs = document.querySelectorAll('.time-in');
+    state.settings.times = Array.from(inputs).map(i => i.value);
 }
 
 function updateUI() {
@@ -114,7 +125,7 @@ function renderTimeInputs() {
 }
 document.getElementById('pairsPerDay').addEventListener('change', renderTimeInputs);
 
-/* ================= КРОК 2 (DYNAMIC TYPES & VARIANTS) ================= */
+/* ================= КРОК 2 (НОВА СИСТЕМА) ================= */
 function initSubjectFormListeners() {
     const checkboxes = document.querySelectorAll('.type-check');
     checkboxes.forEach(cb => {
@@ -122,11 +133,31 @@ function initSubjectFormListeners() {
     });
 }
 
+// Зберігає те, що ввів юзер, у змінну currentSubjectVariants
+function syncInputsToMemory() {
+    const blocks = document.querySelectorAll('.type-detail-block');
+    blocks.forEach(block => {
+        const type = block.dataset.type;
+        const rows = block.querySelectorAll('.variant-row');
+        
+        // Оновлюємо масив для цього типу
+        const newVariants = [];
+        rows.forEach(row => {
+            newVariants.push({
+                teacher: row.querySelector('.inp-teacher').value,
+                room: row.querySelector('.inp-room').value
+            });
+        });
+        currentSubjectVariants[type] = newVariants;
+    });
+}
+
 function renderTypeDetailInputs() {
     const container = document.getElementById('typeDetailsContainer');
-    // Зберігаємо поточні дані з полів перед перемальовкою
-    saveCurrentInputsToMemory();
     
+    // Спочатку зберігаємо, що юзер вже ввів
+    syncInputsToMemory();
+
     container.innerHTML = '';
     const checkboxes = document.querySelectorAll('.type-check:checked');
     if (checkboxes.length === 0) return;
@@ -135,16 +166,19 @@ function renderTypeDetailInputs() {
 
     checkboxes.forEach(cb => {
         const type = cb.value;
-        // Якщо для цього типу ще немає варіантів, створимо один порожній
+        
+        // Якщо даних ще немає для цього типу, створимо один пустий рядок
         if (!currentSubjectVariants[type] || currentSubjectVariants[type].length === 0) {
             currentSubjectVariants[type] = [{teacher: '', room: ''}];
         }
 
-        const rowsHtml = currentSubjectVariants[type].map((variant, index) => `
-            <div class="variant-row" data-index="${index}">
-                <input type="text" class="inp-teacher" placeholder="Викладач" value="${variant.teacher}" oninput="updateMemory('${type}', ${index}, 'teacher', this.value)" style="flex:1">
-                <input type="text" class="inp-room" placeholder="Ауд." value="${variant.room}" oninput="updateMemory('${type}', ${index}, 'room', this.value)" style="flex:0.5">
-                ${index > 0 ? `<span class="btn-remove-variant" onclick="removeVariant('${type}', ${index})">×</span>` : ''}
+        const variants = currentSubjectVariants[type];
+        
+        const rowsHtml = variants.map((v, idx) => `
+            <div class="variant-row">
+                <input type="text" class="inp-teacher" placeholder="Викладач" value="${v.teacher}" style="flex:1">
+                <input type="text" class="inp-room" placeholder="Ауд." value="${v.room}" style="flex:0.5">
+                ${idx > 0 ? `<span class="btn-remove-variant" onclick="removeVariant('${type}', ${idx})">×</span>` : ''}
             </div>
         `).join('');
 
@@ -154,7 +188,7 @@ function renderTypeDetailInputs() {
                     <span>${labels[type]}</span>
                     <button class="btn-add-variant" onclick="addVariant('${type}')">+ варіант</button>
                 </div>
-                <div class="variants-container">
+                <div class="variants-list">
                     ${rowsHtml}
                 </div>
             </div>
@@ -163,46 +197,24 @@ function renderTypeDetailInputs() {
     });
 }
 
-// Глобальні функції для HTML onclick
-window.updateMemory = (type, index, field, value) => {
-    if(!currentSubjectVariants[type]) currentSubjectVariants[type] = [];
-    if(!currentSubjectVariants[type][index]) currentSubjectVariants[type][index] = {};
-    currentSubjectVariants[type][index][field] = value;
-}
-
+// Глобальні функції для HTML кнопок
 window.addVariant = (type) => {
-    saveCurrentInputsToMemory();
+    syncInputsToMemory(); // Зберігаємо поточний стан
     if(!currentSubjectVariants[type]) currentSubjectVariants[type] = [];
-    currentSubjectVariants[type].push({teacher: '', room: ''});
-    renderTypeDetailInputs();
+    currentSubjectVariants[type].push({teacher: '', room: ''}); // Додаємо пустий
+    renderTypeDetailInputs(); // Перемальовуємо
 };
 
 window.removeVariant = (type, index) => {
-    saveCurrentInputsToMemory();
+    syncInputsToMemory();
     if(currentSubjectVariants[type]) {
         currentSubjectVariants[type].splice(index, 1);
     }
     renderTypeDetailInputs();
 };
 
-function saveCurrentInputsToMemory() {
-    const blocks = document.querySelectorAll('.type-detail-block');
-    blocks.forEach(block => {
-        const type = block.dataset.type;
-        const rows = block.querySelectorAll('.variant-row');
-        // Очищаємо масив перед перезаписом
-        currentSubjectVariants[type] = [];
-        rows.forEach(row => {
-            currentSubjectVariants[type].push({
-                teacher: row.querySelector('.inp-teacher').value,
-                room: row.querySelector('.inp-room').value
-            });
-        });
-    });
-}
-
 document.getElementById('addSubjectBtn').addEventListener('click', () => {
-    saveCurrentInputsToMemory(); // Фінальний сейв
+    syncInputsToMemory(); // Фінальний сейв
     const name = document.getElementById('subjName').value;
     if(!name) { alert("Введіть назву предмету"); return; }
     
@@ -215,18 +227,18 @@ document.getElementById('addSubjectBtn').addEventListener('click', () => {
     checkboxes.forEach(cb => {
         const type = cb.value;
         types.push(type);
-        // Копіюємо з пам'яті
+        // Клонуємо дані з пам'яті, щоб не було посилань
         details[type] = JSON.parse(JSON.stringify(currentSubjectVariants[type] || []));
     });
     
     state.subjects.push({ id: Date.now().toString(), name, types, details });
     renderSubjectsList();
     
-    // Очистка
+    // === ОЧИСТКА ===
     document.getElementById('subjName').value = '';
     document.querySelectorAll('.type-check').forEach(c => c.checked = false);
-    currentSubjectVariants = {}; // Скидаємо пам'ять
-    renderTypeDetailInputs(); 
+    currentSubjectVariants = {}; // Очищаємо пам'ять
+    renderTypeDetailInputs(); // Очищаємо поля
 });
 
 function renderSubjectsList() {
@@ -240,12 +252,12 @@ function renderSubjectsList() {
     
     list.innerHTML = state.subjects.map(s => {
         let info = s.types.map(t => {
-            const variants = s.details[t] || [];
-            // Показуємо першого викладача + кількість варіантів
-            const first = variants[0] || {teacher: '', room: ''};
-            const count = variants.length > 1 ? ` (+${variants.length - 1})` : '';
+            const vars = s.details[t] || [];
+            const first = vars[0] || {teacher: '', room: ''};
+            const more = vars.length > 1 ? ` (+${vars.length-1})` : '';
             return `<div style="font-size:0.8rem; color:#555; margin-top:2px;">
-                <span style="font-weight:600; color:var(--primary)">${typeMap[t]}:</span> ${first.teacher} ${first.room} ${count}
+                <span style="font-weight:600; color:var(--primary)">${typeMap[t]}:</span> 
+                ${first.teacher} ${first.room} ${more}
             </div>`;
         }).join('');
 
@@ -276,7 +288,12 @@ function renderStructureGrid() {
         for(let d=0; d<dayKeys.length; d++) {
             const key = `${d}-${p}`;
             const cellData = state.grid[key] || {structure: 'single'};
-            const cell = div('grid-cell', generateHTML(cellData.structure, false, {}, key));
+            
+            // Якщо є кастомний час, передаємо його
+            const customTime = cellData.customTime ? `<div class="cell-time-tag">${cellData.customTime}</div>` : '';
+            
+            const cell = div('grid-cell', customTime + generateHTML(cellData.structure, false, {}, key));
+            
             cell.querySelectorAll('.sub-cell').forEach(sub => {
                 sub.addEventListener('click', (e) => openMenu(e, key, sub.dataset.pos, cellData.structure));
             });
@@ -333,6 +350,8 @@ function openMenu(e, key, pos, struct) {
 
     const btnV = menu.querySelector('.top');
     const btnH = menu.querySelector('.right');
+    // const btnTime = menu.querySelector('.left'); // Time button
+
     btnV.style.display = 'flex'; btnH.style.display = 'flex';
 
     if (struct.includes('split-v')) btnV.style.display = 'none';
@@ -349,8 +368,23 @@ if(menu) {
 function changeGrid(action) {
     const {key, pos, struct} = menuCtx;
     if(!state.grid[key]) state.grid[key] = {structure: 'single', content: {}};
+    
+    // === ЛОГІКА ЗМІНИ ЧАСУ ===
+    if (action === 'time') {
+        const pIndex = key.split('-')[1];
+        const defaultTime = state.settings.times[pIndex];
+        const newTime = prompt("Введіть час для цієї пари:", state.grid[key].customTime || defaultTime);
+        if (newTime) {
+            state.grid[key].customTime = newTime;
+        } else if (newTime === "") {
+            delete state.grid[key].customTime; // Скинути
+        }
+        renderStructureGrid();
+        return;
+    }
+
     let newS = struct;
-    if (action === 'clear') { newS = 'single'; state.grid[key].content = {}; }
+    if (action === 'clear') { newS = 'single'; state.grid[key].content = {}; delete state.grid[key].customTime; }
     else if (action === 'split-vertical' && struct === 'single') newS = 'split-v';
     else if (action === 'split-horizontal') {
         if (struct === 'single') newS = 'split-h';
@@ -387,12 +421,16 @@ function renderFillGrid() {
         for(let d=0; d<dayKeys.length; d++) {
             const key = `${d}-${p}`;
             const cell = state.grid[key] || {structure: 'single', content: {}};
-            c.appendChild(div('grid-cell', generateHTML(cell.structure, true, cell.content, key)));
+            
+            // Якщо є кастомний час - показуємо
+            const customTime = cell.customTime ? `<div class="cell-time-tag">${cell.customTime}</div>` : '';
+            
+            c.appendChild(div('grid-cell', customTime + generateHTML(cell.structure, true, cell.content, key)));
         }
     }
 }
 
-// === DRAG & DROP ===
+// === DRAG & DROP & MODAL ===
 let isDragging = false, dragSubjId = null;
 const ghost = document.getElementById('dragGhost');
 
@@ -470,7 +508,7 @@ function initDropModal() {
         pendingDrop = null;
     });
     
-    // Слухач на зміну варіанту
+    // Зміна варіанту
     document.getElementById('modalVariantSelector').addEventListener('change', (e) => {
         if(!pendingDrop) return;
         const selectedTypeBtn = document.querySelector('.type-btn.selected');
@@ -535,7 +573,6 @@ function updateModalVariants(type) {
         selectorContainer.style.display = 'none';
     }
     
-    // Заповнюємо поля першим варіантом (або порожнім, якщо немає)
     const first = variants[0] || {teacher:'', room:''};
     document.getElementById('modalDropTeacher').value = first.teacher;
     document.getElementById('modalDropRoom').value = first.room;
@@ -625,7 +662,10 @@ function saveFinalResult() {
 
             if (!cell || !cell.content || Object.keys(cell.content).length === 0) continue;
 
-            const baseLesson = { number: p+1, time: timeStr, type: 'mixed', subgroups: [] };
+            // Використовуємо customTime, якщо він є
+            const finalTime = cell.customTime || timeStr;
+
+            const baseLesson = { number: p+1, time: finalTime, type: 'mixed', subgroups: [] };
             const mapType = (t) => {
                 if(t === 'Lec' || t === 'lecture') return 'lecture';
                 if(t === 'Prac' || t === 'practical') return 'practical';
@@ -649,7 +689,7 @@ function saveFinalResult() {
             if (cell.structure === 'single' && cell.content.main) {
                 const c = cell.content.main;
                 lessons.push({
-                    number: p + 1, time: timeStr,
+                    number: p + 1, time: finalTime,
                     subject: c.subject, type: mapType(c.type),
                     weeks: 'all', teacher: c.teacher || "", room: c.room || ""
                 });
