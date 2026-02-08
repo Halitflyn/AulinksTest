@@ -6,53 +6,65 @@ const state = {
         pairsPerDay: 5,
         times: ["08:30 – 09:50", "10:05 – 11:25", "11:40 – 13:00", "13:15 – 14:35", "14:50 – 16:10", "16:25 – 17:45", "18:00 – 19:20"]
     },
-    subjects: [],
+    subjects: [], // {id, name, teacher, room, types: []}
     grid: {} 
 };
 
 const dayKeys = ["monday", "tuesday", "wednesday", "thursday", "friday"];
 const dayNamesUk = ["Понеділок", "Вівторок", "Середа", "Четвер", "П'ятниця"];
 
-/* ================= WIZARD NAV ================= */
+/* ================= WIZARD NAV (ВИПРАВЛЕНО) ================= */
 const wizard = {
     init: () => {
         renderTimeInputs();
         updateUI();
         setupGlobalListeners();
-        // Автозавантаження з localStorage при вході
-        tryLoadFromStorage(); 
+        tryLoadFromStorage();
     },
     next: () => {
-        if (state.step === 1) {
-            state.settings.group = document.getElementById('groupName').value;
-            state.settings.pairsPerDay = parseInt(document.getElementById('pairsPerDay').value);
-            state.settings.times = Array.from(document.querySelectorAll('.time-in')).map(i => i.value);
-        }
+        // Зберігаємо дані поточного кроку перед переходом
+        if (state.step === 1) saveStep1Data();
+        
+        // Валідація
         if (state.step === 2 && state.subjects.length === 0) {
             alert("Додайте хоча б один предмет!"); return;
         }
-        if (state.step === 3) {
-            renderFillGrid();
-            renderDraggables();
-        }
-        if (state.step < 4) {
-            state.step++;
-            updateUI();
-        }
+
+        // Перехід
+        wizard.goTo(state.step + 1);
     },
-    prev: () => { if (state.step > 1) { state.step--; updateUI(); } }
+    prev: () => { 
+        wizard.goTo(state.step - 1); 
+    },
+    goTo: (stepNum) => {
+        if(stepNum < 1 || stepNum > 4) return;
+        
+        // Якщо стрибаємо на крок 3 або 4, треба підготувати сітку
+        if (stepNum === 3) renderStructureGrid();
+        if (stepNum === 4) { renderFillGrid(); renderDraggables(); }
+
+        state.step = stepNum;
+        updateUI();
+    }
 };
 
+function saveStep1Data() {
+    state.settings.group = document.getElementById('groupName').value;
+    state.settings.pairsPerDay = parseInt(document.getElementById('pairsPerDay').value);
+    state.settings.times = Array.from(document.querySelectorAll('.time-in')).map(i => i.value);
+}
+
 function updateUI() {
+    // Приховуємо всі кроки
     document.querySelectorAll('.wizard-step').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.step-indicator').forEach(el => el.classList.remove('active'));
     
+    // Показуємо активний
     const stepEl = document.getElementById(`step-${state.step}`);
     if(stepEl) stepEl.classList.add('active');
+    
     const indEl = document.querySelector(`.step-indicator[data-step="${state.step}"]`);
     if(indEl) indEl.classList.add('active');
-    
-    if (state.step === 3) renderStructureGrid();
 }
 
 function setupGlobalListeners() {
@@ -62,7 +74,6 @@ function setupGlobalListeners() {
     
     document.getElementById('saveResultBtn').addEventListener('click', saveFinalResult);
     
-    // ІМПОРТ / ЕКСПОРТ
     const importBtn = document.getElementById('importBtn');
     const importFile = document.getElementById('importFile');
     const exportBtn = document.getElementById('exportJsonBtn');
@@ -71,9 +82,7 @@ function setupGlobalListeners() {
         importBtn.addEventListener('click', () => importFile.click());
         importFile.addEventListener('change', handleFileImport);
     }
-    if(exportBtn) {
-        exportBtn.addEventListener('click', handleFileExport);
-    }
+    if(exportBtn) exportBtn.addEventListener('click', handleFileExport);
 }
 
 /* ================= КРОК 1 ================= */
@@ -87,25 +96,40 @@ function renderTimeInputs() {
         container.innerHTML += `<div><label>Пара ${i+1}</label><input class="time-in" value="${val}"></div>`;
     }
 }
-const pairsSelect = document.getElementById('pairsPerDay');
-if(pairsSelect) pairsSelect.addEventListener('change', renderTimeInputs);
+document.getElementById('pairsPerDay').addEventListener('change', renderTimeInputs);
 
-/* ================= КРОК 2 ================= */
-const addSubjBtn = document.getElementById('addSubjectBtn');
-if(addSubjBtn) {
-    addSubjBtn.addEventListener('click', () => {
-        const nameInput = document.getElementById('subjName');
-        const name = nameInput.value;
-        if(!name) return;
-        
-        const types = Array.from(document.querySelectorAll('.type-check:checked')).map(cb => cb.value);
-        if(types.length === 0) types.push('lecture'); 
-        
-        state.subjects.push({ id: Date.now().toString(), name, types });
-        renderSubjectsList();
-        nameInput.value = '';
+/* ================= КРОК 2 (НОВА ЛОГІКА) ================= */
+document.getElementById('addSubjectBtn').addEventListener('click', () => {
+    const nameInput = document.getElementById('subjName');
+    const teacherInput = document.getElementById('subjTeacher'); // Нове поле
+    const roomInput = document.getElementById('subjRoom');       // Нове поле
+
+    const name = nameInput.value;
+    const teacher = teacherInput.value;
+    const room = roomInput.value;
+
+    if(!name) { alert("Введіть назву предмету"); return; }
+    
+    const types = Array.from(document.querySelectorAll('.type-check:checked')).map(cb => cb.value);
+    if(types.length === 0) types.push('lecture'); 
+    
+    // Зберігаємо викладача і аудиторію в об'єкт
+    state.subjects.push({ 
+        id: Date.now().toString(), 
+        name, 
+        teacher, 
+        room, 
+        types 
     });
-}
+    
+    renderSubjectsList();
+    
+    // Очистка полів
+    nameInput.value = '';
+    // Можна не очищати викладача, якщо часто той самий, але краще очистити
+    // teacherInput.value = ''; 
+    // roomInput.value = '';
+});
 
 function renderSubjectsList() {
     const list = document.getElementById('subjectsList');
@@ -117,9 +141,12 @@ function renderSubjectsList() {
     const typeMap = { 'lecture': 'Лек', 'practical': 'Прак', 'lab': 'Лаб' };
     
     list.innerHTML = state.subjects.map(s => `
-        <div style="background:white; padding:10px; border:1px solid #ddd; border-radius:6px; margin-bottom:5px; display:flex; justify-content:space-between;">
-            <span><b>${s.name}</b> <small>(${s.types.map(t => typeMap[t] || t).join(', ')})</small></span>
-            <span style="cursor:pointer; color:red" onclick="removeSubject('${s.id}')">×</span>
+        <div style="background:white; padding:10px; border:1px solid #ddd; border-radius:6px; margin-bottom:5px; display:flex; justify-content:space-between; align-items:center;">
+            <div>
+                <b>${s.name}</b> <small>(${s.types.map(t => typeMap[t] || t).join(', ')})</small>
+                <div style="font-size:0.8rem; color:#555">${s.teacher || ''} ${s.room ? `(${s.room})` : ''}</div>
+            </div>
+            <span style="cursor:pointer; color:red; font-weight:bold; padding:0 5px;" onclick="removeSubject('${s.id}')">×</span>
         </div>
     `).join('');
 }
@@ -135,7 +162,6 @@ function renderStructureGrid() {
     if(!c) return;
     c.innerHTML = '';
     c.style.gridTemplateColumns = `50px repeat(${dayKeys.length}, 1fr)`;
-    
     c.appendChild(div('grid-header', '#'));
     dayNamesUk.forEach(d => c.appendChild(div('grid-header', d)));
 
@@ -165,7 +191,10 @@ function generateHTML(struct, isFillMode, content = {}, key = "") {
             let typeClass = 'lecture';
             if(item.type === 'Prac' || item.type === 'practical') typeClass = 'practical';
             if(item.type === 'Lab' || item.type === 'lab') typeClass = 'lab';
-            inner = `<div class="lesson-chip type-${typeClass}">${item.subject}</div>`;
+            inner = `<div class="lesson-chip type-${typeClass}" title="${item.teacher} ${item.room}">
+                <b>${item.subject}</b>
+                <div style="font-size:10px">${item.type}</div>
+            </div>`;
         }
         const dropAttr = isFillMode ? `data-drop-key="${key}" data-drop-pos="${pos}"` : `data-pos="${pos}"`;
         return `<div class="sub-cell ${cls}" ${dropAttr}>${inner}</div>`;
@@ -184,7 +213,7 @@ function generateHTML(struct, isFillMode, content = {}, key = "") {
     return `<div class="cell-split-v">${top}${bot}</div>`;
 }
 
-// === RADIAL MENU ===
+// === MENU ===
 const menu = document.getElementById('gridRadialMenu');
 let menuCtx = null;
 
@@ -218,9 +247,7 @@ function changeGrid(action) {
     else if (action === 'split-vertical' && struct === 'single') newS = 'split-v';
     else if (action === 'split-horizontal') {
         if (struct === 'single') newS = 'split-h';
-        else if (struct === 'split-v') {
-            if (pos === 'top') newS = 'split-v-top-h'; else newS = 'split-v-bottom-h';
-        }
+        else if (struct === 'split-v') { if (pos === 'top') newS = 'split-v-top-h'; else newS = 'split-v-bottom-h'; }
         else if (struct === 'split-v-top-h' && pos === 'bottom') newS = 'split-v-both-h';
         else if (struct === 'split-v-bottom-h' && pos === 'top') newS = 'split-v-both-h';
     }
@@ -233,7 +260,10 @@ function renderDraggables() {
     const c = document.getElementById('draggableSubjects');
     if(!c) return;
     c.innerHTML = state.subjects.map(s => 
-        `<div class="drag-item" data-id="${s.id}" onmousedown="startDrag(event)">${s.name}</div>`
+        `<div class="drag-item" data-id="${s.id}" onmousedown="startDrag(event)">
+            <div style="font-weight:bold">${s.name}</div>
+            <small>${s.teacher || ''}</small>
+        </div>`
     ).join('');
 }
 
@@ -298,8 +328,15 @@ function endDrag(e) {
         const pos = target.dataset.dropPos;
         if(!state.grid[key]) state.grid[key] = {structure: 'single', content: {}};
         if(!state.grid[key].content) state.grid[key].content = {};
+        
         const s = state.subjects.find(x => x.id === dragSubjId);
-        state.grid[key].content[pos] = { subject: s.name, type: s.types[0] }; 
+        // Зберігаємо всі дані предмета (вчитель, аудиторія) в клітинку
+        state.grid[key].content[pos] = { 
+            subject: s.name, 
+            type: s.types[0],
+            teacher: s.teacher,
+            room: s.room 
+        }; 
         renderFillGrid();
     }
     
@@ -310,7 +347,7 @@ function endDrag(e) {
 
 /* ================= ІМПОРТ / ЕКСПОРТ ================= */
 function handleFileExport() {
-    const dataStr = JSON.stringify(state, null, 2); // Експортуємо стан РЕДАКТОРА
+    const dataStr = JSON.stringify(state, null, 2);
     const blob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -327,32 +364,23 @@ function handleFileImport(e) {
     reader.onload = (ev) => {
         try {
             const data = JSON.parse(ev.target.result);
-            // Відновлюємо стан
             if(data.settings) state.settings = data.settings;
             if(data.subjects) state.subjects = data.subjects;
             if(data.grid) state.grid = data.grid;
             
-            // Оновлюємо UI
             document.getElementById('groupName').value = state.settings.group;
             document.getElementById('pairsPerDay').value = state.settings.pairsPerDay;
             renderTimeInputs();
             renderSubjectsList();
-            
-            // Якщо був імпортований готовий розклад, йдемо зразу на крок 3
-            state.step = 3; 
-            updateUI();
-            
             alert('Дані успішно завантажено!');
         } catch(err) {
             alert('Помилка читання файлу!');
-            console.error(err);
         }
     };
     reader.readAsText(file);
-    e.target.value = null; // Reset
+    e.target.value = null;
 }
 
-// Завантаження збереженого стану редактора (не фінального розкладу)
 function tryLoadFromStorage() {
     const saved = localStorage.getItem('editorStateBackup');
     if(saved) {
@@ -375,40 +403,14 @@ function getISOWeek(date) {
 }
 
 function calculateStartDate() {
-    // Логіка: ми знаємо, що сьогодні "Чисельник" (або "Знаменник").
-    // Треба підібрати таку дату початку семестру, щоб математика в script.js
-    // видала правильний результат для сьогодншнього дня.
-    
-    const userSaysTodayIs = document.querySelector('input[name="currentWeekType"]:checked').value; // 'num' or 'den'
-    const today = new Date();
-    const currentWeekISO = getISOWeek(today);
-    const isOddISO = currentWeekISO % 2 !== 0;
-    
-    // Якщо користувач каже "Чисельник", а тиждень парний -> треба зсув
-    // Якщо користувач каже "Знаменник", а тиждень непарний -> треба зсув
-    
-    // У script.js: isNumerator = (startWeekIsOdd == currentWeekIsOdd)
-    // Ми хочемо, щоб result == userSaysTodayIs
-    
-    // Просто ставимо startDate = today. 
-    // Тоді startWeek = currentWeek.
-    // startWeekIsOdd == currentWeekIsOdd -> TRUE.
-    // Тобто script.js завжди покаже "Чисельник", якщо startDate = today.
-    
+    const userSaysTodayIs = document.querySelector('input[name="currentWeekType"]:checked').value; 
     let startDate = new Date();
-    
-    if (userSaysTodayIs === 'den') {
-        // Якщо сьогодні знаменник, то нам треба, щоб (startWeekIsOdd == currentWeekIsOdd) було FALSE.
-        // Зсунемо startDate на тиждень назад.
-        startDate.setDate(startDate.getDate() - 7);
-    }
-    
+    if (userSaysTodayIs === 'den') startDate.setDate(startDate.getDate() - 7);
     return startDate.toISOString().split('T')[0];
 }
 
 function saveFinalResult() {
     const startDate = calculateStartDate();
-    
     const scheduleExport = {
         group: state.settings.group,
         startDate: startDate, 
@@ -434,19 +436,23 @@ function saveFinalResult() {
 
             const addSub = (pos, grp, wks) => {
                 if(cell.content[pos]) {
+                    const c = cell.content[pos];
                     baseLesson.subgroups.push({
-                        subject: cell.content[pos].subject,
-                        type: mapType(cell.content[pos].type),
-                        group: grp, weeks: wks, teacher: "", room: ""
+                        subject: c.subject,
+                        type: mapType(c.type),
+                        group: grp, weeks: wks, 
+                        teacher: c.teacher || "", 
+                        room: c.room || ""
                     });
                 }
             };
 
             if (cell.structure === 'single' && cell.content.main) {
+                const c = cell.content.main;
                 lessons.push({
                     number: p + 1, time: timeStr,
-                    subject: cell.content.main.subject, type: mapType(cell.content.main.type),
-                    weeks: 'all', teacher: "", room: ""
+                    subject: c.subject, type: mapType(c.type),
+                    weeks: 'all', teacher: c.teacher || "", room: c.room || ""
                 });
                 continue;
             }
@@ -464,9 +470,7 @@ function saveFinalResult() {
     });
 
     localStorage.setItem('myCustomSchedule', JSON.stringify(scheduleExport));
-    // Також зберігаємо стан редактора, щоб можна було продовжити пізніше
     localStorage.setItem('editorStateBackup', JSON.stringify(state));
-    
     alert('✅ Розклад збережено!');
     window.location.href = 'index.html';
 }
