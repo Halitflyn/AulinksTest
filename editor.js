@@ -120,12 +120,12 @@ function renderTimeInputs() {
     const n = parseInt(document.getElementById('pairsPerDay').value);
     for(let i=0; i<n; i++) {
         const val = state.settings.times[i] || "00:00 – 00:00";
-        container.innerHTML += `<div><label>Пара ${i+1}</label><input class="time-in" value="${val}"></div>`;
+        container.innerHTML += `<div><label>Пара ${i+1}</label><input class="time-in" value="${val}" name="time-${i}"></div>`;
     }
 }
 document.getElementById('pairsPerDay').addEventListener('change', renderTimeInputs);
 
-/* ================= КРОК 2 (НОВА СИСТЕМА) ================= */
+/* ================= КРОК 2 (НОВА СИСТЕМА + ВИПРАВЛЕННЯ ПОМИЛКИ ID/NAME) ================= */
 function initSubjectFormListeners() {
     const checkboxes = document.querySelectorAll('.type-check');
     checkboxes.forEach(cb => {
@@ -176,8 +176,26 @@ function renderTypeDetailInputs() {
         
         const rowsHtml = variants.map((v, idx) => `
             <div class="variant-row">
-                <input type="text" class="inp-teacher" placeholder="Викладач" value="${v.teacher}" style="flex:1">
-                <input type="text" class="inp-room" placeholder="Ауд." value="${v.room}" style="flex:0.5">
+                <input 
+                    type="text" 
+                    class="inp-teacher" 
+                    placeholder="Викладач" 
+                    value="${v.teacher || ''}" 
+                    style="flex:1"
+                    name="teacher-${type}-${idx}"
+                    id="teacher-${type}-${idx}"
+                    autocomplete="off"
+                >
+                <input 
+                    type="text" 
+                    class="inp-room" 
+                    placeholder="Ауд." 
+                    value="${v.room || ''}" 
+                    style="flex:0.5"
+                    name="room-${type}-${idx}"
+                    id="room-${type}-${idx}"
+                    autocomplete="off"
+                >
                 ${idx > 0 ? `<span class="btn-remove-variant" onclick="removeVariant('${type}', ${idx})">×</span>` : ''}
             </div>
         `).join('');
@@ -227,18 +245,18 @@ document.getElementById('addSubjectBtn').addEventListener('click', () => {
     checkboxes.forEach(cb => {
         const type = cb.value;
         types.push(type);
-        // Клонуємо дані з пам'яті, щоб не було посилань
+        // Глибоке копіювання даних
         details[type] = JSON.parse(JSON.stringify(currentSubjectVariants[type] || []));
     });
     
     state.subjects.push({ id: Date.now().toString(), name, types, details });
     renderSubjectsList();
     
-    // === ОЧИСТКА ===
+    // === ОЧИСТКА ПІСЛЯ ДОДАВАННЯ ===
     document.getElementById('subjName').value = '';
     document.querySelectorAll('.type-check').forEach(c => c.checked = false);
-    currentSubjectVariants = {}; // Очищаємо пам'ять
-    renderTypeDetailInputs(); // Очищаємо поля
+    currentSubjectVariants = {}; // Скидаємо пам'ять
+    renderTypeDetailInputs(); // Очищаємо HTML
 });
 
 function renderSubjectsList() {
@@ -289,11 +307,10 @@ function renderStructureGrid() {
             const key = `${d}-${p}`;
             const cellData = state.grid[key] || {structure: 'single'};
             
-            // Якщо є кастомний час, передаємо його
+            // Якщо є кастомний час
             const customTime = cellData.customTime ? `<div class="cell-time-tag">${cellData.customTime}</div>` : '';
             
             const cell = div('grid-cell', customTime + generateHTML(cellData.structure, false, {}, key));
-            
             cell.querySelectorAll('.sub-cell').forEach(sub => {
                 sub.addEventListener('click', (e) => openMenu(e, key, sub.dataset.pos, cellData.structure));
             });
@@ -350,9 +367,10 @@ function openMenu(e, key, pos, struct) {
 
     const btnV = menu.querySelector('.top');
     const btnH = menu.querySelector('.right');
-    // const btnTime = menu.querySelector('.left'); // Time button
+    const btnTime = menu.querySelector('.left'); // Кнопка часу
 
     btnV.style.display = 'flex'; btnH.style.display = 'flex';
+    if(btnTime) btnTime.style.display = 'flex';
 
     if (struct.includes('split-v')) btnV.style.display = 'none';
     if (pos.includes('left') || pos.includes('right')) btnH.style.display = 'none';
@@ -373,11 +391,11 @@ function changeGrid(action) {
     if (action === 'time') {
         const pIndex = key.split('-')[1];
         const defaultTime = state.settings.times[pIndex];
-        const newTime = prompt("Введіть час для цієї пари:", state.grid[key].customTime || defaultTime);
+        const newTime = prompt("Введіть час (напр. 10:00 – 11:20):", state.grid[key].customTime || defaultTime);
         if (newTime) {
             state.grid[key].customTime = newTime;
         } else if (newTime === "") {
-            delete state.grid[key].customTime; // Скинути
+            delete state.grid[key].customTime; // Скидання
         }
         renderStructureGrid();
         return;
@@ -421,10 +439,8 @@ function renderFillGrid() {
         for(let d=0; d<dayKeys.length; d++) {
             const key = `${d}-${p}`;
             const cell = state.grid[key] || {structure: 'single', content: {}};
-            
-            // Якщо є кастомний час - показуємо
+            // Відображаємо кастомний час
             const customTime = cell.customTime ? `<div class="cell-time-tag">${cell.customTime}</div>` : '';
-            
             c.appendChild(div('grid-cell', customTime + generateHTML(cell.structure, true, cell.content, key)));
         }
     }
@@ -513,7 +529,6 @@ function initDropModal() {
         if(!pendingDrop) return;
         const selectedTypeBtn = document.querySelector('.type-btn.selected');
         const type = selectedTypeBtn ? selectedTypeBtn.dataset.value : pendingDrop.types[0];
-        
         const variants = pendingDrop.details[type] || [];
         const index = parseInt(e.target.value);
         if(variants[index]) {
@@ -525,7 +540,6 @@ function initDropModal() {
 
 function showDropModal(key, pos, subj) {
     pendingDrop = { key, pos, name: subj.name, types: subj.types, details: subj.details };
-    
     document.getElementById('modalSubjectTitle').innerText = subj.name;
     const typeContainer = document.getElementById('modalTypeSelector');
     typeContainer.innerHTML = '';
@@ -537,7 +551,6 @@ function showDropModal(key, pos, subj) {
         btn.className = `type-btn ${index === 0 ? 'selected' : ''}`;
         btn.innerText = labels[t] || t;
         btn.dataset.value = t;
-        
         btn.onclick = () => {
             document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('selected'));
             btn.classList.add('selected');
@@ -553,10 +566,8 @@ function showDropModal(key, pos, subj) {
 function updateModalVariants(type) {
     const details = pendingDrop.details;
     const variants = (details && details[type]) ? details[type] : [];
-    
     const selectorContainer = document.getElementById('variantSelectorContainer');
     const selector = document.getElementById('modalVariantSelector');
-    
     selector.innerHTML = '';
     
     if (variants.length > 1) {
@@ -564,7 +575,7 @@ function updateModalVariants(type) {
         variants.forEach((v, i) => {
             const opt = document.createElement('option');
             opt.value = i;
-            const t = v.teacher || 'Без викладача';
+            const t = v.teacher || 'Варіант ' + (i+1);
             const r = v.room ? `(${v.room})` : '';
             opt.text = `${t} ${r}`;
             selector.appendChild(opt);
@@ -662,9 +673,7 @@ function saveFinalResult() {
 
             if (!cell || !cell.content || Object.keys(cell.content).length === 0) continue;
 
-            // Використовуємо customTime, якщо він є
             const finalTime = cell.customTime || timeStr;
-
             const baseLesson = { number: p+1, time: finalTime, type: 'mixed', subgroups: [] };
             const mapType = (t) => {
                 if(t === 'Lec' || t === 'lecture') return 'lecture';
