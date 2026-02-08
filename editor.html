@@ -71,7 +71,7 @@
             <h2>📚 Предмети</h2>
             <div class="add-subject-box">
                 <div class="input-row">
-                    <input type="text" id="subjName" placeholder="Назва предмету (напр. Вища математика)" style="width: 100%; font-weight: bold;">
+                    <input type="text" id="subjName" placeholder="Назва предмету (напр. Вища математика)" style="width: 100%;">
                 </div>
                 
                 <div class="checkbox-row" style="margin: 15px 0;">
@@ -100,7 +100,7 @@
 
         <section id="step-3" class="wizard-step">
             <h2>📐 Структура</h2>
-            <p class="hint">Клікай на клітинки для поділу (Чис/Знам/Підгрупи).</p>
+            <p class="hint">Клікай на клітинки для поділу.</p>
             <div class="schedule-grid-container" id="structureGrid"></div>
             
             <div class="step-footer">
@@ -134,6 +134,11 @@
             <div class="form-label">Тип заняття:</div>
             <div id="modalTypeSelector" class="type-selector"></div>
 
+            <div id="variantSelectorContainer" style="display:none; margin-bottom: 15px;">
+                <label style="font-size: 0.8rem; font-weight: bold; display: block; margin-bottom: 5px;">Оберіть варіант:</label>
+                <select id="modalVariantSelector" style="width: 100%; padding: 8px;"></select>
+            </div>
+
             <div class="modal-inputs">
                 <div class="input-group">
                     <label>👤 Викладач:</label>
@@ -153,11 +158,10 @@
     </div>
 
     <div id="gridRadialMenu" class="radial-menu hidden">
-        <div class="radial-btn top" data-action="split-vertical" title="Чис/Знам">⬆</div>
-        <div class="radial-btn right" data-action="split-horizontal" title="Підгрупи">➡</div>
-        <div class="radial-btn bottom" data-action="clear" title="Очистити">🗑</div>
+        <div class="radial-btn top" data-action="split-vertical">⬆</div>
+        <div class="radial-btn right" data-action="split-horizontal">➡</div>
+        <div class="radial-btn bottom" data-action="clear">🗑</div>
     </div>
-    
     <div id="dragGhost" class="drag-ghost hidden">Ghost</div>
 
     <script src="editor.js"></script>
