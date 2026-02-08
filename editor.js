@@ -9,14 +9,6 @@ const state = {
     },
     subjects: [],
     grid: {} 
-    /* Структури grid:
-       'single'
-       'split-h' (тільки підгрупи)
-       'split-v' (чис/знам)
-       'split-v-top-h' (чис з підгрупами, знам цілий)
-       'split-v-bottom-h' (чис цілий, знам з підгрупами)
-       'split-v-both-h' (обидва з підгрупами)
-    */
 };
 
 const days = ["Пн", "Вт", "Ср", "Чт", "Пт"];
@@ -27,21 +19,30 @@ const wizard = {
         renderTimeInputs();
         updateUI();
         
-        // Закриття меню при кліку поза ним
+        // Закриття меню
         document.addEventListener('click', (e) => {
             if (!e.target.closest('.radial-menu')) {
                 document.getElementById('gridRadialMenu').classList.add('hidden');
             }
         });
+
+        // Ініціалізація кнопки збереження (Крок 4)
+        const saveBtn = document.getElementById('saveResultBtn');
+        if(saveBtn) {
+            saveBtn.addEventListener('click', saveFinalResult);
+        }
     },
     next: () => {
-        if (state.step === 1) saveStep1();
+        if (state.step === 1) {
+            state.settings.group = document.getElementById('groupName').value;
+            state.settings.pairsPerDay = parseInt(document.getElementById('pairsPerDay').value);
+            state.settings.times = Array.from(document.querySelectorAll('.time-in')).map(i => i.value);
+        }
         if (state.step === 2 && state.subjects.length === 0) {
-            alert("Будь ласка, додайте хоча б один предмет!");
-            return;
+            alert("Додайте хоча б один предмет!"); return;
         }
         if (state.step === 3) {
-            renderFillGrid(); // Готуємо сітку для Drag & Drop
+            renderFillGrid();
             renderDraggables();
         }
         if (state.step < 4) {
@@ -49,328 +50,258 @@ const wizard = {
             updateUI();
         }
     },
-    prev: () => {
-        if (state.step > 1) {
-            state.step--;
-            updateUI();
-        }
-    }
+    prev: () => { if (state.step > 1) { state.step--; updateUI(); } }
 };
 
 function updateUI() {
     document.querySelectorAll('.wizard-step').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.step-indicator').forEach(el => el.classList.remove('active'));
     
-    document.getElementById(`step-${state.step}`).classList.add('active');
-    document.querySelector(`.step-indicator[data-step="${state.step}"]`).classList.add('active');
+    const stepEl = document.getElementById(`step-${state.step}`);
+    const indEl = document.querySelector(`.step-indicator[data-step="${state.step}"]`);
+    
+    if(stepEl) stepEl.classList.add('active');
+    if(indEl) indEl.classList.add('active');
 
     if (state.step === 3) renderStructureGrid();
 }
 
-/* ================= STEP 1: SETTINGS ================= */
+/* ================= STEP 1 & 2 ================= */
 function renderTimeInputs() {
-    const container = document.getElementById('timeSettings');
-    container.innerHTML = '';
-    const count = parseInt(document.getElementById('pairsPerDay').value) || 5;
-    for (let i = 0; i < count; i++) {
+    const c = document.getElementById('timeSettings'); 
+    if(!c) return;
+    c.innerHTML = '';
+    const n = parseInt(document.getElementById('pairsPerDay').value) || 5;
+    for(let i=0; i<n; i++) {
+        const val = state.settings.times[i] || '00:00-00:00';
         const div = document.createElement('div');
-        div.innerHTML = `<label>Пара ${i+1}</label><input type="text" class="time-in" value="${state.settings.times[i] || '00:00-00:00'}">`;
-        container.appendChild(div);
+        div.innerHTML = `<label>Пара ${i+1}</label><input class="time-in" value="${val}">`;
+        c.appendChild(div);
     }
 }
-document.getElementById('pairsPerDay').addEventListener('change', renderTimeInputs);
-
-function saveStep1() {
-    state.settings.group = document.getElementById('groupName').value;
-    state.settings.pairsPerDay = parseInt(document.getElementById('pairsPerDay').value);
-    state.settings.times = Array.from(document.querySelectorAll('.time-in')).map(i => i.value);
+if(document.getElementById('pairsPerDay')) {
+    document.getElementById('pairsPerDay').addEventListener('change', renderTimeInputs);
 }
 
-/* ================= STEP 2: SUBJECTS ================= */
-document.getElementById('addSubjectBtn').addEventListener('click', () => {
-    const name = document.getElementById('subjName').value;
-    if (!name) return;
-    
-    const types = Array.from(document.querySelectorAll('.type-check:checked')).map(cb => cb.value);
-    if(types.length === 0) types.push('Lec'); // Дефолт
+const addSubjBtn = document.getElementById('addSubjectBtn');
+if(addSubjBtn) {
+    addSubjBtn.addEventListener('click', () => {
+        const name = document.getElementById('subjName').value;
+        if(!name) return;
+        const types = Array.from(document.querySelectorAll('.type-check:checked')).map(cb=>cb.value);
+        if(types.length === 0) types.push('Lec'); // Default
 
-    const teachers = {};
-    types.forEach(t => teachers[t] = { name: "", room: "" }); 
-
-    state.subjects.push({ id: Date.now().toString(), name, types, teachers });
-    renderSubjectsList();
-    document.getElementById('subjName').value = '';
-});
+        const teachers = {}; 
+        types.forEach(t => teachers[t] = {name:"", room:""});
+        
+        state.subjects.push({id: Date.now().toString(), name, types, teachers});
+        
+        renderSubjectsList();
+        document.getElementById('subjName').value = '';
+    });
+}
 
 function renderSubjectsList() {
-    document.getElementById('subjectsList').innerHTML = state.subjects.map(s => `
-        <div style="padding:10px; border:1px solid #ccc; margin-bottom:5px; border-radius:8px; background:white;">
-            <strong>${s.name}</strong> <small>(${s.types.join(', ')})</small>
-        </div>
-    `).join('');
+    const list = document.getElementById('subjectsList');
+    if(!list) return;
+    list.innerHTML = state.subjects.map(s => 
+        `<div style="padding:10px; background:#f8fafc; border:1px solid #e2e8f0; margin-bottom:5px; border-radius:6px;">
+            <strong>${s.name}</strong> <small style="color:#64748b">(${s.types.join(', ')})</small>
+        </div>`
+    ).join('');
 }
 
-/* ================= STEP 3: STRUCTURE GRID (ПОВНА ЛОГІКА) ================= */
+/* ================= STEP 3: STRUCTURE ================= */
 function renderStructureGrid() {
-    const container = document.getElementById('structureGrid');
-    container.innerHTML = '';
-    container.style.gridTemplateColumns = `60px repeat(${days.length}, 1fr)`;
+    const c = document.getElementById('structureGrid'); 
+    if(!c) return;
+    c.innerHTML = '';
+    c.style.gridTemplateColumns = `60px repeat(${days.length}, 1fr)`;
+    
+    // Headers
+    c.appendChild(div('grid-header', 'Час'));
+    days.forEach(d => c.appendChild(div('grid-header', d)));
 
-    // Заголовки
-    container.appendChild(createDiv('grid-header', 'Час'));
-    days.forEach(d => container.appendChild(createDiv('grid-header', d)));
-
-    for (let p = 0; p < state.settings.pairsPerDay; p++) {
-        container.appendChild(createDiv('grid-header', state.settings.times[p])); 
-
-        for (let d = 0; d < days.length; d++) {
+    for(let p=0; p<state.settings.pairsPerDay; p++) {
+        c.appendChild(div('grid-header', state.settings.times[p]));
+        for(let d=0; d<days.length; d++) {
             const key = `${d}-${p}`;
-            const cellData = state.grid[key] || { structure: 'single' };
+            const cellData = state.grid[key] || {structure: 'single'};
             
-            const cell = document.createElement('div');
-            cell.className = 'grid-cell';
+            const cell = div('grid-cell', generateHTML(cellData.structure, false, {}, key));
             
-            // Генеруємо HTML структури
-            cell.innerHTML = generateStructureHTML(cellData.structure);
+            // Listener
+            cell.querySelectorAll('.sub-cell').forEach(sub => {
+                sub.addEventListener('click', (e) => openMenu(e, key, sub.dataset.pos, cellData.structure));
+            });
             
-            // Подія кліку для відкриття меню
-            cell.addEventListener('click', (e) => handleCellClick(e, key, cellData.structure));
-            container.appendChild(cell);
+            c.appendChild(cell);
         }
     }
 }
 
-function createDiv(cls, html) {
-    const d = document.createElement('div');
-    d.className = cls;
-    d.innerHTML = html;
-    return d;
+function div(cls, html) {
+    const d = document.createElement('div'); d.className = cls; d.innerHTML = html; return d;
 }
 
-function generateStructureHTML(structure) {
-    // 1. Звичайна
-    if (structure === 'single') return `<div class="sub-cell" data-pos="main">Одна пара</div>`;
-    
-    // 2. Підгрупи (Горизонтально)
-    if (structure === 'split-h') {
-        return `<div class="cell-split-h">
-            <div class="sub-cell group1" data-pos="left">Гр. 1</div>
-            <div class="sub-cell group2" data-pos="right">Гр. 2</div>
-        </div>`;
-    }
-
-    // 3. Вертикальні поділи
-    let topContent = `<div class="sub-cell numerator" data-pos="top">Чисельник</div>`;
-    let botContent = `<div class="sub-cell denominator" data-pos="bottom">Знаменник</div>`;
-
-    // Якщо Чисельник поділений
-    if (structure === 'split-v-top-h' || structure === 'split-v-both-h') {
-        topContent = `<div class="cell-split-h numerator">
-            <div class="sub-cell group1" data-pos="top-left">Чис. Гр1</div>
-            <div class="sub-cell group2" data-pos="top-right">Чис. Гр2</div>
-        </div>`;
-    }
-
-    // Якщо Знаменник поділений
-    if (structure === 'split-v-bottom-h' || structure === 'split-v-both-h') {
-        botContent = `<div class="cell-split-h denominator">
-            <div class="sub-cell group1" data-pos="bottom-left">Знам. Гр1</div>
-            <div class="sub-cell group2" data-pos="bottom-right">Знам. Гр2</div>
-        </div>`;
-    }
-
-    return `<div class="cell-split-v">${topContent}${botContent}</div>`;
-}
-
-// --- Radial Menu Logic ---
-const radialMenu = document.getElementById('gridRadialMenu');
-let activeMenuContext = null; 
-
-function handleCellClick(e, key, structure) {
-    e.stopPropagation();
-    const subCell = e.target.closest('.sub-cell');
-    if (!subCell) return;
-    
-    const position = subCell.dataset.pos;
-    activeMenuContext = { key, position, structure };
-
-    // Позиціонування меню
-    radialMenu.style.left = `${e.clientX - 70}px`;
-    radialMenu.style.top = `${e.clientY - 70}px`;
-    radialMenu.classList.remove('hidden');
-
-    const btnV = radialMenu.querySelector('.top');    // Split Vertical
-    const btnH = radialMenu.querySelector('.right');  // Split Horizontal
-    
-    // Скидання
-    btnV.style.display = 'flex'; btnV.innerHTML = '⬆'; btnV.title = "Чис/Знам";
-    btnH.style.display = 'flex'; btnH.innerHTML = '➡'; btnH.title = "Підгрупи";
-
-    // Логіка показу кнопок
-    if (structure === 'single') {
-        // Можна все
-    } else if (structure === 'split-v') {
-        btnV.style.display = 'none'; // Вже поділено вертикально
-    } else if (structure.includes('split-v')) {
-        // Якщо складна структура, вертикальний поділ вже є
-        btnV.style.display = 'none';
+// === UNIVERSAL HTML GENERATOR ===
+function generateHTML(struct, isFillMode, content = {}, key = "") {
+    const render = (pos, cls) => {
+        let inner = isFillMode ? `<span style="color:#cbd5e1; font-size:10px">+</span>` : pos;
         
-        // Якщо клікнули на ту частину, яка вже має підгрупи, ховаємо кнопку підгруп
-        if (position.includes('left') || position.includes('right')) {
-            btnH.style.display = 'none'; 
-        }
-    } else if (structure === 'split-h') {
-        btnH.style.display = 'none';
-        btnV.style.display = 'none'; // Поки що заборонимо міксувати з підгруп назад у чисельник
-    }
-}
-
-radialMenu.querySelectorAll('.radial-btn').forEach(btn => {
-    btn.onclick = (e) => {
-        const action = btn.dataset.action;
-        applyGridChange(action);
-        radialMenu.classList.add('hidden');
-    };
-});
-
-function applyGridChange(action) {
-    if (!activeMenuContext) return;
-    const { key, position, structure } = activeMenuContext;
-    
-    if (!state.grid[key]) state.grid[key] = { structure: 'single', content: {} };
-
-    if (action === 'clear') {
-        state.grid[key].structure = 'single';
-        state.grid[key].content = {};
-    } 
-    else if (action === 'split-vertical') {
-        if (structure === 'single') state.grid[key].structure = 'split-v';
-    } 
-    else if (action === 'split-horizontal') {
-        if (structure === 'single') {
-            state.grid[key].structure = 'split-h';
-        }
-        else if (structure === 'split-v') {
-            if (position === 'top') state.grid[key].structure = 'split-v-top-h';
-            if (position === 'bottom') state.grid[key].structure = 'split-v-bottom-h';
-        }
-        // ЛОГІКА ДЛЯ ОБ'ЄДНАННЯ (Чис і Знам разом)
-        else if (structure === 'split-v-top-h' && position === 'bottom') {
-            state.grid[key].structure = 'split-v-both-h';
-        }
-        else if (structure === 'split-v-bottom-h' && position === 'top') {
-            state.grid[key].structure = 'split-v-both-h';
-        }
-    }
-    
-    renderStructureGrid();
-}
-
-/* ================= STEP 4: FILL GRID (DRAG & DROP) ================= */
-function renderDraggables() {
-    const list = document.getElementById('draggableSubjects');
-    list.innerHTML = state.subjects.map(s => `
-        <div class="drag-item" data-id="${s.id}" onmousedown="startDrag(event)">
-            <div style="font-weight:bold">${s.name}</div>
-            <div style="font-size:0.8rem; color:#666">${s.types.join(', ')}</div>
-        </div>
-    `).join('');
-}
-
-function renderFillGrid() {
-    const container = document.getElementById('fillGrid');
-    container.innerHTML = '';
-    container.style.gridTemplateColumns = `60px repeat(${days.length}, 1fr)`;
-
-    for (let p = 0; p < state.settings.pairsPerDay; p++) {
-        container.appendChild(createDiv('grid-header', state.settings.times[p])); 
-        for (let d = 0; d < days.length; d++) {
-            const key = `${d}-${p}`;
-            const cellData = state.grid[key] || { structure: 'single', content: {} };
-            
-            const cell = document.createElement('div');
-            cell.className = 'grid-cell';
-            
-            // Вставляємо структуру з зонами drop
-            cell.innerHTML = generateFillHTML(cellData.structure, key, cellData.content || {});
-            container.appendChild(cell);
-        }
-    }
-}
-
-function generateFillHTML(struct, key, content) {
-    // Хелпер для рендерингу зони
-    const renderZone = (pos, extraClass = '') => {
-        const item = content[pos];
-        let inner = `<span style="color:#ccc; font-size:10px;">+</span>`;
-        
-        if (item) {
+        if (isFillMode && content && content[pos]) {
+            const item = content[pos];
             inner = `<div class="lesson-chip type-${item.type}">
-                <b>${item.subject}</b>
-                <div style="font-size:0.6rem">${item.type}</div>
-            </div>`;
+                        <b>${item.subject}</b>
+                        <div style="font-size:0.65rem">${item.type}</div>
+                     </div>`;
         }
+
+        // ВАЖЛИВО: Передаємо KEY прямо в атрибут
+        const dropKeyAttr = isFillMode ? `data-drop-key="${key}"` : '';
         
-        // ВАЖЛИВО: Атрибути для Drop
-        return `<div class="sub-cell ${extraClass}" data-drop-key="${key}" data-drop-pos="${pos}">
-            ${inner}
-        </div>`;
+        return `<div class="sub-cell ${cls}" data-pos="${pos}" ${dropKeyAttr} data-drop-pos="${pos}">${inner}</div>`;
     };
 
-    if (struct === 'single') return renderZone('main');
+    if (struct === 'single') return render('main', '');
+    if (struct === 'split-h') return `<div class="cell-split-h">${render('left','group1')}${render('right','group2')}</div>`;
     
-    if (struct === 'split-h') return `<div class="cell-split-h">${renderZone('left', 'group1')}${renderZone('right', 'group2')}</div>`;
-    
-    let top = renderZone('top', 'numerator');
-    let bot = renderZone('bottom', 'denominator');
+    let top, bot;
 
     if (struct === 'split-v-top-h' || struct === 'split-v-both-h') {
-        top = `<div class="cell-split-h numerator">${renderZone('top-left', 'group1')}${renderZone('top-right', 'group2')}</div>`;
+        top = `<div class="cell-split-h numerator">${render('top-left','group1')}${render('top-right','group2')}</div>`;
+    } else {
+        top = render('top', 'numerator');
     }
-    
+
     if (struct === 'split-v-bottom-h' || struct === 'split-v-both-h') {
-        bot = `<div class="cell-split-h denominator">${renderZone('bottom-left', 'group1')}${renderZone('bottom-right', 'group2')}</div>`;
+        bot = `<div class="cell-split-h denominator">${render('bottom-left','group1')}${render('bottom-right','group2')}</div>`;
+    } else {
+        bot = render('bottom', 'denominator');
     }
 
     return `<div class="cell-split-v">${top}${bot}</div>`;
 }
 
-// === DRAG & DROP ENGINE ===
-let isDragging = false;
-let dragSubjectId = null;
+// === RADIAL MENU ===
+const menu = document.getElementById('gridRadialMenu');
+let menuCtx = null;
+
+function openMenu(e, key, pos, struct) {
+    e.stopPropagation();
+    menuCtx = {key, pos, struct};
+    
+    menu.style.left = (e.clientX - 60) + 'px';
+    menu.style.top = (e.clientY - 60) + 'px';
+    menu.classList.remove('hidden');
+
+    const btnV = menu.querySelector('.top');
+    const btnH = menu.querySelector('.right');
+    
+    btnV.style.display = 'flex'; btnV.innerText = '⬆';
+    btnH.style.display = 'flex'; btnH.innerText = '➡';
+
+    if (struct.includes('split-v')) btnV.style.display = 'none';
+    if (pos.includes('left') || pos.includes('right')) btnH.style.display = 'none';
+}
+
+if(menu) {
+    menu.querySelectorAll('.radial-btn').forEach(b => b.onclick = (e) => {
+        e.stopPropagation();
+        changeGrid(b.dataset.action);
+        menu.classList.add('hidden');
+    });
+}
+
+function changeGrid(action) {
+    const {key, pos, struct} = menuCtx;
+    // Ініціалізація, якщо немає
+    if(!state.grid[key]) state.grid[key] = {structure: 'single', content:{}};
+    
+    let newS = struct;
+
+    if (action === 'clear') {
+        newS = 'single';
+        state.grid[key].content = {};
+    }
+    else if (action === 'split-vertical') {
+        if (struct === 'single') newS = 'split-v';
+    }
+    else if (action === 'split-horizontal') {
+        if (struct === 'single') newS = 'split-h';
+        else if (struct === 'split-v') {
+            if (pos === 'top') newS = 'split-v-top-h';
+            if (pos === 'bottom') newS = 'split-v-bottom-h';
+        }
+        else if (struct === 'split-v-top-h' && pos === 'bottom') newS = 'split-v-both-h';
+        else if (struct === 'split-v-bottom-h' && pos === 'top') newS = 'split-v-both-h';
+    }
+
+    state.grid[key].structure = newS;
+    renderStructureGrid();
+}
+
+/* ================= STEP 4: FILL & DRAG ================= */
+function renderDraggables() {
+    const container = document.getElementById('draggableSubjects');
+    if(!container) return;
+    container.innerHTML = state.subjects.map(s => 
+        `<div class="drag-item" data-id="${s.id}" onmousedown="startDrag(event)">
+            <div style="font-weight:600">${s.name}</div> 
+            <small style="color:#666">${s.types[0]}</small>
+         </div>`
+    ).join('');
+}
+
+function renderFillGrid() {
+    const c = document.getElementById('fillGrid'); 
+    if(!c) return;
+    c.innerHTML = '';
+    c.style.gridTemplateColumns = `60px repeat(${days.length}, 1fr)`;
+
+    for(let p=0; p<state.settings.pairsPerDay; p++) {
+        c.appendChild(div('grid-header', state.settings.times[p]));
+        for(let d=0; d<days.length; d++) {
+            const key = `${d}-${p}`;
+            const cellData = state.grid[key] || {structure: 'single', content: {}};
+            
+            // Тут ми передаємо KEY в генератор
+            const html = generateHTML(cellData.structure, true, cellData.content, key);
+            c.appendChild(div('grid-cell', html));
+        }
+    }
+}
+
+// === DRAG & DROP ENGINE (FIXED) ===
+let isDragging = false, dragSubjId = null;
 const ghost = document.getElementById('dragGhost');
 
 function startDrag(e) {
-    if (e.button !== 0) return;
-    dragSubjectId = e.currentTarget.dataset.id;
-    const subj = state.subjects.find(s => s.id === dragSubjectId);
+    if(e.button!==0) return;
+    dragSubjId = e.currentTarget.dataset.id;
+    const s = state.subjects.find(x=>x.id===dragSubjId);
     
     isDragging = true;
-    ghost.querySelector('.ghost-content').innerText = subj.name;
+    ghost.innerText = s.name;
     ghost.classList.remove('hidden');
-    ghost.style.display = 'block';
-    
     updateGhost(e);
+    
     document.addEventListener('mousemove', onDrag);
     document.addEventListener('mouseup', endDrag);
 }
 
 function onDrag(e) {
-    if (!isDragging) return;
+    if(!isDragging) return;
     e.preventDefault();
     updateGhost(e);
     
-    // Тимчасово ховаємо привид, щоб побачити що під ним
     ghost.style.display = 'none';
-    const elem = document.elementFromPoint(e.clientX, e.clientY);
-    ghost.style.display = 'block';
-
-    document.querySelectorAll('.drop-hover').forEach(el => el.classList.remove('drop-hover'));
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    ghost.style.display = 'flex';
     
-    const cell = elem?.closest('.sub-cell');
-    if (cell && cell.dataset.dropKey) {
-        cell.classList.add('drop-hover');
-    }
+    document.querySelectorAll('.drop-hover').forEach(x=>x.classList.remove('drop-hover'));
+    const cell = el?.closest('.sub-cell');
+    if(cell && cell.dataset.dropKey) cell.classList.add('drop-hover');
 }
 
 function updateGhost(e) {
@@ -379,40 +310,90 @@ function updateGhost(e) {
 }
 
 function endDrag(e) {
-    if (!isDragging) return;
+    if(!isDragging) return;
     isDragging = false;
-    ghost.style.display = 'none';
     ghost.classList.add('hidden');
+    ghost.style.display = 'none';
 
-    const elem = document.elementFromPoint(e.clientX, e.clientY);
-    const target = elem?.closest('.sub-cell');
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const target = el?.closest('.sub-cell');
 
     if (target && target.dataset.dropKey) {
-        saveDrop(target.dataset.dropKey, target.dataset.dropPos);
+        const key = target.dataset.dropKey;
+        const pos = target.dataset.dropPos;
+        
+        saveDrop(key, pos);
     }
-
+    
+    ghost.style.display = 'flex';
     document.removeEventListener('mousemove', onDrag);
     document.removeEventListener('mouseup', endDrag);
-    document.querySelectorAll('.drop-hover').forEach(el => el.classList.remove('drop-hover'));
+    document.querySelectorAll('.drop-hover').forEach(x=>x.classList.remove('drop-hover'));
 }
 
 function saveDrop(key, pos) {
-    const subj = state.subjects.find(s => s.id === dragSubjectId);
+    const subj = state.subjects.find(x => x.id === dragSubjId);
     if (!subj) return;
 
-    // Беремо перший тип для простоти
-    const type = subj.types[0]; 
+    // 1. ПЕРЕВІРКА: Якщо клітинка "стандартна", її ще немає в state.grid. Створюємо!
+    if (!state.grid[key]) {
+        state.grid[key] = { structure: 'single', content: {} };
+    }
+    if (!state.grid[key].content) {
+        state.grid[key].content = {};
+    }
+
+    // Якщо у предмета є типи, вибираємо. 
+    // Для простоти беремо перший, або можна розкоментувати модалку.
+    const type = subj.types[0];
     
-    if (!state.grid[key].content) state.grid[key].content = {};
-    
+    if (subj.types.length > 1) {
+        // Якщо хочете модалку, розкоментуйте:
+        // showTypeModal(subj, (t) => writeToState(key, pos, subj, t));
+        writeToState(key, pos, subj, type); // Поки що автоматично перший
+    } else {
+        writeToState(key, pos, subj, type);
+    }
+}
+
+function writeToState(key, pos, subj, type) {
     state.grid[key].content[pos] = {
         subject: subj.name,
         type: type,
         teacher: subj.teachers[type]?.name || ''
     };
-    
     renderFillGrid();
 }
 
-// Запуск
+/* ================= SAVE FINAL RESULT ================= */
+function saveFinalResult() {
+    const exportData = {
+        group: state.settings.group,
+        schedule: {}
+    };
+
+    // Конвертація у формат для index.html
+    // Проходимо по днях
+    days.forEach((dayName, dIndex) => {
+        // Тут мапування назв днів для вашого index.html (monday, tuesday...)
+        const engDays = ["monday", "tuesday", "wednesday", "thursday", "friday"];
+        const dayKey = engDays[dIndex];
+        
+        exportData.schedule[dayKey] = [];
+        
+        // Тут треба дописати логіку конвертації зі state.grid у лінійний список lessons
+        // Це залежить від вашого формату в index.html.
+        // Наразі зберігаємо "сирий" дамп для редактора:
+    });
+
+    // Зберігаємо в LocalStorage
+    localStorage.setItem('mySchedule', JSON.stringify(state));
+    alert('✅ Розклад збережено! (Дані записані в LocalStorage)');
+}
+
+// Global helper for Modal (якщо додасте)
+window.closeModal = () => {
+    document.getElementById('modalOverlay')?.classList.add('hidden');
+};
+
 wizard.init();
