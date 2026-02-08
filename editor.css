@@ -60,7 +60,7 @@ input, select { width: 100%; padding: 10px; border: 1px solid var(--border); bor
 /* Grid */
 .schedule-grid-container { display: grid; grid-template-columns: 50px repeat(5, 1fr); gap: 2px; overflow-x: auto; padding-bottom: 10px; }
 .grid-header { background: var(--primary-light); padding: 8px; text-align: center; font-weight: bold; border-radius: 4px; font-size: 0.9rem; }
-.grid-cell { min-height: 120px; background: white; border: 1px solid #ddd; border-radius: 4px; display: flex; flex-direction: column; }
+.grid-cell { min-height: 120px; background: white; border: 1px solid #ddd; border-radius: 4px; display: flex; flex-direction: column; position: relative; }
 
 .cell-split-v { display: flex; flex-direction: column; flex: 1; }
 .cell-split-h { display: flex; flex-direction: row; flex: 1; }
@@ -121,6 +121,7 @@ input, select { width: 100%; padding: 10px; border: 1px solid var(--border); bor
 .radial-btn.top { top: 0; left: 34px; }
 .radial-btn.right { top: 34px; right: 0; }
 .radial-btn.bottom { bottom: 0; left: 34px; }
+.radial-btn.left { top: 34px; left: 0; }
 
 .editor-layout { display: grid; grid-template-columns: 220px 1fr; gap: 20px; }
 .drag-item { padding: 10px; background: white; border: 1px solid #ccc; margin-bottom: 5px; cursor: grab; border-left: 4px solid var(--primary); border-radius: 4px; font-weight: 500; }
@@ -132,12 +133,6 @@ input, select { width: 100%; padding: 10px; border: 1px solid var(--border); bor
 .type-practical { background: #fff9c4; color: #f9a825; border: 1px solid #fff59d; }
 .type-lab { background: #ffcdd2; color: #c62828; border: 1px solid #ef9a9a; }
 
-@media (max-width: 768px) {
-    .editor-layout { grid-template-columns: 1fr; }
-    .form-grid { grid-template-columns: 1fr; }
-}
-.radial-btn.left { top: 34px; left: 0; }
-
 .cell-time-tag {
     position: absolute; top: 0; right: 0;
     background: #ffeb3b; color: #333;
@@ -147,3 +142,7 @@ input, select { width: 100%; padding: 10px; border: 1px solid var(--border); bor
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
+@media (max-width: 768px) {
+    .editor-layout { grid-template-columns: 1fr; }
+    .form-grid { grid-template-columns: 1fr; }
+}
