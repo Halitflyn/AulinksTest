@@ -136,3 +136,14 @@ input, select { width: 100%; padding: 10px; border: 1px solid var(--border); bor
     .editor-layout { grid-template-columns: 1fr; }
     .form-grid { grid-template-columns: 1fr; }
 }
+.radial-btn.left { top: 34px; left: 0; }
+
+.cell-time-tag {
+    position: absolute; top: 0; right: 0;
+    background: #ffeb3b; color: #333;
+    font-size: 0.65rem; padding: 2px 4px;
+    border-bottom-left-radius: 4px;
+    z-index: 5; font-weight: bold;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
