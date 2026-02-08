@@ -42,7 +42,6 @@ const wizard = {
     goTo: (stepNum) => {
         if(stepNum < 1 || stepNum > 4) return;
         
-        // Рендер при переході
         if (stepNum === 3) renderStructureGrid();
         if (stepNum === 4) { renderFillGrid(); renderDraggables(); }
 
@@ -52,35 +51,26 @@ const wizard = {
 };
 
 function initButtons() {
-    // Верхня панель
-    document.getElementById('navStep1').onclick = () => wizard.goTo(1);
-    document.getElementById('navStep2').onclick = () => wizard.goTo(2);
-    document.getElementById('navStep3').onclick = () => wizard.goTo(3);
-    document.getElementById('navStep4').onclick = () => wizard.goTo(4);
-
-    // Нижні кнопки
-    const btnNext1 = document.getElementById('btnNext1'); 
-    if(btnNext1) btnNext1.onclick = () => wizard.next();
-    
-    const btnNext2 = document.getElementById('btnNext2'); 
-    const btnPrev2 = document.getElementById('btnPrev2'); 
-    if(btnNext2) btnNext2.onclick = () => wizard.next();
-    if(btnPrev2) btnPrev2.onclick = () => wizard.prev();
-
-    const btnNext3 = document.getElementById('btnNext3');
-    const btnPrev3 = document.getElementById('btnPrev3');
-    if(btnNext3) btnNext3.onclick = () => wizard.next();
-    if(btnPrev3) btnPrev3.onclick = () => wizard.prev();
-
-    const btnPrev4 = document.getElementById('btnPrev4');
-    if(btnPrev4) btnPrev4.onclick = () => wizard.prev();
+    const steps = [1, 2, 3, 4];
+    steps.forEach(s => {
+        const nav = document.getElementById(`navStep${s}`);
+        if(nav) nav.onclick = () => wizard.goTo(s);
+        
+        const next = document.getElementById(`btnNext${s}`);
+        if(next) next.onclick = () => wizard.next();
+        
+        const prev = document.getElementById(`btnPrev${s}`);
+        if(prev) prev.onclick = () => wizard.prev();
+    });
 }
 
 function saveStep1Data() {
-    state.settings.group = document.getElementById('groupName').value;
-    state.settings.pairsPerDay = parseInt(document.getElementById('pairsPerDay').value);
+    const groupEl = document.getElementById('groupName');
+    if(groupEl) state.settings.group = groupEl.value;
     
-    // Збираємо часи
+    const pairsEl = document.getElementById('pairsPerDay');
+    if(pairsEl) state.settings.pairsPerDay = parseInt(pairsEl.value);
+    
     const inputs = document.querySelectorAll('.time-in');
     state.settings.times = Array.from(inputs).map(i => i.value);
 }
@@ -99,7 +89,8 @@ function setupGlobalListeners() {
         if (!e.target.closest('.radial-menu')) document.getElementById('gridRadialMenu')?.classList.add('hidden');
     });
     
-    document.getElementById('saveResultBtn').addEventListener('click', saveFinalResult);
+    const saveBtn = document.getElementById('saveResultBtn');
+    if(saveBtn) saveBtn.addEventListener('click', saveFinalResult);
     
     const importBtn = document.getElementById('importBtn');
     const importFile = document.getElementById('importFile');
@@ -125,22 +116,48 @@ function renderTimeInputs() {
 }
 document.getElementById('pairsPerDay').addEventListener('change', renderTimeInputs);
 
-/* ================= КРОК 2 (НОВА СИСТЕМА + ВИПРАВЛЕННЯ ПОМИЛКИ ID/NAME) ================= */
+/* ================= КРОК 2 (ВИПРАВЛЕНА ЛОГІКА КНОПОК) ================= */
 function initSubjectFormListeners() {
+    // 1. Слухач чекбоксів
     const checkboxes = document.querySelectorAll('.type-check');
     checkboxes.forEach(cb => {
         cb.addEventListener('change', renderTypeDetailInputs);
     });
+
+    // 2. ГОЛОВНЕ ВИПРАВЛЕННЯ: Слухач контейнера для кнопок + та x
+    const container = document.getElementById('typeDetailsContainer');
+    
+    container.addEventListener('click', (e) => {
+        // Якщо клікнули на кнопку "+ варіант"
+        if (e.target.classList.contains('btn-add-variant')) {
+            e.preventDefault();
+            const type = e.target.dataset.type;
+            addVariant(type);
+        }
+        // Якщо клікнули на кнопку "x"
+        if (e.target.classList.contains('btn-remove-variant')) {
+            e.preventDefault();
+            const type = e.target.dataset.type;
+            const index = parseInt(e.target.dataset.index);
+            removeVariant(type, index);
+        }
+    });
+
+    // 3. Зберігаємо дані при введенні тексту (щоб не зникли при додаванні варіанту)
+    container.addEventListener('input', (e) => {
+        if (e.target.tagName === 'INPUT') {
+            syncInputsToMemory();
+        }
+    });
 }
 
-// Зберігає те, що ввів юзер, у змінну currentSubjectVariants
+// Функція зчитування даних з екрану в пам'ять
 function syncInputsToMemory() {
     const blocks = document.querySelectorAll('.type-detail-block');
     blocks.forEach(block => {
         const type = block.dataset.type;
         const rows = block.querySelectorAll('.variant-row');
         
-        // Оновлюємо масив для цього типу
         const newVariants = [];
         rows.forEach(row => {
             newVariants.push({
@@ -155,8 +172,11 @@ function syncInputsToMemory() {
 function renderTypeDetailInputs() {
     const container = document.getElementById('typeDetailsContainer');
     
-    // Спочатку зберігаємо, що юзер вже ввів
-    syncInputsToMemory();
+    // Спочатку зберігаємо, що юзер вже ввів, щоб не стерти
+    // Але тільки якщо ми не викликаємо це вперше
+    if (container.children.length > 0) {
+        syncInputsToMemory();
+    }
 
     container.innerHTML = '';
     const checkboxes = document.querySelectorAll('.type-check:checked');
@@ -167,7 +187,7 @@ function renderTypeDetailInputs() {
     checkboxes.forEach(cb => {
         const type = cb.value;
         
-        // Якщо даних ще немає для цього типу, створимо один пустий рядок
+        // Якщо даних ще немає, створюємо пустий рядок
         if (!currentSubjectVariants[type] || currentSubjectVariants[type].length === 0) {
             currentSubjectVariants[type] = [{teacher: '', room: ''}];
         }
@@ -175,7 +195,7 @@ function renderTypeDetailInputs() {
         const variants = currentSubjectVariants[type];
         
         const rowsHtml = variants.map((v, idx) => `
-            <div class="variant-row">
+            <div class="variant-row" data-index="${idx}">
                 <input 
                     type="text" 
                     class="inp-teacher" 
@@ -196,15 +216,16 @@ function renderTypeDetailInputs() {
                     id="room-${type}-${idx}"
                     autocomplete="off"
                 >
-                ${idx > 0 ? `<span class="btn-remove-variant" onclick="removeVariant('${type}', ${idx})">×</span>` : ''}
+                ${idx > 0 ? `<span class="btn-remove-variant" data-type="${type}" data-index="${idx}" style="cursor:pointer; color:red; font-weight:bold; font-size:1.2rem; padding:0 5px;">×</span>` : ''}
             </div>
         `).join('');
 
+        // Увага: тут button type="button" і немає onclick, все через dataset
         const html = `
             <div class="type-detail-block" data-type="${type}">
                 <div class="type-header">
                     <span>${labels[type]}</span>
-                    <button class="btn-add-variant" onclick="addVariant('${type}')">+ варіант</button>
+                    <button type="button" class="btn-add-variant" data-type="${type}">+ варіант</button>
                 </div>
                 <div class="variants-list">
                     ${rowsHtml}
@@ -215,49 +236,51 @@ function renderTypeDetailInputs() {
     });
 }
 
-// Глобальні функції для HTML кнопок
-window.addVariant = (type) => {
-    syncInputsToMemory(); // Зберігаємо поточний стан
+function addVariant(type) {
+    syncInputsToMemory(); // Сейв перед додаванням
     if(!currentSubjectVariants[type]) currentSubjectVariants[type] = [];
-    currentSubjectVariants[type].push({teacher: '', room: ''}); // Додаємо пустий
-    renderTypeDetailInputs(); // Перемальовуємо
-};
+    currentSubjectVariants[type].push({teacher: '', room: ''});
+    renderTypeDetailInputs(); // Ререндер
+}
 
-window.removeVariant = (type, index) => {
+function removeVariant(type, index) {
     syncInputsToMemory();
     if(currentSubjectVariants[type]) {
         currentSubjectVariants[type].splice(index, 1);
     }
     renderTypeDetailInputs();
-};
+}
 
-document.getElementById('addSubjectBtn').addEventListener('click', () => {
-    syncInputsToMemory(); // Фінальний сейв
-    const name = document.getElementById('subjName').value;
-    if(!name) { alert("Введіть назву предмету"); return; }
-    
-    const checkboxes = Array.from(document.querySelectorAll('.type-check:checked'));
-    if(checkboxes.length === 0) { alert("Оберіть хоча б один тип заняття"); return; }
+const addSubjectBtn = document.getElementById('addSubjectBtn');
+if(addSubjectBtn) {
+    addSubjectBtn.addEventListener('click', () => {
+        syncInputsToMemory(); // Фінальний сейв
+        const nameInput = document.getElementById('subjName');
+        const name = nameInput.value;
+        if(!name) { alert("Введіть назву предмету"); return; }
+        
+        const checkboxes = Array.from(document.querySelectorAll('.type-check:checked'));
+        if(checkboxes.length === 0) { alert("Оберіть хоча б один тип заняття"); return; }
 
-    const types = [];
-    const details = {}; 
+        const types = [];
+        const details = {}; 
 
-    checkboxes.forEach(cb => {
-        const type = cb.value;
-        types.push(type);
-        // Глибоке копіювання даних
-        details[type] = JSON.parse(JSON.stringify(currentSubjectVariants[type] || []));
+        checkboxes.forEach(cb => {
+            const type = cb.value;
+            types.push(type);
+            details[type] = JSON.parse(JSON.stringify(currentSubjectVariants[type] || []));
+        });
+        
+        state.subjects.push({ id: Date.now().toString(), name, types, details });
+        renderSubjectsList();
+        
+        // === ОЧИСТКА ===
+        nameInput.value = '';
+        document.querySelectorAll('.type-check').forEach(c => c.checked = false);
+        currentSubjectVariants = {}; // Скидаємо пам'ять
+        renderTypeDetailInputs(); // Очищаємо поля
     });
-    
-    state.subjects.push({ id: Date.now().toString(), name, types, details });
-    renderSubjectsList();
-    
-    // === ОЧИСТКА ПІСЛЯ ДОДАВАННЯ ===
-    document.getElementById('subjName').value = '';
-    document.querySelectorAll('.type-check').forEach(c => c.checked = false);
-    currentSubjectVariants = {}; // Скидаємо пам'ять
-    renderTypeDetailInputs(); // Очищаємо HTML
-});
+}
 
 function renderSubjectsList() {
     const list = document.getElementById('subjectsList');
@@ -306,10 +329,7 @@ function renderStructureGrid() {
         for(let d=0; d<dayKeys.length; d++) {
             const key = `${d}-${p}`;
             const cellData = state.grid[key] || {structure: 'single'};
-            
-            // Якщо є кастомний час
             const customTime = cellData.customTime ? `<div class="cell-time-tag">${cellData.customTime}</div>` : '';
-            
             const cell = div('grid-cell', customTime + generateHTML(cellData.structure, false, {}, key));
             cell.querySelectorAll('.sub-cell').forEach(sub => {
                 sub.addEventListener('click', (e) => openMenu(e, key, sub.dataset.pos, cellData.structure));
@@ -331,7 +351,6 @@ function generateHTML(struct, isFillMode, content = {}, key = "") {
             let typeClass = 'lecture';
             if(item.type === 'Prac' || item.type === 'practical') typeClass = 'practical';
             if(item.type === 'Lab' || item.type === 'lab') typeClass = 'lab';
-            
             inner = `<div class="lesson-chip type-${typeClass}" title="${item.teacher || ''} ${item.room || ''}">
                 <b>${item.subject}</b>
                 <div style="font-size:10px">${item.type}</div>
@@ -367,7 +386,7 @@ function openMenu(e, key, pos, struct) {
 
     const btnV = menu.querySelector('.top');
     const btnH = menu.querySelector('.right');
-    const btnTime = menu.querySelector('.left'); // Кнопка часу
+    const btnTime = menu.querySelector('.left'); 
 
     btnV.style.display = 'flex'; btnH.style.display = 'flex';
     if(btnTime) btnTime.style.display = 'flex';
@@ -387,16 +406,12 @@ function changeGrid(action) {
     const {key, pos, struct} = menuCtx;
     if(!state.grid[key]) state.grid[key] = {structure: 'single', content: {}};
     
-    // === ЛОГІКА ЗМІНИ ЧАСУ ===
     if (action === 'time') {
         const pIndex = key.split('-')[1];
         const defaultTime = state.settings.times[pIndex];
         const newTime = prompt("Введіть час (напр. 10:00 – 11:20):", state.grid[key].customTime || defaultTime);
-        if (newTime) {
-            state.grid[key].customTime = newTime;
-        } else if (newTime === "") {
-            delete state.grid[key].customTime; // Скидання
-        }
+        if (newTime) state.grid[key].customTime = newTime;
+        else if (newTime === "") delete state.grid[key].customTime;
         renderStructureGrid();
         return;
     }
@@ -414,12 +429,12 @@ function changeGrid(action) {
     renderStructureGrid();
 }
 
-/* ================= КРОК 4 (НАПОВНЕННЯ) ================= */
+/* ================= КРОК 4 ================= */
 function renderDraggables() {
     const c = document.getElementById('draggableSubjects');
     if(!c) return;
     c.innerHTML = state.subjects.map(s => 
-        `<div class="drag-item" data-id="${s.id}" onmousedown="startDrag(event)">
+        `<div class="drag-item" data-id="${s.id}" draggable="true" ondragstart="startDrag(event)">
             <div style="font-weight:bold">${s.name}</div>
             <small style="font-size:0.75rem; color:#666">${s.types.join(', ')}</small>
         </div>`
@@ -439,7 +454,6 @@ function renderFillGrid() {
         for(let d=0; d<dayKeys.length; d++) {
             const key = `${d}-${p}`;
             const cell = state.grid[key] || {structure: 'single', content: {}};
-            // Відображаємо кастомний час
             const customTime = cell.customTime ? `<div class="cell-time-tag">${cell.customTime}</div>` : '';
             c.appendChild(div('grid-cell', customTime + generateHTML(cell.structure, true, cell.content, key)));
         }
@@ -451,56 +465,69 @@ let isDragging = false, dragSubjId = null;
 const ghost = document.getElementById('dragGhost');
 
 function startDrag(e) {
-    if(e.button !== 0) return;
-    dragSubjId = e.currentTarget.dataset.id;
-    const s = state.subjects.find(x => x.id === dragSubjId);
+    // Підтримка мобільних і десктоп
+    dragSubjId = e.target.closest('.drag-item').dataset.id;
     isDragging = true;
+    
+    // Ghost effect
+    const s = state.subjects.find(x => x.id === dragSubjId);
     ghost.innerText = s.name;
     ghost.classList.remove('hidden');
-    updateGhost(e);
+    
     document.addEventListener('mousemove', onDrag);
+    document.addEventListener('touchmove', onDrag, {passive: false});
     document.addEventListener('mouseup', endDrag);
+    document.addEventListener('touchend', endDrag);
 }
 
 function onDrag(e) {
     if(!isDragging) return;
     e.preventDefault();
-    updateGhost(e);
+    const cx = e.clientX || e.touches[0].clientX;
+    const cy = e.clientY || e.touches[0].clientY;
+    
+    ghost.style.left = cx + 'px'; 
+    ghost.style.top = cy + 'px';
+    
     ghost.style.display = 'none';
-    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const el = document.elementFromPoint(cx, cy);
     ghost.style.display = 'block';
+    
     document.querySelectorAll('.drop-hover').forEach(x => x.classList.remove('drop-hover'));
     const cell = el?.closest('.sub-cell');
     if(cell && cell.dataset.dropKey) cell.classList.add('drop-hover');
 }
 
-function updateGhost(e) { ghost.style.left = e.clientX + 'px'; ghost.style.top = e.clientY + 'px'; }
-
 function endDrag(e) {
     isDragging = false;
     ghost.classList.add('hidden');
+    
+    const cx = e.clientX || (e.changedTouches ? e.changedTouches[0].clientX : 0);
+    const cy = e.clientY || (e.changedTouches ? e.changedTouches[0].clientY : 0);
+    
     ghost.style.display = 'none';
-    const el = document.elementFromPoint(e.clientX, e.clientY);
-    const target = el?.closest('.sub-cell');
+    const el = document.elementFromPoint(cx, cy);
     ghost.style.display = 'block';
 
+    document.querySelectorAll('.drop-hover').forEach(x => x.classList.remove('drop-hover'));
+    document.removeEventListener('mousemove', onDrag);
+    document.removeEventListener('touchmove', onDrag);
+    document.removeEventListener('mouseup', endDrag);
+    document.removeEventListener('touchend', endDrag);
+
+    const target = el?.closest('.sub-cell');
     if(target && target.dataset.dropKey) {
         handleDrop(target.dataset.dropKey, target.dataset.dropPos);
     }
-    
-    document.removeEventListener('mousemove', onDrag);
-    document.removeEventListener('mouseup', endDrag);
-    document.querySelectorAll('.drop-hover').forEach(x => x.classList.remove('drop-hover'));
 }
 
-// === ОБРОБКА ПАДІННЯ ===
 function handleDrop(key, pos) {
     const subj = state.subjects.find(s => s.id === dragSubjId);
     if (!subj) return;
     showDropModal(key, pos, subj);
 }
 
-// === МОДАЛКА ===
+// === MODAL ===
 function initDropModal() {
     document.getElementById('btnCancelDrop').addEventListener('click', () => {
         document.getElementById('dropModal').classList.remove('active');
@@ -509,7 +536,6 @@ function initDropModal() {
 
     document.getElementById('btnConfirmDrop').addEventListener('click', () => {
         if (!pendingDrop) return;
-        
         const selectedTypeBtn = document.querySelector('.type-btn.selected');
         const type = selectedTypeBtn ? selectedTypeBtn.dataset.value : pendingDrop.types[0];
         
@@ -524,7 +550,6 @@ function initDropModal() {
         pendingDrop = null;
     });
     
-    // Зміна варіанту
     document.getElementById('modalVariantSelector').addEventListener('change', (e) => {
         if(!pendingDrop) return;
         const selectedTypeBtn = document.querySelector('.type-btn.selected');
@@ -618,12 +643,10 @@ function handleFileImport(e) {
             if(data.settings) state.settings = data.settings;
             if(data.subjects) state.subjects = data.subjects;
             if(data.grid) state.grid = data.grid;
-            
             document.getElementById('groupName').value = state.settings.group;
             document.getElementById('pairsPerDay').value = state.settings.pairsPerDay;
             renderTimeInputs();
             renderSubjectsList();
-            
             state.step = 3; 
             updateUI();
             alert('Дані успішно завантажено!');
