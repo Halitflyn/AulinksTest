@@ -17,18 +17,18 @@
             <h1>Редактор</h1>
             <div class="right-controls">
                 <input type="file" id="importFile" accept=".json" style="display: none;">
-                <button id="importBtn" class="btn-sm" title="Завантажити з файлу">📂 Відкрити</button>
-                <button id="exportJsonBtn" class="btn-sm" title="Зберегти у файл">⬇️ Експорт</button>
+                <button id="importBtn" class="btn-sm">📂 Відкрити</button>
+                <button id="exportJsonBtn" class="btn-sm">⬇️ Експорт</button>
             </div>
         </div>
     </header>
 
     <main class="wizard-container">
         <div class="wizard-progress">
-            <div class="step-indicator active" data-step="1">1. Налаштування</div>
-            <div class="step-indicator" data-step="2">2. Предмети</div>
-            <div class="step-indicator" data-step="3">3. Структура</div>
-            <div class="step-indicator" data-step="4">4. Наповнення</div>
+            <div class="step-indicator active" onclick="wizard.goTo(1)" data-step="1">1. Налаштування</div>
+            <div class="step-indicator" onclick="wizard.goTo(2)" data-step="2">2. Предмети</div>
+            <div class="step-indicator" onclick="wizard.goTo(3)" data-step="3">3. Структура</div>
+            <div class="step-indicator" onclick="wizard.goTo(4)" data-step="4">4. Наповнення</div>
         </div>
 
         <section id="step-1" class="wizard-step active">
@@ -55,26 +55,31 @@
                     <label><input type="radio" name="currentWeekType" value="num" checked> Чисельник</label>
                     <label><input type="radio" name="currentWeekType" value="den"> Знаменник</label>
                 </div>
-                <small>Це потрібно для правильної синхронізації з календарем.</small>
             </div>
 
             <h3>Час дзвінків</h3>
             <div id="timeSettings" class="time-grid"></div>
             <div class="step-footer">
-                <button class="btn btn-primary" onclick="wizard.next()">Далі &rarr;</button>
+                <div></div> <button class="btn btn-primary" onclick="wizard.next()">Далі &rarr;</button>
             </div>
         </section>
 
         <section id="step-2" class="wizard-step">
             <h2>📚 Предмети</h2>
             <div class="add-subject-box">
-                <input type="text" id="subjName" placeholder="Назва">
-                <div class="checkbox-group">
-                    <label><input type="checkbox" class="type-check" value="lecture" checked> Лек</label>
-                    <label><input type="checkbox" class="type-check" value="practical"> Прак</label>
-                    <label><input type="checkbox" class="type-check" value="lab"> Лаб</label>
+                <div class="input-row">
+                    <input type="text" id="subjName" placeholder="Назва предмету (напр. Фізика)" style="flex: 2;">
+                    <input type="text" id="subjTeacher" placeholder="Викладач (Рибчинський Н.О.)" style="flex: 1;">
+                    <input type="text" id="subjRoom" placeholder="Ауд. (713 V)" style="flex: 0.5;">
                 </div>
-                <button id="addSubjectBtn" class="btn btn-primary">Додати</button>
+                <div class="checkbox-row">
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" class="type-check" value="lecture" checked> Лек</label>
+                        <label><input type="checkbox" class="type-check" value="practical"> Прак</label>
+                        <label><input type="checkbox" class="type-check" value="lab"> Лаб</label>
+                    </div>
+                    <button id="addSubjectBtn" class="btn btn-primary">Додати</button>
+                </div>
             </div>
             <div id="subjectsList" class="subjects-list"></div>
             <div class="step-footer">
