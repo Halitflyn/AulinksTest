@@ -4,14 +4,24 @@ const state = {
     settings: {
         group: "ІП-24",
         pairsPerDay: 5,
-        times: ["08:30", "10:05", "11:40", "13:15", "14:50", "16:25", "18:00"]
+        // Формат часу ВАЖЛИВИЙ для твого script.js (має бути "XX:XX – XX:XX")
+        times: [
+            "08:30 – 09:50",
+            "10:05 – 11:25",
+            "11:40 – 13:00",
+            "13:15 – 14:35",
+            "14:50 – 16:10",
+            "16:25 – 17:45",
+            "18:00 – 19:20"
+        ]
     },
     subjects: [],
     grid: {} 
 };
 
-const days = ["Пн", "Вт", "Ср", "Чт", "Пт"];
-const dayKeys = ["monday", "tuesday", "wednesday", "thursday", "friday"]; // Для сумісності з сайтом
+// Ключі днів, які очікує твій script.js
+const dayKeys = ["monday", "tuesday", "wednesday", "thursday", "friday"];
+const dayNamesUk = ["Понеділок", "Вівторок", "Середа", "Четвер", "П'ятниця"];
 
 /* ================= WIZARD NAV ================= */
 const wizard = {
@@ -22,7 +32,6 @@ const wizard = {
             if (!e.target.closest('.radial-menu')) document.getElementById('gridRadialMenu').classList.add('hidden');
         });
         
-        // Кнопка збереження
         const saveBtn = document.getElementById('saveResultBtn');
         if(saveBtn) saveBtn.addEventListener('click', saveFinalResult);
     },
@@ -63,7 +72,7 @@ function renderTimeInputs() {
     container.innerHTML = '';
     const n = parseInt(document.getElementById('pairsPerDay').value);
     for(let i=0; i<n; i++) {
-        const val = state.settings.times[i] || "00:00";
+        const val = state.settings.times[i] || "00:00 – 00:00";
         container.innerHTML += `<div><label>Пара ${i+1}</label><input class="time-in" value="${val}"></div>`;
     }
 }
@@ -74,7 +83,7 @@ document.getElementById('addSubjectBtn').addEventListener('click', () => {
     const name = document.getElementById('subjName').value;
     if(!name) return;
     const types = Array.from(document.querySelectorAll('.type-check:checked')).map(cb => cb.value);
-    if(types.length === 0) types.push('Lec');
+    if(types.length === 0) types.push('lecture'); // Default type matching your script (lecture/practical/lab)
     
     state.subjects.push({ id: Date.now().toString(), name, types });
     renderSubjectsList();
@@ -98,21 +107,19 @@ function renderSubjectsList() {
 function renderStructureGrid() {
     const c = document.getElementById('structureGrid');
     c.innerHTML = '';
-    c.style.gridTemplateColumns = `50px repeat(${days.length}, 1fr)`;
+    c.style.gridTemplateColumns = `50px repeat(${dayKeys.length}, 1fr)`;
     
     c.appendChild(div('grid-header', '#'));
-    days.forEach(d => c.appendChild(div('grid-header', d)));
+    dayNamesUk.forEach(d => c.appendChild(div('grid-header', d)));
 
     for(let p=0; p<state.settings.pairsPerDay; p++) {
-        c.appendChild(div('grid-header', `${p+1}`)); // Номер пари
-        for(let d=0; d<days.length; d++) {
+        c.appendChild(div('grid-header', `${p+1}`)); 
+        for(let d=0; d<dayKeys.length; d++) {
             const key = `${d}-${p}`;
             const cellData = state.grid[key] || {structure: 'single'};
             
-            // Генеруємо структуру (false = режим налаштування)
             const cell = div('grid-cell', generateHTML(cellData.structure, false, {}, key));
             
-            // Клік для меню
             cell.querySelectorAll('.sub-cell').forEach(sub => {
                 sub.addEventListener('click', (e) => openMenu(e, key, sub.dataset.pos, cellData.structure));
             });
@@ -125,21 +132,25 @@ function div(cls, html) {
     const d = document.createElement('div'); d.className = cls; d.innerHTML = html; return d;
 }
 
-// === HTML GENERATOR (Універсальний) ===
+// === HTML GENERATOR ===
 function generateHTML(struct, isFillMode, content = {}, key = "") {
     const render = (pos, cls) => {
         let inner = isFillMode ? `<span style="color:#ddd; font-size:12px">+</span>` : "";
         
-        // Якщо є контент
         if (isFillMode && content && content[pos]) {
             const item = content[pos];
-            inner = `<div class="lesson-chip type-${item.type}">
+            // Використовуємо твої класи кольорів (lecture/practical/lab)
+            let typeClass = item.type; 
+            if(item.type === 'Lec') typeClass = 'lecture';
+            if(item.type === 'Prac') typeClass = 'practical';
+            if(item.type === 'Lab') typeClass = 'lab';
+
+            inner = `<div class="lesson-chip type-${typeClass}" style="background-color: var(--c-${item.type.toLowerCase()});">
                 <b>${item.subject}</b>
                 <div style="font-size:10px">${item.type}</div>
             </div>`;
         }
         
-        // Атрибути для Drop
         const dropAttr = isFillMode ? `data-drop-key="${key}" data-drop-pos="${pos}"` : `data-pos="${pos}"`;
         return `<div class="sub-cell ${cls}" ${dropAttr}>${inner}</div>`;
     };
@@ -147,17 +158,14 @@ function generateHTML(struct, isFillMode, content = {}, key = "") {
     if (struct === 'single') return render('main', '');
     if (struct === 'split-h') return `<div class="cell-split-h">${render('left','group1')}${render('right','group2')}</div>`;
     
-    // Vertical logic
     let top, bot;
     
-    // Top
     if (struct === 'split-v-top-h' || struct === 'split-v-both-h') {
         top = `<div class="cell-split-h numerator">${render('top-left','group1')}${render('top-right','group2')}</div>`;
     } else {
         top = render('top', 'numerator');
     }
 
-    // Bottom
     if (struct === 'split-v-bottom-h' || struct === 'split-v-both-h') {
         bot = `<div class="cell-split-h denominator">${render('bottom-left','group1')}${render('bottom-right','group2')}</div>`;
     } else {
@@ -189,10 +197,12 @@ function openMenu(e, key, pos, struct) {
     if (pos.includes('left') || pos.includes('right')) btnH.style.display = 'none';
 }
 
-menu.querySelectorAll('.radial-btn').forEach(b => b.onclick = (e) => {
-    changeGrid(b.dataset.action);
-    menu.classList.add('hidden');
-});
+if(menu) {
+    menu.querySelectorAll('.radial-btn').forEach(b => b.onclick = (e) => {
+        changeGrid(b.dataset.action);
+        menu.classList.add('hidden');
+    });
+}
 
 function changeGrid(action) {
     const {key, pos, struct} = menuCtx;
@@ -226,17 +236,16 @@ function renderDraggables() {
 function renderFillGrid() {
     const c = document.getElementById('fillGrid');
     c.innerHTML = '';
-    c.style.gridTemplateColumns = `50px repeat(${days.length}, 1fr)`;
+    c.style.gridTemplateColumns = `50px repeat(${dayKeys.length}, 1fr)`;
 
     c.appendChild(div('grid-header', '#'));
-    days.forEach(d => c.appendChild(div('grid-header', d)));
+    dayNamesUk.forEach(d => c.appendChild(div('grid-header', d)));
 
     for(let p=0; p<state.settings.pairsPerDay; p++) {
         c.appendChild(div('grid-header', `${p+1}`));
-        for(let d=0; d<days.length; d++) {
+        for(let d=0; d<dayKeys.length; d++) {
             const key = `${d}-${p}`;
             const cellData = state.grid[key] || {structure: 'single', content: {}};
-            // Генеруємо з true (режим заповнення)
             const html = generateHTML(cellData.structure, true, cellData.content, key);
             c.appendChild(div('grid-cell', html));
         }
@@ -303,68 +312,114 @@ function saveDrop(key, pos) {
     if(!state.grid[key].content) state.grid[key].content = {};
 
     const s = state.subjects.find(x => x.id === dragSubjId);
-    state.grid[key].content[pos] = { subject: s.name, type: s.types[0] }; // Беремо перший тип
+    state.grid[key].content[pos] = { subject: s.name, type: s.types[0] }; 
     renderFillGrid();
 }
 
 /* ================= ЗБЕРЕЖЕННЯ (ФІНАЛ) ================= */
 function saveFinalResult() {
-    // 1. Формуємо об'єкт для index.html
-    const scheduleData = {
-        groupName: state.settings.group,
+    // Формуємо об'єкт точно так, як його очікує твій script.js
+    const scheduleExport = {
+        group: state.settings.group,
+        startDate: new Date().toISOString().split('T')[0], // Поточна дата для розрахунку тижнів
         schedule: {}
     };
 
-    // 2. Конвертуємо grid у формат { monday: [...], tuesday: [...] }
-    days.forEach((_, dIndex) => {
-        const dayKey = dayKeys[dIndex];
-        const dayLessons = [];
+    dayKeys.forEach((dayKey, dIndex) => {
+        const lessons = [];
 
         for(let p=0; p<state.settings.pairsPerDay; p++) {
             const key = `${dIndex}-${p}`;
             const cell = state.grid[key];
-            
-            // Якщо клітинки немає або вона порожня - додаємо порожню пару
-            if (!cell || !cell.content || Object.keys(cell.content).length === 0) {
-                dayLessons.push({
+            const timeStr = state.settings.times[p];
+
+            if (!cell || !cell.content || Object.keys(cell.content).length === 0) continue;
+
+            // Конвертація внутрішньої структури в формат script.js (subgroups)
+            const baseLesson = {
+                number: p + 1,
+                time: timeStr,
+                type: 'mixed', // Якщо структура складна
+                subgroups: []
+            };
+
+            // Функція для мапінгу типів (Lec -> lecture)
+            const mapType = (t) => {
+                if(t === 'Lec') return 'lecture';
+                if(t === 'Prac') return 'practical';
+                if(t === 'Lab') return 'lab';
+                return 'lecture';
+            };
+
+            // 1. Одинарна клітинка (Single)
+            if (cell.structure === 'single' && cell.content.main) {
+                lessons.push({
                     number: p + 1,
-                    time: state.settings.times[p],
-                    subject: "",
-                    type: ""
+                    time: timeStr,
+                    subject: cell.content.main.subject,
+                    type: mapType(cell.content.main.type),
+                    weeks: 'all'
                 });
                 continue;
             }
 
-            // Якщо є дані - треба конвертувати складну структуру в об'єкт уроку
-            // Для простоти, якщо це single, просто зберігаємо
-            if (cell.structure === 'single' && cell.content.main) {
-                dayLessons.push({
-                    number: p + 1,
-                    time: state.settings.times[p],
-                    subject: cell.content.main.subject,
-                    type: cell.content.main.type
-                });
-            } else {
-                // Якщо складна структура (підгрупи/чис/знам)
-                // Зберігаємо як "mixed" або адаптуємо під формат твого JSON
-                // Тут я зберігаю спрощено, щоб головний сайт хоч щось показав
-                dayLessons.push({
-                    number: p + 1,
-                    time: state.settings.times[p],
-                    subject: "Складна пара",
-                    type: "Mixed",
-                    details: cell.content // Зберігаємо повні дані для майбутнього
-                });
+            // 2. Складна структура -> переганяємо все в subgroups
+            const pushSub = (pos, group, weeks) => {
+                if(cell.content[pos]) {
+                    baseLesson.subgroups.push({
+                        subject: cell.content[pos].subject,
+                        type: mapType(cell.content[pos].type),
+                        group: group, // 'all', 'sub1', 'sub2'
+                        weeks: weeks,  // 'all', 'num', 'den'
+                        teacher: "",
+                        room: ""
+                    });
+                }
+            };
+
+            // Розбір структури
+            if (cell.structure === 'split-h') {
+                pushSub('left', 'sub1', 'all');
+                pushSub('right', 'sub2', 'all');
+            }
+            else if (cell.structure === 'split-v') {
+                pushSub('top', 'all', 'num');
+                pushSub('bottom', 'all', 'den');
+            }
+            else {
+                // Складні мікси
+                // Верхня частина (Чисельник)
+                if(cell.structure.includes('top-h') || cell.structure.includes('both-h')) {
+                    pushSub('top-left', 'sub1', 'num');
+                    pushSub('top-right', 'sub2', 'num');
+                } else {
+                    pushSub('top', 'all', 'num');
+                }
+                
+                // Нижня частина (Знаменник)
+                if(cell.structure.includes('bottom-h') || cell.structure.includes('both-h')) {
+                    pushSub('bottom-left', 'sub1', 'den');
+                    pushSub('bottom-right', 'sub2', 'den');
+                } else {
+                    pushSub('bottom', 'all', 'den');
+                }
+            }
+
+            if(baseLesson.subgroups.length > 0) {
+                lessons.push(baseLesson);
             }
         }
-        scheduleData.schedule[dayKey] = dayLessons;
+        
+        scheduleExport.schedule[dayKey] = {
+            name: dayNamesUk[dIndex],
+            lessons: lessons
+        };
     });
 
-    // 3. Зберігаємо в LocalStorage
-    localStorage.setItem('scheduleData', JSON.stringify(scheduleData));
+    // ЗБЕРІГАЄМО ПІД ПРАВИЛЬНИМ КЛЮЧЕМ
+    localStorage.setItem('myCustomSchedule', JSON.stringify(scheduleExport));
     
-    // 4. Повертаємо на головну
-    alert('Розклад збережено! Перехід на головну...');
+    alert('✅ Розклад збережено! Зараз відкриється головна сторінка.');
     window.location.href = 'index.html';
 }
 
