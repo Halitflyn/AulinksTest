@@ -264,90 +264,42 @@ function modifyGrid(key, action) {
 }
 
 
-/* ================= STEP 4: DRAG & DROP EDITOR ================= */
-function renderDraggables() {
-    const container = document.getElementById('draggableSubjects');
-    container.innerHTML = state.subjects.map(s => `
-        <div class="drag-item" data-id="${s.id}">
-            <strong>${s.name}</strong>
-            <div style="font-size:10px; color:#666">${s.types.join(', ')}</div>
-        </div>
-    `).join('');
-    
-    initCustomDrag();
-}
+/* ================= STEP 4: DRAG & DROP EDITOR (FIXED) ================= */
 
-function renderFillGrid() {
-    const container = document.getElementById('fillGrid');
-    container.innerHTML = '';
-    // Same grid logic but interactive for drop
-    container.style.gridTemplateColumns = `50px repeat(${days.length}, 1fr)`;
-    
-    // Render
-    for (let p = 0; p < state.settings.pairsPerDay; p++) {
-        container.appendChild(createDiv('grid-header time-col', `<span style="writing-mode:vertical-rl">${state.settings.times[p]}</span>`));
-        for (let d = 0; d < days.length; d++) {
-            const key = `${d}-${p}`;
-            const cellData = state.grid[key] || { structure: 'single', content: {} };
-            const cell = document.createElement('div');
-            cell.className = 'grid-cell';
-            
-            // Reconstruct internal structure but with data-target attributes
-            if (cellData.structure === 'split-v') {
-                cell.innerHTML = `
-                    <div class="cell-split-v">
-                        <div class="sub-cell numerator" data-drop-key="${key}" data-part="top">${renderLesson(cellData.content?.top)}</div>
-                        <div class="sub-cell denominator" data-drop-key="${key}" data-part="bottom">${renderLesson(cellData.content?.bottom)}</div>
-                    </div>`;
-            } else if (cellData.structure === 'split-h') {
-                cell.innerHTML = `
-                    <div class="cell-split-h">
-                        <div class="sub-cell group1" data-drop-key="${key}" data-part="left">${renderLesson(cellData.content?.left)}</div>
-                        <div class="sub-cell group2" data-drop-key="${key}" data-part="right">${renderLesson(cellData.content?.right)}</div>
-                    </div>`;
-            } else {
-                cell.innerHTML = `<div class="sub-cell single" data-drop-key="${key}" data-part="main">${renderLesson(cellData.content?.main)}</div>`;
-            }
-            container.appendChild(cell);
-        }
-    }
-}
-
-function renderLesson(lessonData) {
-    if (!lessonData) return '';
-    return `<div class="lesson-chip type-${lessonData.type}">
-        <b>${lessonData.subject}</b>
-        <span>${lessonData.type}</span>
-        <small>${lessonData.room}</small>
-    </div>`;
-}
-
-// === CUSTOM DRAG AND DROP IMPLEMENTATION ===
+// Змінні для перетягування
 let isDragging = false;
 let dragSubjectId = null;
 const ghost = document.getElementById('dragGhost');
 const ghostContent = ghost.querySelector('.ghost-content');
 
+// Ініціалізація (викликається в renderDraggables)
 function initCustomDrag() {
     const items = document.querySelectorAll('.drag-item');
     items.forEach(item => {
+        // Видаляємо старі слухачі, щоб не дублювати
+        item.removeEventListener('mousedown', startDrag); 
         item.addEventListener('mousedown', startDrag);
     });
 }
 
 function startDrag(e) {
-    if (e.button !== 0) return; // Left click only
-    isDragging = true;
-    dragSubjectId = e.currentTarget.dataset.id;
+    if (e.button !== 0) return; // Тільки ліва кнопка миші
     
-    // Setup ghost
+    dragSubjectId = e.currentTarget.dataset.id;
     const subj = state.subjects.find(s => s.id === dragSubjectId);
+    
+    if (!subj) return;
+
+    isDragging = true;
+    
+    // Налаштування вигляду "привида"
     ghostContent.innerHTML = `${subj.name}`;
     
-    // Show ghost at cursor
+    // Позиціонування
     updateGhostPos(e);
     ghost.classList.remove('hidden');
     
+    // Глобальні слухачі
     document.addEventListener('mousemove', onDrag);
     document.addEventListener('mouseup', endDrag);
 }
@@ -357,14 +309,21 @@ function onDrag(e) {
     e.preventDefault();
     updateGhostPos(e);
     
-    // Highlight drop zones
+    // Візуальне підсвічування (зеленим)
+    // Ховаємо привид на мілісекунду, щоб побачити, що під ним
+    ghost.style.display = 'none'; 
+    const elemBelow = document.elementFromPoint(e.clientX, e.clientY);
+    ghost.style.display = 'block';
+
+    if (!elemBelow) return;
+
+    // Очищуємо старі підсвічування
     document.querySelectorAll('.drop-hover').forEach(el => el.classList.remove('drop-hover'));
-    const target = getElementUnderMouse(e);
-    if (target && target.classList.contains('sub-cell')) {
-        target.classList.add('drop-hover');
-        
-        // Visual Logic: Color ghost based on position relative to cell center?
-        // (Optional complexity skipped to ensure robustness)
+
+    // Шукаємо клітинку під курсором
+    const droppableBelow = elemBelow.closest('.sub-cell');
+    if (droppableBelow) {
+        droppableBelow.classList.add('drop-hover');
     }
 }
 
@@ -373,67 +332,62 @@ function updateGhostPos(e) {
     ghost.style.top = e.clientY + 'px';
 }
 
-function getElementUnderMouse(e) {
-    // Hide ghost momentarily to get element below it
-    ghost.style.display = 'none';
-    const elem = document.elementFromPoint(e.clientX, e.clientY);
-    ghost.style.display = 'block';
-    return elem;
-}
-
 function endDrag(e) {
+    if (!isDragging) return;
     isDragging = false;
-    ghost.classList.add('hidden');
-    document.removeEventListener('mousemove', onDrag);
-    document.removeEventListener('mouseup', endDrag);
-    document.querySelectorAll('.drop-hover').forEach(el => el.classList.remove('drop-hover'));
 
-    const target = getElementUnderMouse(e)?.closest('.sub-cell');
+    // 1. ВАЖЛИВО: Спочатку повністю ховаємо привид
+    ghost.classList.add('hidden');
+    ghost.style.display = 'none'; // Гарантовано прибираємо з потоку
+
+    // 2. Тепер шукаємо елемент за координатами миші
+    const elemBelow = document.elementFromPoint(e.clientX, e.clientY);
+    
+    // 3. Перевіряємо, чи це клітинка розкладу
+    const target = elemBelow ? elemBelow.closest('.sub-cell') : null;
+
+    console.log("Drop detected:", target); // Для налагодження (F12)
+
     if (target && target.dataset.dropKey) {
         handleDrop(target.dataset.dropKey, target.dataset.part);
     }
+
+    // Очистка
+    document.removeEventListener('mousemove', onDrag);
+    document.removeEventListener('mouseup', endDrag);
+    document.querySelectorAll('.drop-hover').forEach(el => el.classList.remove('drop-hover'));
+    
+    // Відновлюємо display для наступного разу (клас hidden все ще тримає його невидимим)
+    ghost.style.display = ''; 
 }
 
 function handleDrop(key, part) {
     const subj = state.subjects.find(s => s.id === dragSubjectId);
+    if (!subj) {
+        console.error("Предмет не знайдено!", dragSubjectId);
+        return;
+    }
     
+    // Якщо у предмета декілька типів (Лек/Прак) - питаємо
     if (subj.types.length > 1) {
-        // Show Modal
         showTypeSelectionModal(subj, (selectedType) => {
             saveLesson(key, part, subj, selectedType);
         });
     } else {
+        // Якщо тип один - зберігаємо одразу
         saveLesson(key, part, subj, subj.types[0]);
     }
 }
 
-function showTypeSelectionModal(subj, callback) {
-    const modal = document.getElementById('modalOverlay');
-    const container = document.getElementById('modalOptions');
-    container.innerHTML = '';
-    
-    subj.types.forEach(t => {
-        const btn = document.createElement('button');
-        btn.className = `btn type-${t}`;
-        btn.textContent = `${t} (${subj.teachers[t]?.name || 'Auto'})`;
-        btn.onclick = () => {
-            modal.classList.add('hidden');
-            callback(t);
-        };
-        container.appendChild(btn);
-    });
-    
-    modal.classList.remove('hidden');
-}
-
-window.closeModal = () => document.getElementById('modalOverlay').classList.add('hidden');
-
 function saveLesson(key, part, subjectObj, type) {
+    // Ініціалізація об'єкта, якщо його ще немає
     if (!state.grid[key]) state.grid[key] = { structure: 'single', content: {} };
     if (!state.grid[key].content) state.grid[key].content = {};
     
+    // Отримуємо дані викладача для конкретного типу
     const teacherData = subjectObj.teachers[type] || {name: '', room: ''};
     
+    // Записуємо в State
     state.grid[key].content[part] = {
         subject: subjectObj.name,
         type: type,
@@ -441,6 +395,9 @@ function saveLesson(key, part, subjectObj, type) {
         room: teacherData.room
     };
     
+    console.log("Saved:", state.grid[key]); // Для перевірки
+    
+    // Перемальовуємо сітку, щоб побачити зміни
     renderFillGrid();
 }
 
@@ -483,3 +440,4 @@ function loadFromStorage() {
 // Init
 document.getElementById('themeToggle').addEventListener('click', () => document.body.classList.toggle('dark-mode'));
 wizard.init();
+
