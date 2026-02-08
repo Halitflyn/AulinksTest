@@ -11,8 +11,15 @@
 
     <header>
         <div class="header-inner">
-            <a href="index.html" class="back-btn">← На головну</a>
-            <h1>Редактор розкладу</h1>
+            <div class="left-controls">
+                <a href="index.html" class="back-btn">← На сайт</a>
+            </div>
+            <h1>Редактор</h1>
+            <div class="right-controls">
+                <input type="file" id="importFile" accept=".json" style="display: none;">
+                <button id="importBtn" class="btn-sm" title="Завантажити з файлу">📂 Відкрити</button>
+                <button id="exportJsonBtn" class="btn-sm" title="Зберегти у файл">⬇️ Експорт</button>
+            </div>
         </div>
     </header>
 
@@ -37,9 +44,20 @@
                         <option value="4">4</option>
                         <option value="5" selected>5</option>
                         <option value="6">6</option>
+                        <option value="7">7</option>
                     </select>
                 </div>
             </div>
+
+            <div class="week-type-block">
+                <label>Який зараз тиждень?</label>
+                <div class="radio-group">
+                    <label><input type="radio" name="currentWeekType" value="num" checked> Чисельник</label>
+                    <label><input type="radio" name="currentWeekType" value="den"> Знаменник</label>
+                </div>
+                <small>Це потрібно для правильної синхронізації з календарем.</small>
+            </div>
+
             <h3>Час дзвінків</h3>
             <div id="timeSettings" class="time-grid"></div>
             <div class="step-footer">
@@ -67,7 +85,7 @@
 
         <section id="step-3" class="wizard-step">
             <h2>📐 Структура</h2>
-            <p class="hint">Клікай на клітинки для поділу (Чисельник/Знаменник/Підгрупи).</p>
+            <p class="hint">Клікай на клітинки для поділу.</p>
             <div class="schedule-grid-container" id="structureGrid"></div>
             <div class="step-footer">
                 <button class="btn btn-outline" onclick="wizard.prev()">&larr; Назад</button>
