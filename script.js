@@ -138,6 +138,22 @@ async function loadScheduleData() {
         }
     }
     try {
+        // Перевіряємо, чи є збережений розклад з редактора
+const savedSchedule = localStorage.getItem('scheduleData');
+
+if (savedSchedule) {
+    const data = JSON.parse(savedSchedule);
+    console.log("Знайдено локальний розклад:", data);
+    
+    // Тут треба викликати твою функцію відображення, наприклад:
+    // renderSchedule(data); 
+    // displaySchedule(data);
+    
+    // АБО просто замінити глобальну змінну, якщо вона в тебе є.
+} else {
+    // Якщо немає - вантажимо стандартний JSON
+    fetch('schedule.json')...
+}
         const response = await fetch('./schedule.json');
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         scheduleData = await response.json();
@@ -1053,3 +1069,4 @@ window.addEventListener('load', () => {
         });
     }
 });
+
