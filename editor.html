@@ -25,10 +25,10 @@
 
     <main class="wizard-container">
         <div class="wizard-progress">
-            <div class="step-indicator active" onclick="wizard.goTo(1)" data-step="1">1. Налаштування</div>
-            <div class="step-indicator" onclick="wizard.goTo(2)" data-step="2">2. Предмети</div>
-            <div class="step-indicator" onclick="wizard.goTo(3)" data-step="3">3. Структура</div>
-            <div class="step-indicator" onclick="wizard.goTo(4)" data-step="4">4. Наповнення</div>
+            <div class="step-indicator active" id="navStep1" data-step="1">1. Налаштування</div>
+            <div class="step-indicator" id="navStep2" data-step="2">2. Предмети</div>
+            <div class="step-indicator" id="navStep3" data-step="3">3. Структура</div>
+            <div class="step-indicator" id="navStep4" data-step="4">4. Наповнення</div>
         </div>
 
         <section id="step-1" class="wizard-step active">
@@ -55,12 +55,15 @@
                     <label><input type="radio" name="currentWeekType" value="num" checked> Чисельник</label>
                     <label><input type="radio" name="currentWeekType" value="den"> Знаменник</label>
                 </div>
+                <small style="display:block; margin-top:5px; color:#666;">Потрібно для синхронізації календаря.</small>
             </div>
 
             <h3>Час дзвінків</h3>
             <div id="timeSettings" class="time-grid"></div>
+            
             <div class="step-footer">
-                <div></div> <button class="btn btn-primary" onclick="wizard.next()">Далі &rarr;</button>
+                <div></div>
+                <button class="btn btn-primary" id="btnNext1">Далі &rarr;</button>
             </div>
         </section>
 
@@ -68,55 +71,93 @@
             <h2>📚 Предмети</h2>
             <div class="add-subject-box">
                 <div class="input-row">
-                    <input type="text" id="subjName" placeholder="Назва предмету (напр. Фізика)" style="flex: 2;">
-                    <input type="text" id="subjTeacher" placeholder="Викладач (Рибчинський Н.О.)" style="flex: 1;">
-                    <input type="text" id="subjRoom" placeholder="Ауд. (713 V)" style="flex: 0.5;">
+                    <input type="text" id="subjName" placeholder="Назва предмету (напр. Вища математика)" style="width: 100%; font-weight: bold;">
                 </div>
-                <div class="checkbox-row">
+                
+                <div class="checkbox-row" style="margin: 15px 0;">
+                    <span style="font-weight:600; font-size:0.9rem; margin-right:10px;">Типи занять:</span>
                     <div class="checkbox-group">
-                        <label><input type="checkbox" class="type-check" value="lecture" checked> Лек</label>
-                        <label><input type="checkbox" class="type-check" value="practical"> Прак</label>
-                        <label><input type="checkbox" class="type-check" value="lab"> Лаб</label>
+                        <label><input type="checkbox" class="type-check" value="lecture" checked> Лекція</label>
+                        <label><input type="checkbox" class="type-check" value="practical"> Практика</label>
+                        <label><input type="checkbox" class="type-check" value="lab"> Лабораторна</label>
                     </div>
-                    <button id="addSubjectBtn" class="btn btn-primary">Додати</button>
+                </div>
+
+                <div id="typeDetailsContainer"></div>
+
+                <div style="text-align: right; margin-top: 15px;">
+                    <button id="addSubjectBtn" class="btn btn-primary">Додати предмет</button>
                 </div>
             </div>
+
             <div id="subjectsList" class="subjects-list"></div>
+            
             <div class="step-footer">
-                <button class="btn btn-outline" onclick="wizard.prev()">&larr; Назад</button>
-                <button class="btn btn-primary" onclick="wizard.next()">Далі &rarr;</button>
+                <button class="btn btn-outline" id="btnPrev2">&larr; Назад</button>
+                <button class="btn btn-primary" id="btnNext2">Далі &rarr;</button>
             </div>
         </section>
 
         <section id="step-3" class="wizard-step">
             <h2>📐 Структура</h2>
-            <p class="hint">Клікай на клітинки для поділу.</p>
+            <p class="hint">Клікай на клітинки для поділу (Чис/Знам/Підгрупи).</p>
             <div class="schedule-grid-container" id="structureGrid"></div>
+            
             <div class="step-footer">
-                <button class="btn btn-outline" onclick="wizard.prev()">&larr; Назад</button>
-                <button class="btn btn-primary" onclick="wizard.next()">Далі &rarr;</button>
+                <button class="btn btn-outline" id="btnPrev3">&larr; Назад</button>
+                <button class="btn btn-primary" id="btnNext3">Далі &rarr;</button>
             </div>
         </section>
 
         <section id="step-4" class="wizard-step">
             <h2>🎨 Наповнення</h2>
-            <p class="hint">Перетягуй предмети.</p>
+            <p class="hint">Перетягуй предмети зліва у сітку.</p>
             <div class="editor-layout">
                 <div id="draggableSubjects" class="sidebar"></div>
                 <div class="schedule-grid-container" id="fillGrid"></div>
             </div>
+            
             <div class="step-footer">
-                <button class="btn btn-outline" onclick="wizard.prev()">&larr; Назад</button>
+                <button class="btn btn-outline" id="btnPrev4">&larr; Назад</button>
                 <button class="btn btn-success" id="saveResultBtn">💾 ЗБЕРЕГТИ</button>
             </div>
         </section>
     </main>
 
-    <div id="gridRadialMenu" class="radial-menu hidden">
-        <div class="radial-btn top" data-action="split-vertical">⬆</div>
-        <div class="radial-btn right" data-action="split-horizontal">➡</div>
-        <div class="radial-btn bottom" data-action="clear">🗑</div>
+    <div id="dropModal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="modalSubjectTitle">Назва предмету</h3>
+                <p>Налаштуйте деталі для цієї пари</p>
+            </div>
+            
+            <div class="form-label">Тип заняття:</div>
+            <div id="modalTypeSelector" class="type-selector"></div>
+
+            <div class="modal-inputs">
+                <div class="input-group">
+                    <label>👤 Викладач:</label>
+                    <input type="text" id="modalDropTeacher" placeholder="Прізвище І.Б.">
+                </div>
+                <div class="input-group">
+                    <label>🚪 Аудиторія:</label>
+                    <input type="text" id="modalDropRoom" placeholder="Номер аудиторії">
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-outline" id="btnCancelDrop">Скасувати</button>
+                <button class="btn btn-primary" id="btnConfirmDrop">Зберегти</button>
+            </div>
+        </div>
     </div>
+
+    <div id="gridRadialMenu" class="radial-menu hidden">
+        <div class="radial-btn top" data-action="split-vertical" title="Чис/Знам">⬆</div>
+        <div class="radial-btn right" data-action="split-horizontal" title="Підгрупи">➡</div>
+        <div class="radial-btn bottom" data-action="clear" title="Очистити">🗑</div>
+    </div>
+    
     <div id="dragGhost" class="drag-ghost hidden">Ghost</div>
 
     <script src="editor.js"></script>
