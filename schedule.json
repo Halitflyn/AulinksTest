@@ -8,8 +8,8 @@
       "lessons": [
         {
           "number": 1,
-          "time": "08:00 – 09:20",
-          "subject": "Фізичне виховання, частина 2 Практична",
+          "time": "08:30 – 09:50",
+          "subject": "",
           "type": "practical",
           "teacher": "",
           "room": "",
@@ -19,7 +19,7 @@
         {
           "number": 2,
           "time": "10:05 – 11:25",
-          "subject": "Історія державності та культури України Рибчинський Н.О., 713 V н.к., Практична",
+          "subject": "",
           "type": "practical",
           "teacher": "",
           "room": "",
@@ -27,18 +27,18 @@
           "subgroups": [
             {
               "group": "sub2",
-              "weeks": "den",
-              "subject": "Електротехніка в інформаційно-вимірювальних технологіях Ліхновський І.С., 705г V н.к., Лабораторна",
+              "subject": "",
               "teacher": "",
               "room": "",
-              "type": "practical"
+              "type": "practical",
+              "weeks": "den"
             }
           ]
         },
         {
           "number": 3,
           "time": "11:40 – 13:00",
-          "subject": "Електротехніка в інформаційно-вимірювальних технологіях Гамула П.Р., 713 V н.к., Лекція",
+          "subject": "",
           "type": "practical",
           "teacher": "",
           "room": "",
@@ -48,7 +48,7 @@
         {
           "number": 4,
           "time": "13:15 – 14:35",
-          "subject": "Електротехніка в інформаційно-вимірювальних технологіях Рендзіняк С.Й., 111 Гол. н.к., Лабораторна",
+          "subject": "",
           "type": "practical",
           "teacher": "",
           "room": "",
@@ -71,26 +71,26 @@
           "subgroups": [
             {
               "group": "sub2",
-              "weeks": "all",
-              "subject": "Іноземна мова за професійним спрямуванням, частина 2 Вислободська І.М., 404 I н.к., Практична",
+              "subject": "",
               "teacher": "",
               "room": "",
-              "type": "practical"
+              "type": "practical",
+              "weeks": "all"
             },
             {
               "group": "sub1",
-              "weeks": "all",
-              "subject": "Іноземна мова за професійним спрямуванням, частина 2 Колесник Г.О., 111 IV н.к., Практична",
+              "subject": "",
               "teacher": "",
               "room": "",
-              "type": "practical"
+              "type": "practical",
+              "weeks": "all"
             }
           ]
         },
         {
           "number": 2,
           "time": "10:05 – 11:25",
-          "subject": "Обчислювальна техніка та програмування Ментинський С.М., 713 V н.к., Лекція",
+          "subject": "",
           "type": "practical",
           "teacher": "",
           "room": "",
@@ -105,7 +105,7 @@
         {
           "number": 1,
           "time": "08:30 – 09:50",
-          "subject": "Електротехніка в інформаційно-вимірювальних технологіях Рендзіняк С.Й., 114 Гол. н.к., Лекція",
+          "subject": "",
           "type": "practical",
           "teacher": "",
           "room": "",
@@ -115,7 +115,7 @@
         {
           "number": 2,
           "time": "10:05 – 11:25",
-          "subject": "Фізика, частина 2 Товстюк Н.К., 124 Гол. н.к., Лекція",
+          "subject": "",
           "type": "practical",
           "teacher": "",
           "room": "",
@@ -125,7 +125,7 @@
         {
           "number": 3,
           "time": "11:40 – 13:00",
-          "subject": "Фізика, частина 2 Товстюк Н.К., 124 Гол. н.к., Практична",
+          "subject": "",
           "type": "practical",
           "teacher": "",
           "room": "",
@@ -143,19 +143,19 @@
           "subgroups": [
             {
               "group": "sub2",
-              "weeks": "all",
-              "subject": "Обчислювальна техніка та програмування Прикарпатський А.К., 409 XXVIII н.к., Лабораторна",
+              "subject": "",
               "teacher": "",
               "room": "",
-              "type": "practical"
+              "type": "practical",
+              "weeks": "all"
             },
             {
               "group": "sub1",
-              "weeks": "all",
-              "subject": "Обчислювальна техніка та програмування Ментинський С.М., 402 XXVIII н.к., Лабораторна",
+              "subject": "",
               "teacher": "",
               "room": "",
-              "type": "practical"
+              "type": "practical",
+              "weeks": "all"
             }
           ]
         }
@@ -167,7 +167,7 @@
         {
           "number": 1,
           "time": "08:30 – 09:50",
-          "subject": "Вища математика, частина 2 Кунинець А.В., 411 I н.к., Лекція",
+          "subject": "",
           "type": "practical",
           "teacher": "",
           "room": "",
@@ -177,7 +177,7 @@
         {
           "number": 2,
           "time": "10:05 – 11:25",
-          "subject": "Вища математика, частина 2 Кунинець А.В., 404 I н.к., Практична",
+          "subject": "",
           "type": "practical",
           "teacher": "",
           "room": "",
@@ -195,11 +195,11 @@
           "subgroups": [
             {
               "group": "sub1",
-              "weeks": "num",
-              "subject": "Електротехніка в інформаційно-вимірювальних технологіях Ліхновський І.С., 705г V н.к., Лабораторна",
+              "subject": "",
               "teacher": "",
               "room": "",
-              "type": "practical"
+              "type": "practical",
+              "weeks": "num"
             }
           ]
         }
@@ -211,7 +211,7 @@
         {
           "number": 1,
           "time": "08:30 – 09:50",
-          "subject": "Історія державності та культури України Стасюк І.М., 411 I н.к., Лекція",
+          "subject": "",
           "type": "practical",
           "teacher": "",
           "room": "",
@@ -221,7 +221,7 @@
         {
           "number": 2,
           "time": "10:05 – 11:25",
-          "subject": "Електротехніка в інформаційно-вимірювальних технологіях Гамула П.Р., 713 V н.к., Практична",
+          "subject": "",
           "type": "practical",
           "teacher": "",
           "room": "",
@@ -239,19 +239,19 @@
           "subgroups": [
             {
               "group": "sub1",
-              "weeks": "all",
-              "subject": "Фізика, частина 2 Біленька О.Б., ел.2лаб Гол. н.к., опт.2лаб Гол. н.к., Лабораторна",
+              "subject": "",
               "teacher": "",
               "room": "",
-              "type": "practical"
+              "type": "practical",
+              "weeks": "all"
             },
             {
               "group": "sub2",
-              "weeks": "all",
-              "subject": "Фізика, частина 2 Чекайло М.В., ел.2лаб Гол. н.к., опт.2лаб Гол. н.к., Лабораторна",
+              "subject": "",
               "teacher": "",
               "room": "",
-              "type": "practical"
+              "type": "practical",
+              "weeks": "all"
             }
           ]
         }
@@ -259,4 +259,3 @@
     }
   }
 }
-
