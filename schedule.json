@@ -1,6 +1,6 @@
 {
   "group": "ІВ-12",
-  "semester": "2 семестр 2025/2026 навчальний рік",
+  "semester": "2025/2026 навчальний рік весняний семестр",
   "startDate": "2026-02-10",
   "schedule": {
     "monday": {
@@ -26,20 +26,20 @@
           "weeks": "all",
           "subgroups": [
             {
-              "group": "all",
-              "subject": "Історія державності та культури України",
-              "teacher": "Рибчинський Н.О.",
-              "room": "713 V н.к.",
-              "type": "practical",
-              "weeks": "num"
+              "group": "sub2",
+              "weeks": "den",
+              "subject": "Електротехніка в інформаційно-вимірювальних технологіях",
+              "type": "lab",
+              "teacher": "Ліхновський І.С.",
+              "room": "705г V н.к."
             },
             {
-              "group": "sub2",
-              "subject": "Електротехніка в інформаційно-вимірювальних технологіях",
-              "teacher": "Ліхновський І.С.",
-              "room": "705г V н.к.",
-              "type": "lab",
-              "weeks": "den"
+              "group": "all",
+              "weeks": "num",
+              "subject": "Історія державності та культури України",
+              "type": "practical",
+              "teacher": "Рибчинський Н.О.",
+              "room": "713 V н.к."
             }
           ]
         },
@@ -56,12 +56,21 @@
         {
           "number": 4,
           "time": "13:15 – 14:35",
-          "subject": "Електротехніка в інформаційно-вимірювальних технологіях",
-          "type": "lab",
-          "teacher": "Рендзіняк С.Й.",
+          "subject": "",
+          "type": "mixed",
+          "teacher": "",
           "room": "",
-          "weeks": "den",
-          "subgroups": []
+          "weeks": "all",
+          "subgroups": [
+            {
+              "group": "all",
+              "weeks": "den",
+              "subject": "Електротехніка в інформаційно-вимірювальних технологіях",
+              "type": "lab",
+              "teacher": "Рендзіняк С.Й.",
+              "room": "111 Гол. н.к."
+            }
+          ]
         },
         {
           "number": 5,
@@ -76,6 +85,26 @@
         {
           "number": 6,
           "time": "16:25 – 17:45",
+          "subject": "",
+          "type": "empty",
+          "teacher": "",
+          "room": "",
+          "weeks": "all",
+          "subgroups": []
+        },
+        {
+          "number": 7,
+          "time": "18:00 – 19:20",
+          "subject": "",
+          "type": "empty",
+          "teacher": "",
+          "room": "",
+          "weeks": "all",
+          "subgroups": []
+        },
+        {
+          "number": 8,
+          "time": "19:35 – 21:00",
           "subject": "",
           "type": "empty",
           "teacher": "",
@@ -99,19 +128,19 @@
           "subgroups": [
             {
               "group": "sub2",
+              "weeks": "all",
               "subject": "Іноземна мова за професійним спрямуванням, частина 2",
-              "teacher": "Вислободська І.М.",
-              "room": "404 I н.к.",
               "type": "practical",
-              "weeks": "all"
+              "teacher": "Вислободська І.М.",
+              "room": "404 I н.к."
             },
             {
               "group": "sub1",
+              "weeks": "all",
               "subject": "Іноземна мова за професійним спрямуванням, частина 2",
-              "teacher": "Колесник Г.О.",
-              "room": "111 IV н.к.",
               "type": "practical",
-              "weeks": "all"
+              "teacher": "Колесник Г.О.",
+              "room": "111 IV н.к."
             }
           ]
         },
@@ -164,6 +193,26 @@
           "room": "",
           "weeks": "all",
           "subgroups": []
+        },
+        {
+          "number": 7,
+          "time": "18:00 – 19:20",
+          "subject": "",
+          "type": "empty",
+          "teacher": "",
+          "room": "",
+          "weeks": "all",
+          "subgroups": []
+        },
+        {
+          "number": 8,
+          "time": "19:35 – 21:00",
+          "subject": "",
+          "type": "empty",
+          "teacher": "",
+          "room": "",
+          "weeks": "all",
+          "subgroups": []
         }
       ]
     },
@@ -173,12 +222,21 @@
         {
           "number": 1,
           "time": "08:30 – 09:50",
-          "subject": "Електротехніка в інформаційно-вимірювальних технологіях",
-          "type": "lecture",
-          "teacher": "Рендзіняк С.Й.",
+          "subject": "",
+          "type": "mixed",
+          "teacher": "",
           "room": "",
-          "weeks": "num",
-          "subgroups": []
+          "weeks": "all",
+          "subgroups": [
+            {
+              "group": "all",
+              "weeks": "num",
+              "subject": "Електротехніка в інформаційно-вимірювальних технологіях",
+              "type": "lecture",
+              "teacher": "Рендзіняк С.Й.",
+              "room": "114 Гол. н.к."
+            }
+          ]
         },
         {
           "number": 2,
@@ -186,7 +244,7 @@
           "subject": "Фізика, частина 2",
           "type": "lecture",
           "teacher": "Товстюк Н.К.",
-          "room": "",
+          "room": "124 Гол. н.к.",
           "weeks": "all",
           "subgroups": []
         },
@@ -195,25 +253,25 @@
           "time": "11:40 – 13:00",
           "subject": "",
           "type": "mixed",
-          "teacher": "Рендзіняк С.Й.",
-          "room": "713 V н.к.",
-          "weeks": "num",
+          "teacher": "",
+          "room": "",
+          "weeks": "all",
           "subgroups": [
             {
               "group": "all",
+              "weeks": "num",
               "subject": "Електротехніка в інформаційно-вимірювальних технологіях",
-              "teacher": "Рендзіняк С.Й.",
-              "room": "713 V н.к.",
               "type": "practical",
-              "weeks": "num"
+              "teacher": "Рендзіняк С.Й.",
+              "room": "713 V н.к."
             },
             {
               "group": "all",
+              "weeks": "den",
               "subject": "Фізика, частина 2",
-              "teacher": "Товстюк Н.К.",
-              "room": "",
               "type": "practical",
-              "weeks": "den"
+              "teacher": "Товстюк Н.К.",
+              "room": "124 Гол. н.к."
             }
           ]
         },
@@ -228,19 +286,19 @@
           "subgroups": [
             {
               "group": "sub2",
+              "weeks": "all",
               "subject": "Обчислювальна техніка та програмування",
-              "teacher": "Прикарпатський А.К.",
-              "room": "409 XXVIII н.к.",
               "type": "lab",
-              "weeks": "all"
+              "teacher": "Прикарпатський А.К.",
+              "room": "409 XXVIII н.к."
             },
             {
               "group": "sub1",
+              "weeks": "all",
               "subject": "Обчислювальна техніка та програмування",
-              "teacher": "Ментинський С.М.",
-              "room": "402 XXVIII н.к.",
               "type": "lab",
-              "weeks": "all"
+              "teacher": "Ментинський С.М.",
+              "room": "402 XXVIII н.к."
             }
           ]
         },
@@ -257,6 +315,26 @@
         {
           "number": 6,
           "time": "16:25 – 17:45",
+          "subject": "",
+          "type": "empty",
+          "teacher": "",
+          "room": "",
+          "weeks": "all",
+          "subgroups": []
+        },
+        {
+          "number": 7,
+          "time": "18:00 – 19:20",
+          "subject": "",
+          "type": "empty",
+          "teacher": "",
+          "room": "",
+          "weeks": "all",
+          "subgroups": []
+        },
+        {
+          "number": 8,
+          "time": "19:35 – 21:00",
           "subject": "",
           "type": "empty",
           "teacher": "",
@@ -300,11 +378,11 @@
           "subgroups": [
             {
               "group": "sub1",
+              "weeks": "num",
               "subject": "Електротехніка в інформаційно-вимірювальних технологіях",
-              "teacher": "Ліхновський І.С.",
-              "room": "705г V н.к.",
               "type": "lab",
-              "weeks": "num"
+              "teacher": "Ліхновський І.С.",
+              "room": "705г V н.к."
             }
           ]
         },
@@ -331,6 +409,26 @@
         {
           "number": 6,
           "time": "16:25 – 17:45",
+          "subject": "",
+          "type": "empty",
+          "teacher": "",
+          "room": "",
+          "weeks": "all",
+          "subgroups": []
+        },
+        {
+          "number": 7,
+          "time": "18:00 – 19:20",
+          "subject": "",
+          "type": "empty",
+          "teacher": "",
+          "room": "",
+          "weeks": "all",
+          "subgroups": []
+        },
+        {
+          "number": 8,
+          "time": "19:35 – 21:00",
           "subject": "",
           "type": "empty",
           "teacher": "",
@@ -356,12 +454,21 @@
         {
           "number": 2,
           "time": "10:05 – 11:25",
-          "subject": "Електротехніка в інформаційно-вимірювальних технологіях",
-          "type": "practical",
-          "teacher": "Гамула П.Р.",
-          "room": "713 V н.к.",
-          "weeks": "den",
-          "subgroups": []
+          "subject": "",
+          "type": "mixed",
+          "teacher": "",
+          "room": "",
+          "weeks": "all",
+          "subgroups": [
+            {
+              "group": "all",
+              "weeks": "den",
+              "subject": "Електротехніка в інформаційно-вимірювальних технологіях",
+              "type": "practical",
+              "teacher": "Гамула П.Р.",
+              "room": "713 V н.к."
+            }
+          ]
         },
         {
           "number": 3,
@@ -374,19 +481,19 @@
           "subgroups": [
             {
               "group": "sub1",
+              "weeks": "all",
               "subject": "Фізика, частина 2",
-              "teacher": "Біленька О.Б.",
-              "room": "2лаб Гол. н.к.",
               "type": "lab",
-              "weeks": "all"
+              "teacher": "Біленька О.Б.",
+              "room": "2лаб Гол. н.к."
             },
             {
               "group": "sub2",
+              "weeks": "all",
               "subject": "Фізика, частина 2",
-              "teacher": "Чекайло М.В.",
-              "room": "2лаб Гол. н.к.",
               "type": "lab",
-              "weeks": "all"
+              "teacher": "Чекайло М.В.",
+              "room": "2лаб Гол. н.к."
             }
           ]
         },
@@ -413,6 +520,26 @@
         {
           "number": 6,
           "time": "16:25 – 17:45",
+          "subject": "",
+          "type": "empty",
+          "teacher": "",
+          "room": "",
+          "weeks": "all",
+          "subgroups": []
+        },
+        {
+          "number": 7,
+          "time": "18:00 – 19:20",
+          "subject": "",
+          "type": "empty",
+          "teacher": "",
+          "room": "",
+          "weeks": "all",
+          "subgroups": []
+        },
+        {
+          "number": 8,
+          "time": "19:35 – 21:00",
           "subject": "",
           "type": "empty",
           "teacher": "",
