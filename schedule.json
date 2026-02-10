@@ -19,12 +19,20 @@
         {
           "number": 2,
           "time": "10:05 – 11:25",
-          "subject": "Історія державності та культури України",
-          "type": "practical",
-          "teacher": "Рибчинський Н.О.",
-          "room": "713 V н.к.",
-          "weeks": "num",
+          "subject": "",
+          "type": "mixed",
+          "teacher": "",
+          "room": "",
+          "weeks": "all",
           "subgroups": [
+            {
+              "group": "all",
+              "subject": "Історія державності та культури України",
+              "teacher": "Рибчинський Н.О.",
+              "room": "713 V н.к.",
+              "type": "practical",
+              "weeks": "num"
+            },
             {
               "group": "sub2",
               "subject": "Електротехніка в інформаційно-вимірювальних технологіях",
@@ -33,8 +41,7 @@
               "type": "lab",
               "weeks": "den"
             }
-          ],
-          "type_old": "practical"
+          ]
         },
         {
           "number": 3,
@@ -54,8 +61,7 @@
           "teacher": "Рендзіняк С.Й.",
           "room": "",
           "weeks": "den",
-          "subgroups": [],
-          "type_old": "lab"
+          "subgroups": []
         },
         {
           "number": 5,
@@ -172,8 +178,7 @@
           "teacher": "Рендзіняк С.Й.",
           "room": "",
           "weeks": "num",
-          "subgroups": [],
-          "type_old": "lecture"
+          "subgroups": []
         },
         {
           "number": 2,
@@ -210,8 +215,7 @@
               "type": "practical",
               "weeks": "den"
             }
-          ],
-          "type_old": "practical"
+          ]
         },
         {
           "number": 4,
@@ -357,8 +361,7 @@
           "teacher": "Гамула П.Р.",
           "room": "713 V н.к.",
           "weeks": "den",
-          "subgroups": [],
-          "type_old": "practical"
+          "subgroups": []
         },
         {
           "number": 3,
