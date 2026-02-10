@@ -71,46 +71,6 @@
               "room": "111 Гол. н.к."
             }
           ]
-        },
-        {
-          "number": 5,
-          "time": "14:50 – 16:10",
-          "subject": "",
-          "type": "empty",
-          "teacher": "",
-          "room": "",
-          "weeks": "all",
-          "subgroups": []
-        },
-        {
-          "number": 6,
-          "time": "16:25 – 17:45",
-          "subject": "",
-          "type": "empty",
-          "teacher": "",
-          "room": "",
-          "weeks": "all",
-          "subgroups": []
-        },
-        {
-          "number": 7,
-          "time": "18:00 – 19:20",
-          "subject": "",
-          "type": "empty",
-          "teacher": "",
-          "room": "",
-          "weeks": "all",
-          "subgroups": []
-        },
-        {
-          "number": 8,
-          "time": "19:35 – 21:00",
-          "subject": "",
-          "type": "empty",
-          "teacher": "",
-          "room": "",
-          "weeks": "all",
-          "subgroups": []
         }
       ]
     },
@@ -151,66 +111,6 @@
           "type": "lecture",
           "teacher": "Ментинський С.М.",
           "room": "713 V н.к.",
-          "weeks": "all",
-          "subgroups": []
-        },
-        {
-          "number": 3,
-          "time": "11:40 – 13:00",
-          "subject": "",
-          "type": "empty",
-          "teacher": "",
-          "room": "",
-          "weeks": "all",
-          "subgroups": []
-        },
-        {
-          "number": 4,
-          "time": "13:15 – 14:35",
-          "subject": "",
-          "type": "empty",
-          "teacher": "",
-          "room": "",
-          "weeks": "all",
-          "subgroups": []
-        },
-        {
-          "number": 5,
-          "time": "14:50 – 16:10",
-          "subject": "",
-          "type": "empty",
-          "teacher": "",
-          "room": "",
-          "weeks": "all",
-          "subgroups": []
-        },
-        {
-          "number": 6,
-          "time": "16:25 – 17:45",
-          "subject": "",
-          "type": "empty",
-          "teacher": "",
-          "room": "",
-          "weeks": "all",
-          "subgroups": []
-        },
-        {
-          "number": 7,
-          "time": "18:00 – 19:20",
-          "subject": "",
-          "type": "empty",
-          "teacher": "",
-          "room": "",
-          "weeks": "all",
-          "subgroups": []
-        },
-        {
-          "number": 8,
-          "time": "19:35 – 21:00",
-          "subject": "",
-          "type": "empty",
-          "teacher": "",
-          "room": "",
           "weeks": "all",
           "subgroups": []
         }
@@ -301,46 +201,6 @@
               "room": "402 XXVIII н.к."
             }
           ]
-        },
-        {
-          "number": 5,
-          "time": "14:50 – 16:10",
-          "subject": "",
-          "type": "empty",
-          "teacher": "",
-          "room": "",
-          "weeks": "all",
-          "subgroups": []
-        },
-        {
-          "number": 6,
-          "time": "16:25 – 17:45",
-          "subject": "",
-          "type": "empty",
-          "teacher": "",
-          "room": "",
-          "weeks": "all",
-          "subgroups": []
-        },
-        {
-          "number": 7,
-          "time": "18:00 – 19:20",
-          "subject": "",
-          "type": "empty",
-          "teacher": "",
-          "room": "",
-          "weeks": "all",
-          "subgroups": []
-        },
-        {
-          "number": 8,
-          "time": "19:35 – 21:00",
-          "subject": "",
-          "type": "empty",
-          "teacher": "",
-          "room": "",
-          "weeks": "all",
-          "subgroups": []
         }
       ]
     },
@@ -385,56 +245,6 @@
               "room": "705г V н.к."
             }
           ]
-        },
-        {
-          "number": 4,
-          "time": "13:15 – 14:35",
-          "subject": "",
-          "type": "empty",
-          "teacher": "",
-          "room": "",
-          "weeks": "all",
-          "subgroups": []
-        },
-        {
-          "number": 5,
-          "time": "14:50 – 16:10",
-          "subject": "",
-          "type": "empty",
-          "teacher": "",
-          "room": "",
-          "weeks": "all",
-          "subgroups": []
-        },
-        {
-          "number": 6,
-          "time": "16:25 – 17:45",
-          "subject": "",
-          "type": "empty",
-          "teacher": "",
-          "room": "",
-          "weeks": "all",
-          "subgroups": []
-        },
-        {
-          "number": 7,
-          "time": "18:00 – 19:20",
-          "subject": "",
-          "type": "empty",
-          "teacher": "",
-          "room": "",
-          "weeks": "all",
-          "subgroups": []
-        },
-        {
-          "number": 8,
-          "time": "19:35 – 21:00",
-          "subject": "",
-          "type": "empty",
-          "teacher": "",
-          "room": "",
-          "weeks": "all",
-          "subgroups": []
         }
       ]
     },
@@ -496,56 +306,6 @@
               "room": "2лаб Гол. н.к."
             }
           ]
-        },
-        {
-          "number": 4,
-          "time": "13:15 – 14:35",
-          "subject": "",
-          "type": "empty",
-          "teacher": "",
-          "room": "",
-          "weeks": "all",
-          "subgroups": []
-        },
-        {
-          "number": 5,
-          "time": "14:50 – 16:10",
-          "subject": "",
-          "type": "empty",
-          "teacher": "",
-          "room": "",
-          "weeks": "all",
-          "subgroups": []
-        },
-        {
-          "number": 6,
-          "time": "16:25 – 17:45",
-          "subject": "",
-          "type": "empty",
-          "teacher": "",
-          "room": "",
-          "weeks": "all",
-          "subgroups": []
-        },
-        {
-          "number": 7,
-          "time": "18:00 – 19:20",
-          "subject": "",
-          "type": "empty",
-          "teacher": "",
-          "room": "",
-          "weeks": "all",
-          "subgroups": []
-        },
-        {
-          "number": 8,
-          "time": "19:35 – 21:00",
-          "subject": "",
-          "type": "empty",
-          "teacher": "",
-          "room": "",
-          "weeks": "all",
-          "subgroups": []
         }
       ]
     }
