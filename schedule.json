@@ -1,207 +1,189 @@
 {
-  "group": "ІВ-22",
-  "semester": "2026 навчальний рік, 1 семестр",
-  "startDate": "2026-04-07",
-  "schedule": {
-    "monday": {
-      "name": "Понеділок",
-      "lessons": [
-        {
-          "number": 2,
-          "time": "10:05 – 11:25",
-          "subject": "Вища математика, частина 3",
-          "type": "lecture",
-          "teacher": "Кунинець А.В.",
-          "room": "411 I н.к.",
-          "weeks": "all",
-          "subgroups": []
+    "group": "ІВ-22",
+    "startDate": "2026-04-01",
+    "schedule": {
+        "monday": {
+            "name": "Понеділок",
+            "lessons": [
+                {
+                    "number": 2,
+                    "time": "10:05 – 11:25",
+                    "subject": "Вища математика, частина 3",
+                    "type": "lecture",
+                    "teacher": "Кунинець А.В.",
+                    "room": "713 V н.к.",
+                    "weeks": "all",
+                    "subgroups": []
+                },
+                {
+                    "number": 3,
+                    "time": "11:40 – 13:00",
+                    "subject": "Аналогова схемотехніка в інформаційно-вимірювальних технологіях",
+                    "type": "lecture",
+                    "teacher": "Рендзіняк С.Й.",
+                    "room": "114 Гол. н.к.",
+                    "weeks": "all",
+                    "subgroups": []
+                },
+                {
+                    "number": 4,
+                    "time": "13:15 – 14:35",
+                    "subject": "Аналогова схемотехніка в інформаційно-вимірювальних технологіях",
+                    "type": "lab",
+                    "teacher": "Рендзіняк С.Й.",
+                    "room": "111 Гол. н.к.",
+                    "weeks": "all",
+                    "subgroups": []
+                },
+                {
+                    "number": 5,
+                    "time": "14:50 – 16:10",
+                    "subject": "Інформаційно-вимірювальні технології, частина 1",
+                    "type": "practical",
+                    "teacher": "Івах Р.М.",
+                    "room": "210 Гол. н.к.",
+                    "weeks": "all",
+                    "subgroups": []
+                }
+            ]
         },
-        {
-          "number": 3,
-          "time": "11:40 – 13:00",
-          "subject": "Аналогова схемотехніка в інформаційно-вимірювальних технологіях",
-          "type": "lecture",
-          "teacher": "Рендзіняк С.Й.",
-          "room": "114 Гол. н.к.",
-          "weeks": "all",
-          "subgroups": []
+        "tuesday": {
+            "name": "Вівторок",
+            "lessons": [
+                {
+                    "number": 5,
+                    "time": "14:50 – 16:10",
+                    "subject": "Аналогова схемотехніка в інформаційно-вимірювальних технологіях",
+                    "type": "lecture",
+                    "teacher": "Рендзіняк С.Й.",
+                    "room": "114 Гол. н.к.",
+                    "weeks": "all",
+                    "subgroups": []
+                }
+            ]
         },
-        {
-          "number": 4,
-          "time": "13:15 – 14:35",
-          "subject": "Аналогова схемотехніка в інформаційно-вимірювальних технологіях",
-          "type": "lab",
-          "teacher": "Рендзіняк С.Й.",
-          "room": "111 Гол. н.к.",
-          "weeks": "all",
-          "subgroups": []
+        "wednesday": {
+            "name": "Середа",
+            "lessons": [
+                {
+                    "number": 1,
+                    "time": "08:30 – 09:50",
+                    "subject": "Іноземна мова за професійним спрямуванням, частина 3",
+                    "type": "practical",
+                    "teacher": "Ільчишин Н.М.",
+                    "room": "018 VII н.к.",
+                    "weeks": "all",
+                    "subgroups": []
+                },
+                {
+                    "number": 2,
+                    "time": "10:05 – 11:25",
+                    "subject": "Інформаційно-вимірювальні технології, частина 1",
+                    "type": "lecture",
+                    "teacher": "Походило Є.В.",
+                    "room": "711 V н.к.",
+                    "weeks": "all",
+                    "subgroups": []
+                },
+                {
+                    "number": 3,
+                    "time": "11:40 – 13:00",
+                    "subject": "Інформаційно-вимірювальні технології, частина 1",
+                    "type": "lecture",
+                    "teacher": "Походило Є.В.",
+                    "room": "711 V н.к.",
+                    "weeks": "all",
+                    "subgroups": []
+                },
+                {
+                    "number": 4,
+                    "time": "13:15 – 14:35",
+                    "subject": "",
+                    "type": "mixed",
+                    "teacher": "",
+                    "room": "",
+                    "weeks": "all",
+                    "subgroups": [
+                        {
+                            "group": "all",
+                            "weeks": "den",
+                            "subject": "Філософія",
+                            "type": "practical",
+                            "teacher": "Мінаков І.В.",
+                            "room": "404 I н.к."
+                        }
+                    ]
+                }
+            ]
         },
-        {
-          "number": 5,
-          "time": "14:50 – 16:10",
-          "subject": "Інформаційно-вимірювальні технології, частина 1",
-          "type": "practical",
-          "teacher": "Івах Р.М.",
-          "room": "210 Гол. н.к.",
-          "weeks": "all",
-          "subgroups": []
+        "thursday": {
+            "name": "Четвер",
+            "lessons": [
+                {
+                    "number": 1,
+                    "time": "08:30 – 09:50",
+                    "subject": "Мікропроцесори, частина 1",
+                    "type": "practical",
+                    "teacher": "Сегеда О.В.",
+                    "room": "702 V н.к.",
+                    "weeks": "all",
+                    "subgroups": []
+                },
+                {
+                    "number": 2,
+                    "time": "10:05 – 11:25",
+                    "subject": "Філософія",
+                    "type": "lecture",
+                    "teacher": "Мінаков І.В.",
+                    "room": "411 I н.к.",
+                    "weeks": "all",
+                    "subgroups": []
+                },
+                {
+                    "number": 3,
+                    "time": "11:40 – 13:00",
+                    "subject": "Вища математика, частина 3",
+                    "type": "practical",
+                    "teacher": "Кунинець А.В.",
+                    "room": "713 V н.к.",
+                    "weeks": "all",
+                    "subgroups": []
+                },
+                {
+                    "number": 4,
+                    "time": "13:15 – 14:35",
+                    "subject": "",
+                    "type": "mixed",
+                    "teacher": "",
+                    "room": "",
+                    "weeks": "all",
+                    "subgroups": [
+                        {
+                            "group": "all",
+                            "weeks": "num",
+                            "subject": "Аналогова схемотехніка в інформаційно-вимірювальних технологіях",
+                            "type": "practical",
+                            "teacher": "Рендзіняк С.Й.",
+                            "room": "511 IV н.к."
+                        }
+                    ]
+                }
+            ]
+        },
+        "friday": {
+            "name": "П’ятниця",
+            "lessons": [
+                {
+                    "number": 3,
+                    "time": "11:40 – 13:00",
+                    "subject": "Мікропроцесори, частина 1",
+                    "type": "lecture",
+                    "teacher": "Сегеда О.В.",
+                    "room": "711 V н.к.",
+                    "weeks": "all",
+                    "subgroups": []
+                }
+            ]
         }
-      ]
-    },
-    "tuesday": {
-      "name": "Вівторок",
-      "lessons": [
-        {
-          "number": 1,
-          "time": "08:30 – 09:50",
-          "subject": "",
-          "type": "mixed",
-          "teacher": "",
-          "room": "",
-          "weeks": "all",
-          "subgroups": [
-            {
-              "group": "all",
-              "weeks": "num",
-              "subject": "Аналогова схемотехніка в інформаційно-вимірювальних технологіях",
-              "type": "lecture",
-              "teacher": "Рендзіняк С.Й.",
-              "room": "114 Гол. н.к."
-            }
-          ]
-        },
-        {
-          "number": 2,
-          "time": "10:05 – 11:25",
-          "subject": "",
-          "type": "mixed",
-          "teacher": "",
-          "room": "",
-          "weeks": "all",
-          "subgroups": [
-            {
-              "group": "all",
-              "weeks": "num",
-              "subject": "Аналогова схемотехніка в інформаційно-вимірювальних технологіях",
-              "type": "practical",
-              "teacher": "Рендзіняк С.Й.",
-              "room": "114 Гол. н.к."
-            },
-            {
-              "group": "all",
-              "weeks": "den",
-              "subject": "Аналогова схемотехніка в інформаційно-вимірювальних технологіях",
-              "type": "lecture",
-              "teacher": "Рендзіняк С.Й.",
-              "room": "114 Гол. н.к."
-            }
-          ]
-        }
-      ]
-    },
-    "wednesday": {
-      "name": "Середа",
-      "lessons": [
-        {
-          "number": 1,
-          "time": "08:30 – 09:50",
-          "subject": "Іноземна мова за професійним спрямуванням, частина 3",
-          "type": "practical",
-          "teacher": "Ільчишин Н.М.",
-          "room": "018 VII н.к.",
-          "weeks": "all",
-          "subgroups": []
-        },
-        {
-          "number": 2,
-          "time": "10:05 – 11:25",
-          "subject": "Інформаційно-вимірювальні технології, частина 1",
-          "type": "lecture",
-          "teacher": "Походило Є.В.",
-          "room": "711 V н.к.",
-          "weeks": "all",
-          "subgroups": []
-        },
-        {
-          "number": 3,
-          "time": "11:40 – 13:00",
-          "subject": "Інформаційно-вимірювальні технології, частина 1",
-          "type": "lecture",
-          "teacher": "Походило Є.В.",
-          "room": "711 V н.к.",
-          "weeks": "all",
-          "subgroups": []
-        },
-        {
-          "number": 4,
-          "time": "13:15 – 14:35",
-          "subject": "",
-          "type": "mixed",
-          "teacher": "",
-          "room": "",
-          "weeks": "all",
-          "subgroups": [
-            {
-              "group": "all",
-              "weeks": "den",
-              "subject": "Філософія",
-              "type": "practical",
-              "teacher": "Мінаков І.В.",
-              "room": "404 I н.к."
-            }
-          ]
-        }
-      ]
-    },
-    "thursday": {
-      "name": "Четвер",
-      "lessons": [
-        {
-          "number": 2,
-          "time": "10:05 – 11:25",
-          "subject": "Філософія",
-          "type": "lecture",
-          "teacher": "Мінаков І.В.",
-          "room": "411 I н.к.",
-          "weeks": "all",
-          "subgroups": []
-        },
-        {
-          "number": 3,
-          "time": "11:40 – 13:00",
-          "subject": "Вища математика, частина 3",
-          "type": "practical",
-          "teacher": "Кунинець А.В.",
-          "room": "711 V н.к.",
-          "weeks": "all",
-          "subgroups": []
-        },
-        {
-          "number": 4,
-          "time": "13:15 – 14:35",
-          "subject": "Мікропроцесори, частина 1",
-          "type": "practical",
-          "teacher": "Сегеда О.В.",
-          "room": "702 V н.к.",
-          "weeks": "all",
-          "subgroups": []
-        }
-      ]
-    },
-    "friday": {
-      "name": "П’ятниця",
-      "lessons": [
-        {
-          "number": 3,
-          "time": "11:40 – 13:00",
-          "subject": "Мікропроцесори, частина 1",
-          "type": "lecture",
-          "teacher": "Сегеда О.В.",
-          "room": "711 V н.к.",
-          "weeks": "all",
-          "subgroups": []
-        }
-      ]
     }
-  }
 }
