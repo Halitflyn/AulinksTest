@@ -1481,3 +1481,110 @@ body.dark-mode .card.upcoming-lesson {
     max-width: 100%;
   }
 }
+/* Модальне вікно оновлення розкладу */
+.update-modal-backdrop {
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.update-modal-card {
+  background: #16161a;
+  border: 1px solid #3b82f6;
+  border-radius: 16px;
+  max-width: 420px;
+  width: 100%;
+  padding: 20px;
+  color: #f1f5f9;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
+  animation: modalFadeIn 0.25s ease-out;
+}
+
+@keyframes modalFadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.update-modal-badge {
+  background: #3b82f6;
+  color: white;
+  font-size: 11px;
+  font-weight: bold;
+  padding: 3px 8px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  display: inline-block;
+  margin-bottom: 6px;
+}
+
+.update-modal-header h3 {
+  margin: 0 0 10px 0;
+  font-size: 18px;
+  color: #fff;
+}
+
+.update-diff-box {
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 12px;
+  font-family: monospace;
+  font-size: 13px;
+  color: #38bdf8;
+  white-space: pre-wrap;
+  margin: 10px 0;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.update-prompt {
+  font-size: 13px;
+  color: #94a3b8;
+  margin-bottom: 16px;
+}
+
+.update-modal-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-update-confirm {
+  flex: 1.2;
+  background: #22c55e;
+  color: white;
+  border: none;
+  padding: 12px;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 14px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.btn-update-confirm:active { opacity: 0.8; }
+
+.btn-update-later {
+  flex: 0.8;
+  background: #334155;
+  color: #94a3b8;
+  border: none;
+  padding: 12px;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 13px;
+  cursor: not-allowed;
+  transition: all 0.2s;
+}
+
+.btn-update-later.active {
+  background: #ef4444;
+  color: white;
+  cursor: pointer;
+}
