@@ -1054,55 +1054,53 @@ window.addEventListener('load', () => {
     }
 });
 // ========================================================
-// СИСТЕМА ПЕРЕВІРКИ ОНОВЛЕНЬ РОЗКЛАДУ (ДЛЯ GITHUB LIVE)
+// РОЗУМНА СИСТЕМА ОНОВЛЕНЬ (З ПІДТРИМКОЮ КАСТОМНОГО РОЗКЛАДУ)
 // ========================================================
 
 function isUserHavingCustomSchedule() {
-  // Перевірка наявності власного розкладу користувача
   return localStorage.getItem('is_custom_schedule') === 'true' || 
          localStorage.getItem('aulinks_custom_mode') === 'true' ||
          localStorage.getItem('custom_schedule') !== null;
 }
 
 async function checkScheduleLiveUpdate() {
-  // 🛑 1. Якщо у користувача кастомний розклад — сповіщення блокується
-  if (isUserHavingCustomSchedule()) {
-    console.log("ℹ️ Увімкнено кастомний розклад. Автооновлення з GitHub відхилено.");
-    return;
-  }
-
-  // 🛑 2. Якщо користувач вимкнув сповіщення в налаштуваннях сайту
+  // 1. Перевірка, чи не вимкнув користувач сповіщення вручну в налаштуваннях
   if (localStorage.getItem('notify_schedule_updates') === 'false') {
     return;
   }
 
   try {
-    // Звертаємося до version.json без кешу браузера
     const res = await fetch('./live/version.json?t=' + Date.now(), { cache: 'no-store' });
     if (!res.ok) return;
 
     const remoteData = await res.json();
     const remoteVersion = parseInt(remoteData.version, 10);
     const localVersion = parseInt(localStorage.getItem('aulinks_schedule_version') || '1', 10);
+    const dismissedVersion = parseInt(localStorage.getItem('aulinks_dismissed_version') || '0', 10);
 
-    // Якщо на GitHub версія новіша за збережену в браузері
-    if (remoteVersion > localVersion) {
-      showUpdateModal(remoteData, remoteVersion);
+    // Якщо на сервері версія новіша за поточну І користувач ще НЕ відхиляв саме цю версію
+    if (remoteVersion > localVersion && remoteVersion > dismissedVersion) {
+      showUpdateModal(remoteData, remoteVersion, isUserHavingCustomSchedule());
     }
   } catch (err) {
-    // Офлайн або помилка мережі — тихо ігноруємо
-    console.log("Офлайн: перевірку версії пропущено.");
+    console.log("Офлайн або помилка мережі: перевірку оновлення відкладено.");
   }
 }
 
-// Модальне вікно сповіщення
-function showUpdateModal(data, newVersion) {
-  // Видаляємо старе вікно, якщо воно вже існує
+function showUpdateModal(data, newVersion, hasCustom) {
   const oldModal = document.getElementById('schedule-update-modal');
   if (oldModal) oldModal.remove();
 
   const modal = document.createElement('div');
   modal.id = 'schedule-update-modal';
+  
+  // Якщо є кастомний розклад — додаємо попередження
+  const customWarning = hasCustom 
+    ? `<div style="background:#451a03; border:1px solid #f59e0b; color:#fbbf24; padding:8px 10px; border-radius:8px; font-size:12px; margin-bottom:10px;">
+        ⚠️ <b>Увага:</b> у вас налаштовано власний розклад. При оновленні ваші зміни будуть збережені в резервну копію.
+       </div>` 
+    : '';
+
   modal.innerHTML = `
     <div class="update-modal-backdrop">
       <div class="update-modal-card">
@@ -1111,35 +1109,36 @@ function showUpdateModal(data, newVersion) {
           <h3>📢 Оновлення розкладу!</h3>
         </div>
         <div class="update-modal-body">
+          ${customWarning}
           <p>На сайті Політехніки знайдено зміни в парах:</p>
           <div class="update-diff-box">${data.diff || 'Оновлено аудиторії та предмети.'}</div>
-          <p class="update-prompt">Застосувати оновлений розклад зараз?</p>
+          <p class="update-prompt">Застосувати оновлення зараз?</p>
         </div>
         <div class="update-modal-actions">
           <button id="btn-accept-update" class="btn-update-confirm">✅ Так, оновити</button>
-          <button id="btn-decline-update" class="btn-update-later" disabled>⏳ Пізніше (5)</button>
+          <button id="btn-decline-update" class="btn-update-later" disabled>⏳ ${hasCustom ? 'Лишити мій' : 'Пізніше'} (5)</button>
         </div>
       </div>
     </div>
   `;
   document.body.appendChild(modal);
 
-  // ⏱ Таймер на 5 секунд для кнопки "Пізніше"
+  // Таймер 5 секунд на кнопку відхилення
   let timeLeft = 5;
   const declineBtn = document.getElementById('btn-decline-update');
   const timerInterval = setInterval(() => {
     timeLeft--;
     if (timeLeft > 0) {
-      declineBtn.innerText = `⏳ Пізніше (${timeLeft})`;
+      declineBtn.innerText = `⏳ ${hasCustom ? 'Лишити мій' : 'Пізніше'} (${timeLeft})`;
     } else {
       clearInterval(timerInterval);
-      declineBtn.innerText = '✕ Пізніше';
+      declineBtn.innerText = hasCustom ? '✕ Лишити мій розклад' : '✕ Пізніше';
       declineBtn.disabled = false;
       declineBtn.classList.add('active');
     }
   }, 1000);
 
-  // Кнопка "Так, оновити"
+  // Кнопка «Так, оновити»
   document.getElementById('btn-accept-update').onclick = async () => {
     clearInterval(timerInterval);
     declineBtn.disabled = true;
@@ -1149,37 +1148,36 @@ function showUpdateModal(data, newVersion) {
       const res = await fetch('./live/schedule_live.json?t=' + Date.now(), { cache: 'no-store' });
       const newSchedule = await res.json();
       
-      // Зберігаємо розклад та оновлений номер версії
+      // Якщо був кастомний розклад — бекапимо його перед заміною
+      const currentSched = localStorage.getItem('aulinks_schedule') || localStorage.getItem('custom_schedule');
+      if (currentSched) {
+        localStorage.setItem('backup_custom_schedule', currentSched);
+      }
+
+      // Зберігаємо свіжий розклад і піднімаємо номер версії
       localStorage.setItem('aulinks_schedule', JSON.stringify(newSchedule));
       localStorage.setItem('aulinks_schedule_version', newVersion.toString());
+      localStorage.removeItem('aulinks_dismissed_version'); // очищаємо пропуски
+
+      // Знімаємо прапорець кастому, бо користувач свідомо обрав новий офіційний
+      localStorage.removeItem('is_custom_schedule');
+      localStorage.removeItem('aulinks_custom_mode');
 
       modal.remove();
-      // Перезавантажуємо сторінку або перемальовуємо інтерфейс
       location.reload();
     } catch (e) {
-      alert("❌ Помилка завантаження розкладу. Спробуйте пізніше.");
+      alert("❌ Помилка завантаження файлу розкладу.");
       modal.remove();
     }
   };
 
-  // Кнопка "Пізніше"
+  // Кнопка «Лишити мій / Пізніше»
   declineBtn.onclick = () => {
     if (declineBtn.disabled) return;
     clearInterval(timerInterval);
+
+    // Запам'ятовуємо, що користувач відхилив саме цю версію
+    localStorage.setItem('aulinks_dismissed_version', newVersion.toString());
     modal.remove();
   };
 }
-
-// Запускаємо перевірку після повного завантаження сторінки
-window.addEventListener('DOMContentLoaded', () => {
-  // 1. Автономне завантаження з localStorage (працює без інтернету миттєво)
-  const savedSchedule = localStorage.getItem('aulinks_schedule');
-  if (savedSchedule) {
-    try {
-      window.currentSchedule = JSON.parse(savedSchedule);
-    } catch (e) {}
-  }
-
-  // 2. Фонова перевірка оновлень на GitHub через 1.5 секунди
-  setTimeout(checkScheduleLiveUpdate, 1500);
-});
