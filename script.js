@@ -138,7 +138,19 @@ async function loadScheduleData() {
         }
     }
     try {
-        const response = await fetch('./schedule.json');
+        // 1. Спочатку перевіряємо, чи є збережений оновлений розклад від бота
+        const savedLive = localStorage.getItem('aulinks_schedule');
+        if (savedLive) {
+            try {
+                scheduleData = JSON.parse(savedLive);
+                return scheduleData;
+            } catch (e) {
+                console.warn('Помилка парсингу локального розкладу, завантажуємо базовий');
+            }
+        }
+
+        // 2. Якщо в пам'яті ще немає — завантажуємо базовий файл
+        const response = await fetch('./schedule.json?t=' + Date.now());
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         scheduleData = await response.json();
         return scheduleData;
@@ -1180,4 +1192,21 @@ function showUpdateModal(data, newVersion, hasCustom) {
     localStorage.setItem('aulinks_dismissed_version', newVersion.toString());
     modal.remove();
   };
+}
+// Кнопка «Лишити мій / Пізніше»
+  declineBtn.onclick = () => {
+    if (declineBtn.disabled) return;
+    clearInterval(timerInterval);
+
+    // Запам'ятовуємо, що користувач відхилив саме цю версію
+    localStorage.setItem('aulinks_dismissed_version', newVersion.toString());
+    modal.remove();
+  };
+} // <--- КІНЕЦЬ showUpdateModal
+
+// 👇 ПРЯМО ПІСЛЯ ЦІЄЇ ДУЖКИ ВСТАВЛЯЄМО ЗАПУСК ПЕРЕВІРКИ:
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => setTimeout(checkScheduleLiveUpdate, 1200));
+} else {
+    setTimeout(checkScheduleLiveUpdate, 1200);
 }
