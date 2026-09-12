@@ -1182,17 +1182,6 @@ function showUpdateModal(data, newVersion, hasCustom) {
       modal.remove();
     }
   };
-
-  // Кнопка «Лишити мій / Пізніше»
-  declineBtn.onclick = () => {
-    if (declineBtn.disabled) return;
-    clearInterval(timerInterval);
-
-    // Запам'ятовуємо, що користувач відхилив саме цю версію
-    localStorage.setItem('aulinks_dismissed_version', newVersion.toString());
-    modal.remove();
-  };
-}
 // Кнопка «Лишити мій / Пізніше»
   declineBtn.onclick = () => {
     if (declineBtn.disabled) return;
@@ -1202,9 +1191,8 @@ function showUpdateModal(data, newVersion, hasCustom) {
     localStorage.setItem('aulinks_dismissed_version', newVersion.toString());
     modal.remove();
   };
-} // <--- КІНЕЦЬ showUpdateModal
+}
 
-// 👇 ПРЯМО ПІСЛЯ ЦІЄЇ ДУЖКИ ВСТАВЛЯЄМО ЗАПУСК ПЕРЕВІРКИ:
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => setTimeout(checkScheduleLiveUpdate, 1200));
 } else {
