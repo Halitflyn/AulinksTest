@@ -1076,7 +1076,6 @@ function isUserHavingCustomSchedule() {
 }
 
 async function checkScheduleLiveUpdate() {
-  // 1. Перевірка, чи не вимкнув користувач сповіщення вручну в налаштуваннях
   if (localStorage.getItem('notify_schedule_updates') === 'false') {
     return;
   }
@@ -1090,7 +1089,6 @@ async function checkScheduleLiveUpdate() {
     const localVersion = parseInt(localStorage.getItem('aulinks_schedule_version') || '1', 10);
     const dismissedVersion = parseInt(localStorage.getItem('aulinks_dismissed_version') || '0', 10);
 
-    // Якщо на сервері версія новіша за поточну І користувач ще НЕ відхиляв саме цю версію
     if (remoteVersion > localVersion && remoteVersion > dismissedVersion) {
       showUpdateModal(remoteData, remoteVersion, isUserHavingCustomSchedule());
     }
@@ -1106,7 +1104,6 @@ function showUpdateModal(data, newVersion, hasCustom) {
   const modal = document.createElement('div');
   modal.id = 'schedule-update-modal';
   
-  // Якщо є кастомний розклад — додаємо попередження
   const customWarning = hasCustom 
     ? `<div style="background:#451a03; border:1px solid #f59e0b; color:#fbbf24; padding:8px 10px; border-radius:8px; font-size:12px; margin-bottom:10px;">
         ⚠️ <b>Увага:</b> у вас налаштовано власний розклад. При оновленні ваші зміни будуть збережені в резервну копію.
@@ -1135,7 +1132,6 @@ function showUpdateModal(data, newVersion, hasCustom) {
   `;
   document.body.appendChild(modal);
 
-  // Таймер 5 секунд на кнопку відхилення
   let timeLeft = 5;
   const declineBtn = document.getElementById('btn-decline-update');
   const timerInterval = setInterval(() => {
@@ -1150,7 +1146,6 @@ function showUpdateModal(data, newVersion, hasCustom) {
     }
   }, 1000);
 
-  // Кнопка «Так, оновити»
   document.getElementById('btn-accept-update').onclick = async () => {
     clearInterval(timerInterval);
     declineBtn.disabled = true;
@@ -1160,18 +1155,15 @@ function showUpdateModal(data, newVersion, hasCustom) {
       const res = await fetch('./live/schedule_live.json?t=' + Date.now(), { cache: 'no-store' });
       const newSchedule = await res.json();
       
-      // Якщо був кастомний розклад — бекапимо його перед заміною
       const currentSched = localStorage.getItem('aulinks_schedule') || localStorage.getItem('custom_schedule');
       if (currentSched) {
         localStorage.setItem('backup_custom_schedule', currentSched);
       }
 
-      // Зберігаємо свіжий розклад і піднімаємо номер версії
       localStorage.setItem('aulinks_schedule', JSON.stringify(newSchedule));
       localStorage.setItem('aulinks_schedule_version', newVersion.toString());
-      localStorage.removeItem('aulinks_dismissed_version'); // очищаємо пропуски
+      localStorage.removeItem('aulinks_dismissed_version');
 
-      // Знімаємо прапорець кастому, бо користувач свідомо обрав новий офіційний
       localStorage.removeItem('is_custom_schedule');
       localStorage.removeItem('aulinks_custom_mode');
 
@@ -1182,12 +1174,11 @@ function showUpdateModal(data, newVersion, hasCustom) {
       modal.remove();
     }
   };
-// Кнопка «Лишити мій / Пізніше»
+
   declineBtn.onclick = () => {
     if (declineBtn.disabled) return;
     clearInterval(timerInterval);
 
-    // Запам'ятовуємо, що користувач відхилив саме цю версію
     localStorage.setItem('aulinks_dismissed_version', newVersion.toString());
     modal.remove();
   };
