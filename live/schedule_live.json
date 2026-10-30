@@ -21,7 +21,7 @@
                     "subject": "Вища математика, частина 3",
                     "type": "lecture",
                     "teacher": "Кунинець А.В.",
-                    "room": "713 V н.к.",
+                    "room": "204 XXXII н.к.",
                     "weeks": "all",
                     "subgroups": []
                 },
@@ -31,7 +31,7 @@
                     "subject": "Аналогова схемотехніка в інформаційно-вимірювальних технологіях",
                     "type": "lecture",
                     "teacher": "Кочан О.В.",
-                    "room": "711 V н.к.",
+                    "room": "114 Гол. н.к.",
                     "weeks": "all",
                     "subgroups": []
                 },
@@ -70,19 +70,28 @@
                     "subject": "Інформаційно-вимірювальні технології, частина 1",
                     "type": "lecture",
                     "teacher": "Походило Є.В.",
-                    "room": "711 V н.к.",
+                    "room": "111 Гол. н.к.",
                     "weeks": "all",
                     "subgroups": []
                 },
                 {
                     "number": 3,
                     "time": "11:40 – 13:00",
-                    "subject": "Інформаційно-вимірювальні технології, частина 1",
-                    "type": "lecture",
-                    "teacher": "Походило Є.В.",
-                    "room": "711 V н.к.",
+                    "subject": "",
+                    "type": "mixed",
+                    "teacher": "",
+                    "room": "",
                     "weeks": "all",
-                    "subgroups": []
+                    "subgroups": [
+                        {
+                            "group": "all",
+                            "weeks": "num",
+                            "subject": "Інформаційно-вимірювальні технології, частина 1",
+                            "type": "lecture",
+                            "teacher": "Походило Є.В.",
+                            "room": "204 XXXII н.к."
+                        }
+                    ]
                 },
                 {
                     "number": 4,
@@ -100,6 +109,25 @@
                             "type": "practical",
                             "teacher": "Мінаков І.В.",
                             "room": "404 I н.к."
+                        }
+                    ]
+                },
+                {
+                    "number": 5,
+                    "time": "14:50 – 16:10",
+                    "subject": "",
+                    "type": "mixed",
+                    "teacher": "",
+                    "room": "",
+                    "weeks": "all",
+                    "subgroups": [
+                        {
+                            "group": "all",
+                            "weeks": "den",
+                            "subject": "Інформаційно-вимірювальні технології, частина 1",
+                            "type": "lecture",
+                            "teacher": "Походило Є.В.",
+                            "room": "217 Гол. н.к."
                         }
                     ]
                 }
@@ -134,7 +162,7 @@
                     "subject": "Вища математика, частина 3",
                     "type": "practical",
                     "teacher": "Кунинець А.В.",
-                    "room": "713 V н.к.",
+                    "room": "406 XXXII н.к.",
                     "weeks": "all",
                     "subgroups": []
                 }
@@ -158,7 +186,7 @@
                             "subject": "Аналогова схемотехніка в інформаційно-вимірювальних технологіях",
                             "type": "practical",
                             "teacher": "Кочан О.В.",
-                            "room": "711 V н.к."
+                            "room": "411 I н.к."
                         }
                     ]
                 },
@@ -168,7 +196,7 @@
                     "subject": "Аналогова схемотехніка в інформаційно-вимірювальних технологіях",
                     "type": "lecture",
                     "teacher": "Кочан О.В.",
-                    "room": "711 V н.к.",
+                    "room": "218 XI н.к.",
                     "weeks": "all",
                     "subgroups": []
                 },
@@ -178,7 +206,7 @@
                     "subject": "Мікропроцесори, частина 1",
                     "type": "lecture",
                     "teacher": "Сегеда О.В.",
-                    "room": "711 V н.к.",
+                    "room": "411 I н.к.",
                     "weeks": "all",
                     "subgroups": []
                 }
